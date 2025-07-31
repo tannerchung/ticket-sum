@@ -1,0 +1,21 @@
+[project]
+name = "repl-nix-workspace"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.11"
+dependencies = [
+    "crewai>=0.152.0",
+    "deepeval>=3.3.3",
+    "kagglehub>=0.3.12",
+    "langchain>=0.3.27",
+    "langchain-openai>=0.3.28",
+    "langsmith>=0.4.9",
+    "openai>=1.98.0",
+    "pandas>=2.3.1",
+    "plotly>=6.2.0",
+    "psycopg2-binary>=2.9.10",
+    "python-dotenv>=1.1.1",
+    "sqlalchemy>=2.0.42",
+    "streamlit>=1.47.1",
+    "tqdm>=4.67.1",
+]
