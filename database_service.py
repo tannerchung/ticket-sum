@@ -188,9 +188,9 @@ class DatabaseService:
                 'total_processed': agent.total_processed,
                 'success_count': agent.success_count,
                 'error_count': agent.error_count,
-                'success_rate': agent.success_count / max(agent.total_processed, 1) * 100,
+                'success_rate': agent.success_count / max(agent.total_processed or 0, 1) * 100,  # type: ignore
                 'average_processing_time': agent.average_processing_time,
-                'last_activity': agent.last_activity.isoformat() if agent.last_activity else None
+                'last_activity': agent.last_activity.isoformat() if agent.last_activity else None  # type: ignore
             }
             
         except Exception as e:
@@ -214,10 +214,10 @@ class DatabaseService:
                     'ticket_id': ticket.ticket_id,
                     'intent': ticket.intent,
                     'severity': ticket.severity,
-                    'summary': ticket.summary[:100] + '...' if ticket.summary and len(ticket.summary) > 100 else ticket.summary,
+                    'summary': ticket.summary[:100] + '...' if ticket.summary and len(ticket.summary) > 100 else ticket.summary,  # type: ignore
                     'status': ticket.processing_status,
-                    'created_at': ticket.created_at.isoformat() if ticket.created_at else None,
-                    'processed_at': ticket.processed_at.isoformat() if ticket.processed_at else None
+                    'created_at': ticket.created_at.isoformat() if ticket.created_at else None,  # type: ignore
+                    'processed_at': ticket.processed_at.isoformat() if ticket.processed_at else None  # type: ignore
                 })
             
             return result
@@ -304,7 +304,7 @@ class DatabaseService:
                     'agent_name': log.agent_name,
                     'status': log.status,
                     'processing_time': log.processing_time,
-                    'created_at': log.created_at.isoformat() if log.created_at else None,
+                    'created_at': log.created_at.isoformat() if log.created_at else None,  # type: ignore
                     'trace_id': log.trace_id,
                     'error_message': log.error_message
                 })
@@ -361,7 +361,7 @@ class DatabaseService:
                 return {"total_collaborations": 0}
             
             total_collaborations = len(metrics)
-            consensus_achieved = sum(1 for m in metrics if m.consensus_reached)
+            consensus_achieved = sum(1 for m in metrics if m.consensus_reached)  # type: ignore
             avg_disagreements = sum(m.disagreement_count for m in metrics) / total_collaborations
             avg_consensus_time = sum(m.consensus_building_duration for m in metrics) / total_collaborations
             avg_agreement_strength = sum(m.overall_agreement_strength for m in metrics) / total_collaborations
@@ -369,8 +369,8 @@ class DatabaseService:
             # Most common conflicts
             all_conflicts = []
             for m in metrics:
-                if m.conflicts_identified:
-                    all_conflicts.extend(m.conflicts_identified)
+                if m.conflicts_identified:  # type: ignore
+                    all_conflicts.extend(m.conflicts_identified)  # type: ignore
             
             conflict_frequency = {}
             for conflict in all_conflicts:
@@ -384,7 +384,7 @@ class DatabaseService:
                 "avg_consensus_building_time": avg_consensus_time,
                 "avg_agreement_strength": avg_agreement_strength,
                 "most_common_conflicts": sorted(conflict_frequency.items(), key=lambda x: x[1], reverse=True)[:5],
-                "total_conflicts_resolved": sum(len(m.conflict_resolution_methods or []) for m in metrics)
+                "total_conflicts_resolved": sum(len(m.conflict_resolution_methods or []) for m in metrics)  # type: ignore
             }
             
         except Exception as e:
