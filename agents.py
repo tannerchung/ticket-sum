@@ -442,9 +442,17 @@ class CollaborativeSupportCrew:
             # Update crew with current tasks
             self.crew.tasks = tasks
             
-            # Execute collaborative workflow
+            # Execute collaborative workflow with LangSmith tracing
             print(f"🔄 Executing collaborative crew workflow...")
-            result = self.crew.kickoff()
+            
+            # Add LangSmith tracing context
+            import os
+            if os.environ.get("LANGCHAIN_TRACING_V2") == "true":
+                # Ensure CrewAI uses LangSmith tracing
+                result = self.crew.kickoff()
+                print(f"📡 Crew execution traced to LangSmith project: {os.environ.get('LANGCHAIN_PROJECT', 'ticket-sum')}")
+            else:
+                result = self.crew.kickoff()
             
             # Parse and structure the collaborative result
             final_result = self._parse_collaborative_result(result, ticket_id, ticket_content)

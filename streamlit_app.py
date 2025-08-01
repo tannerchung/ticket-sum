@@ -173,7 +173,7 @@ def display_agent_monitor():
             """, unsafe_allow_html=True)
 
 def log_langsmith_activity(agent_name, input_data, output_data, metadata=None):
-    """Log LangSmith-style activity for visualization."""
+    """Log LangSmith-style activity for visualization and send to LangSmith."""
     log_entry = {
         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         'agent': agent_name,
@@ -184,7 +184,38 @@ def log_langsmith_activity(agent_name, input_data, output_data, metadata=None):
     }
     st.session_state.langsmith_logs.append(log_entry)
     
-    # Keep only last 50 logs
+    # Send to actual LangSmith if configured
+    try:
+        import os
+        if os.environ.get("LANGCHAIN_TRACING_V2") == "true":
+            from langchain.callbacks import LangChainTracer
+            from langchain.schema import LLMResult, Generation
+            
+            # Create a tracer instance
+            tracer = LangChainTracer()
+            
+            # Create a simple run to log the activity
+            run_id = str(uuid.uuid4())
+            
+            # Log the agent activity as a chain run
+            tracer.on_chain_start(
+                {"name": f"agent_{agent_name}"},
+                inputs=input_data,
+                run_id=run_id,
+                tags=[agent_name, "collaborative_crew"]
+            )
+            
+            tracer.on_chain_end(
+                outputs=output_data,
+                run_id=run_id
+            )
+            
+            print(f"📡 Sent trace to LangSmith for {agent_name}")
+            
+    except Exception as e:
+        print(f"⚠️ Failed to send trace to LangSmith: {e}")
+    
+    # Keep only last 50 logs in session state
     if len(st.session_state.langsmith_logs) > 50:
         st.session_state.langsmith_logs = st.session_state.langsmith_logs[-50:]
 

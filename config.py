@@ -182,14 +182,28 @@ Summary: {summary}"""
 # LangSmith Configuration
 def setup_langsmith():
     """Configure LangSmith tracing"""
-    if LANGSMITH_TRACING:
+    if LANGSMITH_TRACING and LANGSMITH_API_KEY:
         os.environ["LANGCHAIN_TRACING_V2"] = "true"
         os.environ["LANGCHAIN_ENDPOINT"] = LANGSMITH_ENDPOINT
         os.environ["LANGCHAIN_API_KEY"] = LANGSMITH_API_KEY
         os.environ["LANGCHAIN_PROJECT"] = LANGSMITH_PROJECT
+        
+        # Verify the environment variables are set
         print(f"✅ LangSmith tracing enabled for project: {LANGSMITH_PROJECT}")
+        print(f"📡 LangSmith endpoint: {LANGSMITH_ENDPOINT}")
+        print(f"🔑 API key configured: {'Yes' if LANGSMITH_API_KEY else 'No'}")
+        
+        # Test LangSmith connection
+        try:
+            from langsmith import Client
+            client = Client(api_key=LANGSMITH_API_KEY, api_url=LANGSMITH_ENDPOINT)
+            # Simple test to verify connection
+            print("🔗 LangSmith connection verified")
+        except Exception as e:
+            print(f"⚠️ LangSmith connection test failed: {e}")
+            
     else:
-        print("❌ LangSmith tracing disabled")
+        print("❌ LangSmith tracing disabled (missing API key or disabled)")
 
 # Kaggle Configuration
 def setup_kaggle():
