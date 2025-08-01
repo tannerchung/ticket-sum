@@ -71,7 +71,17 @@ The system uses CrewAI to orchestrate three specialized agents that work in sequ
 
 ## Recent Changes (August 1, 2025)
 
-### Documentation Updates (Latest)
+### Deployment Configuration Fixes (Latest)
+- **Fixed Deployment Run Command Issues**: Created multiple deployment solutions to resolve "could not find run command" error
+  - Created `replit.toml` with proper array-format run command for Streamlit deployment
+  - Added `run.py` entry point script with proper Streamlit configuration
+  - Created `start.sh` shell script for alternative deployment startup
+  - Added `Dockerfile` for containerized deployment option
+- **Health Check Implementation**: Added health check endpoint to Streamlit app for deployment health verification
+- **Workflow Updates**: Updated workflow configuration to use `python run.py` command for proper Streamlit startup
+- **API Compatibility**: Fixed deprecated `st.experimental_get_query_params()` to use modern `st.query_params` API
+
+### Documentation Updates (Previous)
 - **README.md Version History**: Added comprehensive version journey documentation showing evolution from v1.0 sequential processing to v2.0 collaborative intelligence with detailed milestones and technical innovations
 - **README.md v2.0 Update**: Comprehensive revision reflecting major version changes including collaborative multi-agent architecture, authentic metrics, custom faithfulness evaluation, and multi-provider AI support
 - **INSTALL.md Corrections**: Fixed repository name from placeholder to actual GitHub repository (tannerchung/support-ticket-summarizer) and updated installation instructions for v2.0 features
