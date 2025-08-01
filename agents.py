@@ -6,6 +6,7 @@ Implements a multi-agent system where agents collaborate and refine each other's
 import json
 import re
 import time
+from threading import Lock
 from typing import Dict, Any, List, Optional
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
@@ -43,6 +44,158 @@ try:
     ANTHROPIC_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ Anthropic integration unavailable: {str(e)}")
+
+
+class AgentTimingTracker:
+    """
+    Tracks processing times for individual agents accurately.
+    
+    This class provides timing infrastructure to capture actual agent processing
+    durations instead of hardcoded 0.0 values, enabling proper performance analytics.
+    """
+    
+    def __init__(self):
+        self.start_times: Dict[str, float] = {}
+        self.durations: Dict[str, float] = {}
+        self.agent_phases: Dict[str, Dict[str, float]] = {}
+        self._lock = Lock()
+    
+    def start_agent_timing(self, agent_name: str, ticket_id: str) -> None:
+        """
+        Start timing for a specific agent.
+        
+        Args:
+            agent_name: Name of the agent (e.g., 'triage_specialist')
+            ticket_id: ID of the ticket being processed
+        """
+        key = f"{ticket_id}_{agent_name}"
+        with self._lock:
+            self.start_times[key] = time.time()
+            print(f"⏱️ Started timing for {agent_name} on ticket {ticket_id}")
+    
+    def end_agent_timing(self, agent_name: str, ticket_id: str, manual_duration: Optional[float] = None) -> float:
+        """
+        End timing and return duration in seconds.
+        
+        Args:
+            agent_name: Name of the agent
+            ticket_id: ID of the ticket being processed
+            manual_duration: Optional manual duration to use instead of calculated
+            
+        Returns:
+            Duration in seconds
+        """
+        key = f"{ticket_id}_{agent_name}"
+        
+        with self._lock:
+            if manual_duration is not None:
+                # Use provided duration (for estimation scenarios)
+                duration = manual_duration
+                self.durations[key] = duration
+                print(f"⏱️ Set manual duration for {agent_name}: {duration:.2f}s")
+            elif key in self.start_times:
+                # Calculate actual duration
+                duration = time.time() - self.start_times[key]
+                self.durations[key] = duration
+                del self.start_times[key]  # Clean up
+                print(f"⏱️ Completed timing for {agent_name}: {duration:.2f}s")
+            else:
+                # Fallback - no start time recorded
+                duration = 0.0
+                self.durations[key] = duration
+                print(f"⚠️ No start time for {agent_name}, using 0.0s")
+        
+        return duration
+    
+    def get_agent_duration(self, agent_name: str, ticket_id: str) -> float:
+        """
+        Get processing duration for agent.
+        
+        Args:
+            agent_name: Name of the agent
+            ticket_id: ID of the ticket being processed
+            
+        Returns:
+            Duration in seconds, or 0.0 if not tracked
+        """
+        key = f"{ticket_id}_{agent_name}"
+        return self.durations.get(key, 0.0)
+    
+    def record_phase_timing(self, agent_name: str, ticket_id: str, phase: str, duration: float) -> None:
+        """
+        Record timing for a specific phase of agent processing.
+        
+        Args:
+            agent_name: Name of the agent
+            ticket_id: ID of the ticket
+            phase: Processing phase (e.g., 'llm_call', 'analysis', 'total')
+            duration: Duration in seconds
+        """
+        key = f"{ticket_id}_{agent_name}"
+        with self._lock:
+            if key not in self.agent_phases:
+                self.agent_phases[key] = {}
+            self.agent_phases[key][phase] = duration
+    
+    def get_all_durations(self, ticket_id: str) -> Dict[str, float]:
+        """
+        Get all agent durations for a ticket.
+        
+        Args:
+            ticket_id: ID of the ticket
+            
+        Returns:
+            Dictionary mapping agent names to durations
+        """
+        result = {}
+        prefix = f"{ticket_id}_"
+        
+        for key, duration in self.durations.items():
+            if key.startswith(prefix):
+                agent_name = key[len(prefix):]
+                result[agent_name] = duration
+        
+        return result
+    
+    def clear_ticket_timing(self, ticket_id: str) -> None:
+        """Clear timing data for a specific ticket."""
+        prefix = f"{ticket_id}_"
+        
+        with self._lock:
+            # Clear durations
+            keys_to_remove = [k for k in self.durations if k.startswith(prefix)]
+            for key in keys_to_remove:
+                del self.durations[key]
+            
+            # Clear start times (in case of incomplete timing)
+            keys_to_remove = [k for k in self.start_times if k.startswith(prefix)]
+            for key in keys_to_remove:
+                del self.start_times[key]
+            
+            # Clear phase data
+            keys_to_remove = [k for k in self.agent_phases if k.startswith(prefix)]
+            for key in keys_to_remove:
+                del self.agent_phases[key]
+    
+    def get_timing_summary(self, ticket_id: str) -> Dict[str, Any]:
+        """
+        Get comprehensive timing summary for a ticket.
+        
+        Returns:
+            Dictionary with timing statistics and breakdown
+        """
+        durations = self.get_all_durations(ticket_id)
+        total_time = sum(durations.values())
+        
+        return {
+            'agent_durations': durations,
+            'total_time': total_time,
+            'average_time': total_time / len(durations) if durations else 0.0,
+            'slowest_agent': max(durations.items(), key=lambda x: x[1]) if durations else None,
+            'fastest_agent': min(durations.items(), key=lambda x: x[1]) if durations else None,
+            'timing_method': 'actual' if any(d > 0 for d in durations.values()) else 'estimated'
+        }
+
 
 class CollaborativeSupportCrew:
     """
@@ -485,147 +638,87 @@ class CollaborativeSupportCrew:
             # Update crew with current tasks
             self.crew.tasks = tasks
             
-            # Execute collaborative workflow with LangSmith tracing
+            # Execute collaborative workflow with proper LangSmith tracing
             print("🔄 Executing collaborative crew workflow...")
             
-            # Add LangSmith tracing context and capture run IDs
-            import os
-            import uuid
-            from langchain.callbacks.base import BaseCallbackHandler
+            # Import the new LangSmith integration
+            from langsmith_integration import (
+                langsmith_context,
+                get_langsmith_handler,
+                get_run_information,
+                clear_run_information,
+                submit_completion_metadata,
+                create_callback_manager
+            )
             
-            langsmith_run_ids = []
+            # Clear any previous run information
+            clear_run_information()
             
-            # Custom callback to capture run IDs and properly close traces
-            class RunIdCapture(BaseCallbackHandler):
-                def __init__(self):
-                    self.run_ids = []
-                    self.active_runs = {}
+            # Execute with proper LangSmith context and callback integration plus timing
+            with langsmith_context(ticket_id):
+                # Set up proper callback manager
+                callback_manager = create_callback_manager()
                 
-                def on_llm_start(self, serialized, prompts, run_id=None, **kwargs):
-                    if run_id:
-                        self.run_ids.append(str(run_id))
-                        self.active_runs[str(run_id)] = {"type": "llm", "status": "started"}
+                # Configure crew with proper callbacks
+                if hasattr(self.crew, 'manager') and hasattr(self.crew.manager, 'callbacks'):
+                    self.crew.manager.callbacks = callback_manager
                 
-                def on_chain_start(self, serialized, inputs, run_id=None, **kwargs):
-                    if run_id:
-                        self.run_ids.append(str(run_id))
-                        self.active_runs[str(run_id)] = {"type": "chain", "status": "started"}
+                # Create timing tracker for manual timing estimation
+                timing_tracker = AgentTimingTracker()
                 
-                def on_llm_end(self, response, run_id=None, **kwargs):
-                    if run_id and str(run_id) in self.active_runs:
-                        self.active_runs[str(run_id)]["status"] = "completed"
+                # Pre-start timing for all agents (will be estimated from total time)
+                agent_names = ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"]
+                for agent_name in agent_names:
+                    timing_tracker.start_agent_timing(agent_name, ticket_id)
                 
-                def on_chain_end(self, outputs, run_id=None, **kwargs):
-                    if run_id and str(run_id) in self.active_runs:
-                        self.active_runs[str(run_id)]["status"] = "completed"
+                # Execute crew workflow with overall timing
+                print("⏱️ Starting timed crew execution...")
+                crew_start_time = time.time()
                 
-                def on_llm_error(self, error, run_id=None, **kwargs):
-                    if run_id and str(run_id) in self.active_runs:
-                        self.active_runs[str(run_id)]["status"] = "error"
-                        self.active_runs[str(run_id)]["error"] = str(error)
-                
-                def on_chain_error(self, error, run_id=None, **kwargs):
-                    if run_id and str(run_id) in self.active_runs:
-                        self.active_runs[str(run_id)]["status"] = "error"
-                        self.active_runs[str(run_id)]["error"] = str(error)
-            
-            if os.environ.get("LANGCHAIN_TRACING_V2") == "true":
-                print(f"🔗 LangSmith tracing active for project: {os.environ.get('LANGCHAIN_PROJECT', 'default')}")
-                
-                try:
-                    # Set up callback to capture run IDs during execution
-                    run_capture = RunIdCapture()
-                    
-                    # Add callback to crew's agents to ensure proper trace completion
-                    for agent in self.crew.agents:
-                        if hasattr(agent, 'llm') and hasattr(agent.llm, 'callbacks'):
-                            if agent.llm.callbacks is None:
-                                agent.llm.callbacks = []
-                            agent.llm.callbacks.append(run_capture)
-                    
-                    # Execute crew with enhanced tracing
-                    result = self.crew.kickoff()
-                    
-                    # Get captured run IDs
-                    langsmith_run_ids = run_capture.run_ids[:4]  # Max 4 for agents
-                    
-                    # Log completion status for debugging
-                    completed_runs = [rid for rid, info in run_capture.active_runs.items() if info.get("status") == "completed"]
-                    print(f"🔗 Completed {len(completed_runs)} traces out of {len(run_capture.active_runs)} total")
-                    
-                    # Submit feedback and metadata to LangSmith
-                    try:
-                        from langsmith import Client
-                        client = Client()
-                        
-                        try:
-                            # Submit metadata for each captured run
-                            for run_id in langsmith_run_ids:
-                                try:
-                                    # Add metadata about the ticket and agent processing
-                                    metadata = {
-                                        "ticket_id": ticket_id,
-                                        "processing_type": "collaborative_multi_agent",
-                                        "agents_involved": ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"],
-                                        "completion_status": "completed",
-                                        "system_version": "v2.0"
-                                    }
-                                    
-                                    # Submit feedback with completion status
-                                    client.create_feedback(
-                                        run_id=run_id,
-                                        key="completion_status",
-                                        score=1.0,
-                                        comment=f"Multi-agent processing completed for ticket {ticket_id}"
-                                    )
-                                    
-                                    # Update run with final metadata
-                                    client.update_run(
-                                        run_id=run_id,
-                                        extra=metadata
-                                    )
-                                    
-                                except Exception as e:
-                                    print(f"Warning: Could not submit feedback for run {run_id}: {e}")
-                            
-                            print(f"📡 Submitted feedback and metadata to LangSmith for {len(langsmith_run_ids)} runs")
-                            
-                        finally:
-                            # Ensure client connections are properly closed
-                            if hasattr(client, 'close'):
-                                client.close()
-                        
-                    except Exception as e:
-                        print(f"Warning: Could not submit LangSmith feedback: {e}")
-                    
-                    # If no run IDs captured, generate tracking IDs
-                    if not langsmith_run_ids:
-                        session_id = str(uuid.uuid4())
-                        for i in range(4):
-                            langsmith_run_ids.append(f"trace_{ticket_id}_{i}_{session_id[:8]}")
-                        print(f"🔗 Generated {len(langsmith_run_ids)} tracking IDs for agent tracing")
-                    else:
-                        print(f"🔗 Captured {len(langsmith_run_ids)} LangSmith run IDs")
-                    
-                    print(f"📡 Crew execution traced to LangSmith project: {os.environ.get('LANGCHAIN_PROJECT', 'default')}")
-                    
-                except Exception as e:
-                    print(f"Warning: LangSmith tracing setup failed: {e}")
-                    result = self.crew.kickoff()
-                    # Generate fallback tracking IDs
-                    session_id = str(uuid.uuid4())
-                    for i in range(4):
-                        langsmith_run_ids.append(f"fallback_{ticket_id}_{i}_{session_id[:8]}")
-            else:
-                print("⚠️ LangSmith tracing not enabled")
                 result = self.crew.kickoff()
-                # Generate local tracking IDs for consistency
-                session_id = str(uuid.uuid4())
-                for i in range(4):
-                    langsmith_run_ids.append(f"local_{ticket_id}_{i}_{session_id[:8]}")
+                
+                crew_end_time = time.time()
+                total_execution_time = crew_end_time - crew_start_time
+                print(f"⏱️ Total crew execution time: {total_execution_time:.2f}s")
+                
+                # Get run information from our callback handler (includes actual LLM timing)
+                run_info = get_run_information()
+                langsmith_run_ids = run_info.get('run_ids', [])
+                handler = get_langsmith_handler()
+                callback_durations = handler.get_agent_durations()
+                
+                print(f"🔗 Captured {len(langsmith_run_ids)} LangSmith run IDs from {len(run_info.get('unique_agents', []))} agents")
+                
+                # Update timing tracker with actual callback durations where available,
+                # or estimate from total time for agents without callback data
+                for agent_name in agent_names:
+                    if agent_name in callback_durations and callback_durations[agent_name] > 0:
+                        # Use actual timing from callbacks
+                        actual_duration = callback_durations[agent_name]
+                        timing_tracker.end_agent_timing(agent_name, ticket_id, actual_duration)
+                        print(f"📊 {agent_name}: {actual_duration:.2f}s (from callbacks)")
+                    else:
+                        # Estimate from total time divided by number of agents
+                        estimated_duration = total_execution_time / len(agent_names)
+                        timing_tracker.end_agent_timing(agent_name, ticket_id, estimated_duration)
+                        print(f"📊 {agent_name}: {estimated_duration:.2f}s (estimated)")
+                
+                # Store timing tracker for use in individual agent log extraction
+                self._current_timing_tracker = timing_tracker
+                
+                # Submit completion metadata to LangSmith
+                if langsmith_run_ids:
+                    completion_metadata = {
+                        "agents_involved": ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"],
+                        "total_activities": run_info.get('total_activities', 0),
+                        "unique_agents": len(run_info.get('unique_agents', []))
+                    }
+                    submit_completion_metadata(ticket_id, completion_metadata)
             
-            # Extract individual agent activities for detailed logging
-            self.individual_agent_logs = self._extract_individual_agent_activities(result, ticket_id, ticket_content, langsmith_run_ids)
+            # Extract individual agent activities from callback handler with timing data
+            self.individual_agent_logs = self._extract_individual_agent_activities_from_handler(
+                result, ticket_id, ticket_content, run_info, getattr(self, '_current_timing_tracker', None)
+            )
             
             # Parse and structure the collaborative result
             final_result = self._parse_collaborative_result(result, ticket_id, ticket_content)
@@ -1005,7 +1098,7 @@ class CollaborativeSupportCrew:
         
         return ' '.join(summary_lines) if summary_lines else "Collaborative analysis summary"
     
-    def _extract_individual_agent_activities(self, crew_result, ticket_id: str, ticket_content: str, langsmith_run_ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    def _extract_individual_agent_activities(self, crew_result, ticket_id: str, ticket_content: str, langsmith_run_ids: Optional[List[str]] = None, timing_tracker: Optional[AgentTimingTracker] = None) -> List[Dict[str, Any]]:
         """Extract individual agent activities from CrewAI execution for detailed logging."""
         individual_logs = []
         
@@ -1054,12 +1147,22 @@ class CollaborativeSupportCrew:
                         if langsmith_run_ids and i < len(langsmith_run_ids):
                             langsmith_run_id = langsmith_run_ids[i]
                         
+                        # Calculate processing time using timing tracker if available
+                        processing_time = 0.0
+                        if timing_tracker:
+                            processing_time = timing_tracker.get_agent_duration(agent_name, ticket_id)
+                            if processing_time > 0:
+                                print(f"📊 Fallback method using timing tracker for {agent_name}: {processing_time:.2f}s")
+                        
+                        if processing_time == 0.0:
+                            print(f"⚠️ Fallback method: No timing data available for {agent_name}, using 0.0s")
+
                         individual_logs.append({
                             'agent_name': agent_name,
                             'input_data': agent_input,
                             'output_data': agent_output,
                             'metadata': agent_metadata,
-                            'processing_time': 0.0,  # CrewAI doesn't expose individual timing
+                            'processing_time': processing_time,
                             'status': 'success',
                             'trace_id': f"{ticket_id}_{agent_name}_{int(time.time())}",
                             'langsmith_run_id': langsmith_run_id
@@ -1069,6 +1172,145 @@ class CollaborativeSupportCrew:
             print(f"Warning: Could not extract individual agent activities: {e}")
             
         return individual_logs
+    
+    def _extract_individual_agent_activities_from_handler(self, crew_result, ticket_id: str, ticket_content: str, run_info: Dict[str, Any], timing_tracker: Optional[AgentTimingTracker] = None) -> List[Dict[str, Any]]:
+        """Extract individual agent activities from LangSmith callback handler."""
+        individual_logs = []
+        
+        try:
+            agent_activities = run_info.get('agent_activities', {})
+            
+            # Process activities by agent
+            for agent_name, activities in agent_activities.items():
+                if not activities:
+                    continue
+                
+                # Find the most relevant activity (usually the last completed one)
+                main_activity = None
+                for activity in reversed(activities):
+                    if activity.get('event_type') in ['agent_end', 'llm_end']:
+                        main_activity = activity
+                        break
+                
+                if not main_activity:
+                    main_activity = activities[-1] if activities else {}
+                
+                # Extract agent input/output from task results if available
+                agent_input = {
+                    'ticket_id': ticket_id,
+                    'ticket_content': ticket_content,
+                    'task_description': f"Collaborative processing task for {agent_name}",
+                    'agent_role': agent_name
+                }
+                
+                # Try to get actual output from crew result
+                agent_output = {'raw_output': 'Processing completed', 'task_completion': 'success'}
+                
+                if hasattr(crew_result, 'tasks_output') and crew_result.tasks_output:
+                    # Map agent names to task indices
+                    agent_indices = {
+                        'triage_specialist': 0,
+                        'ticket_analyst': 1,
+                        'support_strategist': 2,
+                        'qa_reviewer': 3
+                    }
+                    
+                    task_index = agent_indices.get(agent_name)
+                    if task_index is not None and task_index < len(crew_result.tasks_output):
+                        task_output = crew_result.tasks_output[task_index]
+                        agent_output = {
+                            'raw_output': str(task_output.raw) if hasattr(task_output, 'raw') else str(task_output),
+                            'task_completion': 'success' if task_output else 'failed'
+                        }
+                
+                # Get agent model information
+                agent_model = self.agent_models.get(agent_name, 'gpt-4o')
+                model_config = AVAILABLE_MODELS.get(agent_model, {})
+                
+                # Calculate processing time with multiple fallback strategies
+                processing_time = 0.0
+                
+                # Priority 1: Use timing tracker (most accurate - includes both callback and estimation)
+                if timing_tracker:
+                    processing_time = timing_tracker.get_agent_duration(agent_name, ticket_id)
+                    if processing_time > 0:
+                        print(f"📊 Using timing tracker for {agent_name}: {processing_time:.2f}s")
+                
+                # Priority 2: Get accumulated duration from agent_total_duration field
+                if processing_time == 0.0:
+                    for activity in activities:
+                        if activity.get('event_type') == 'llm_end' and 'agent_total_duration' in activity:
+                            processing_time = activity['agent_total_duration']
+                            print(f"📊 Using callback total duration for {agent_name}: {processing_time:.2f}s")
+                            break
+                
+                # Priority 3: Sum individual durations from activities
+                if processing_time == 0.0:
+                    duration_sum = 0.0
+                    for activity in activities:
+                        if 'duration' in activity:
+                            duration_sum += activity['duration']
+                    if duration_sum > 0:
+                        processing_time = duration_sum
+                        print(f"📊 Using summed durations for {agent_name}: {processing_time:.2f}s")
+                
+                # Priority 4: Calculate from timestamps
+                if processing_time == 0.0:
+                    start_time = None
+                    end_time = None
+                    
+                    for activity in activities:
+                        if activity.get('event_type') in ['agent_start', 'llm_start'] and start_time is None:
+                            start_time = activity.get('timestamp')
+                        elif activity.get('event_type') in ['agent_end', 'llm_end']:
+                            end_time = activity.get('timestamp')
+                    
+                    if start_time and end_time:
+                        processing_time = end_time - start_time
+                        print(f"📊 Using timestamp calculation for {agent_name}: {processing_time:.2f}s")
+                
+                # Final fallback: Log if we still have 0.0
+                if processing_time == 0.0:
+                    print(f"⚠️ No timing data available for {agent_name}, using 0.0s")
+                
+                agent_metadata = {
+                    'model_used': agent_model,
+                    'model_provider': model_config.get('provider', 'openai'),
+                    'temperature': model_config.get('temperature', 0.1),
+                    'agent_position': len(individual_logs) + 1,
+                    'total_agents': len(agent_activities),
+                    'task_type': self._determine_task_type_by_name(agent_name),
+                    'activity_count': len(activities),
+                    'run_id': main_activity.get('run_id')
+                }
+                
+                individual_logs.append({
+                    'agent_name': agent_name,
+                    'input_data': agent_input,
+                    'output_data': agent_output,
+                    'metadata': agent_metadata,
+                    'processing_time': processing_time,
+                    'status': 'success',
+                    'trace_id': f"{ticket_id}_{agent_name}_{int(time.time())}",
+                    'langsmith_run_id': main_activity.get('run_id')
+                })
+                        
+        except Exception as e:
+            print(f"Warning: Could not extract agent activities from handler: {e}")
+            # Fallback to old method if handler extraction fails
+            return self._extract_individual_agent_activities(crew_result, ticket_id, ticket_content, [], timing_tracker)
+            
+        return individual_logs
+    
+    def _determine_task_type_by_name(self, agent_name: str) -> str:
+        """Determine task type based on agent name."""
+        task_types = {
+            'triage_specialist': 'classification',
+            'ticket_analyst': 'analysis',
+            'support_strategist': 'strategy',
+            'qa_reviewer': 'review'
+        }
+        return task_types.get(agent_name, 'unknown')
     
     def _determine_task_type(self, task_index: int) -> str:
         """Determine task type based on agent position."""

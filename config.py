@@ -181,20 +181,25 @@ Summary: {summary}"""
 
 # LangSmith Configuration
 def setup_langsmith():
-    """Configure LangSmith tracing"""
-    if LANGSMITH_TRACING and LANGSMITH_API_KEY:
-        os.environ["LANGCHAIN_TRACING_V2"] = "true"
-        os.environ["LANGCHAIN_ENDPOINT"] = LANGSMITH_ENDPOINT
-        os.environ["LANGCHAIN_API_KEY"] = LANGSMITH_API_KEY
-        os.environ["LANGCHAIN_PROJECT"] = LANGSMITH_PROJECT
-        
-        # Verify the environment variables are set
-        print(f"✅ LangSmith tracing enabled for project: {LANGSMITH_PROJECT}")
-        print(f"📡 LangSmith endpoint: {LANGSMITH_ENDPOINT}")
-        print(f"🔑 API key configured: {'Yes' if LANGSMITH_API_KEY else 'No'}")
+    """Configure LangSmith tracing with proper integration"""
+    try:
+        # Import and use the new LangSmith integration
+        from langsmith_integration import setup_langsmith_tracing
+        return setup_langsmith_tracing()
+    except ImportError:
+        # Fallback to old method if integration module not available
+        if LANGSMITH_TRACING and LANGSMITH_API_KEY:
+            os.environ["LANGCHAIN_TRACING_V2"] = "true"
+            os.environ["LANGCHAIN_ENDPOINT"] = LANGSMITH_ENDPOINT
+            os.environ["LANGCHAIN_API_KEY"] = LANGSMITH_API_KEY
+            os.environ["LANGCHAIN_PROJECT"] = LANGSMITH_PROJECT
             
-    else:
-        print("❌ LangSmith tracing disabled (missing API key or disabled)")
+            print(f"✅ LangSmith tracing enabled for project: {LANGSMITH_PROJECT}")
+            print(f"📡 LangSmith endpoint: {LANGSMITH_ENDPOINT}")
+            return True
+        else:
+            print("❌ LangSmith tracing disabled (missing API key or disabled)")
+            return False
 
 # Kaggle Configuration
 def setup_kaggle():

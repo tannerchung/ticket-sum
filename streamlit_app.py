@@ -247,43 +247,11 @@ def log_langsmith_activity(agent_name, input_data, output_data, metadata=None):
     }
     st.session_state.langsmith_logs.append(log_entry)
     
-    # Send to actual LangSmith if configured
-    try:
-        import os
-        if os.environ.get("LANGCHAIN_TRACING_V2") == "true":
-            # Use LangSmith Client directly for better error handling
-            from langsmith import Client
-            
-            client = Client(
-                api_key=os.environ.get("LANGCHAIN_API_KEY"),
-                api_url=os.environ.get("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
-            )
-            
-            try:
-                # Create a run directly through the client
-                run_data = {
-                    "name": f"agent_{agent_name}",
-                    "inputs": input_data,
-                    "outputs": output_data,
-                    "run_type": "chain",
-                    "project_name": os.environ.get("LANGCHAIN_PROJECT", "ticket-sum"),
-                    "tags": [agent_name, "collaborative_crew"]
-                }
-                
-                client.create_run(**run_data)
-                print(f"📡 Successfully sent trace to LangSmith for {agent_name}")
-            except Exception as api_e:
-                if "403" in str(api_e) or "Forbidden" in str(api_e):
-                    print(f"⚠️ LangSmith API permissions issue for {agent_name}: Check API key permissions")
-                else:
-                    print(f"⚠️ LangSmith API error for {agent_name}: {api_e}")
-            finally:
-                # Ensure client connections are properly closed
-                if hasattr(client, 'close'):
-                    client.close()
-            
-    except Exception as e:
-        print(f"⚠️ Failed to send trace to LangSmith for {agent_name}: {e}")
+    # Note: LangSmith tracing is now handled automatically by LangChain
+    # This function only manages session state logging for the Streamlit dashboard
+    # Actual tracing runs are created and managed by the proper callback handlers
+    if os.environ.get("LANGCHAIN_TRACING_V2") == "true":
+        print(f"📊 Activity logged for {agent_name} (LangSmith handles actual tracing)")
     
     # Keep only last 50 logs in session state
     if len(st.session_state.langsmith_logs) > 50:
