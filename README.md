@@ -1,48 +1,52 @@
-# Support Ticket Summarizer 🎫
+# Support Ticket Summarizer
 
-A sophisticated Python-powered multi-agent AI system for intelligent customer support ticket processing, with enhanced automation and resilient service integration.
+A sophisticated Python-powered multi-agent AI system for intelligent customer support ticket processing, featuring enhanced automation, resilient service integration, and user-centric design.
 
-## 🚀 Features
+## Overview
 
-### Multi-Agent Collaboration
-- **Four specialized AI agents** working together through CrewAI
-- **Real-time collaboration** with agents questioning each other and reaching consensus
-- **Memory sharing** between agents for consistent decision-making
-- **Conflict resolution** and agreement scoring
+This application implements a multi-agent GenAI system for customer support automation using CrewAI. The system processes customer support tickets through four specialized AI agents that work in sequence to classify, summarize, and recommend actions for each ticket.
 
-### Agent Roles
-- 🏥 **Triage Specialist**: Initial classification & routing
-- 📊 **Ticket Analyst**: Deep analysis & summary generation
-- 🎯 **Support Strategist**: Action planning & strategy development
-- ✅ **QA Reviewer**: Quality review & consensus validation
+## Key Features
 
-### Advanced Monitoring
-- **Real-time agent status monitoring** with collaborative crew dashboard
-- **LangSmith integration** for comprehensive tracing and logging
-- **DeepEval assessment** for AI output quality evaluation
-- **PostgreSQL database** for persistent storage and analytics
+### Multi-Agent Architecture
+- **Triage Specialist**: Analyzes tickets to determine intent and severity levels
+- **Ticket Analyst**: Generates detailed summaries of ticket content and key problems
+- **Support Strategist**: Recommends next steps like escalation or template responses
+- **QA Reviewer**: Reviews and validates the work of other agents
 
-### Interactive Interface
-- **Streamlit web application** for testing and monitoring
-- **Sample ticket library** for quick testing
-- **Batch processing** capabilities for CSV uploads
-- **Visual analytics** dashboards with interactive charts
+### Multi-Provider AI Support
+- **OpenAI Models**: GPT-4o, GPT-4o-mini, GPT-3.5-turbo
+- **Anthropic Models**: Claude 3.5 Sonnet, Claude 3.5 Haiku, Claude 3 Opus
+- **Cohere Models**: Command R, Command R+, Command (with compatibility fallback)
 
-## 🛠 Technology Stack
+### Interactive Web Interface
+- **Streamlit Dashboard**: Real-time monitoring and testing interface
+- **Model Management**: Dynamic model swapping per agent without restart
+- **Performance Analytics**: Compare different AI models across test tickets
+- **Database Analytics**: Historical analysis with interactive charts
 
-- **CrewAI**: Multi-agent orchestration framework
-- **OpenAI GPT-4o**: Natural language processing and classification
-- **PostgreSQL**: Persistent data storage and analytics
-- **Streamlit**: Interactive web dashboard
-- **LangSmith**: LLM application observability and tracing
-- **DeepEval**: AI output quality assessment
-- **Kaggle API**: Real customer support dataset access
+### Comprehensive Monitoring
+- **LangSmith Integration**: Detailed tracing and logging for all LLM interactions
+- **DeepEval Quality Assessment**: Hallucination, relevancy, faithfulness, and accuracy scoring
+- **PostgreSQL Database**: Persistent storage for tickets, logs, and evaluations
+- **Real-time Progress Tracking**: Live updates during ticket processing
 
-## 🔧 Setup
+## Technology Stack
+
+- **Framework**: CrewAI for multi-agent orchestration
+- **AI Providers**: OpenAI, Anthropic, Cohere
+- **Database**: PostgreSQL with SQLAlchemy
+- **Web Interface**: Streamlit
+- **Monitoring**: LangSmith, DeepEval
+- **Data Processing**: pandas, kagglehub
+- **Visualization**: Plotly
+
+## Quick Start
 
 ### Prerequisites
 - Python 3.11+
 - PostgreSQL database
+<<<<<<< HEAD
 - OpenAI API key
 - LangSmith API key (optional, for tracing)
 - Kaggle API credentials (optional, for datasets)
@@ -130,3 +134,98 @@ This is a demonstration project showcasing multi-agent AI collaboration for cust
 ## 📝 License
 
 This project is for educational and demonstration purposes, showcasing advanced AI agent collaboration techniques.
+=======
+- API keys for AI providers (OpenAI, Anthropic, optionally Cohere)
+
+### Environment Setup
+1. Clone the repository
+2. Install dependencies: `uv sync`
+3. Set up environment variables:
+   ```
+   OPENAI_API_KEY=your_openai_key
+   ANTHROPIC_API_KEY=your_anthropic_key
+   COHERE_API_KEY=your_cohere_key (optional)
+   LANGSMITH_API_KEY=your_langsmith_key
+   DATABASE_URL=your_postgres_url
+   KAGGLE_USERNAME=your_kaggle_username
+   KAGGLE_KEY=your_kaggle_key
+   ```
+
+### Running the Application
+
+#### Web Interface
+```bash
+streamlit run streamlit_app.py --server.port 5000 --server.address 0.0.0.0
+```
+
+#### Command Line Processing
+```bash
+python main.py
+```
+
+## Features
+
+### Model Management
+- **Individual Agent Models**: Assign different AI models to each agent
+- **Real-time Swapping**: Change models without restarting the system
+- **Performance Comparison**: Test multiple models on the same tickets
+- **Smart Recommendations**: Agent-specific model suggestions based on task requirements
+
+### Data Sources
+- **Kaggle Integration**: Automatically downloads customer support datasets
+- **CSV Upload**: Process your own ticket data
+- **Sample Data**: Built-in test tickets for demonstration
+
+### Quality Assurance
+- **Multi-layer Validation**: Agents review each other's work
+- **Consistency Checking**: Automated quality assessments
+- **Performance Metrics**: Track accuracy, speed, and effectiveness
+- **Historical Analysis**: Trend monitoring and improvement tracking
+
+## Agent Specializations
+
+### Triage Specialist
+- **Purpose**: Fast, accurate ticket classification
+- **Recommended Models**: GPT-4o, Claude 3.5 Haiku (speed + accuracy)
+- **Output**: Intent classification, severity assessment, confidence scores
+
+### Ticket Analyst
+- **Purpose**: Deep content analysis and summarization
+- **Recommended Models**: GPT-4o, Claude 3.5 Sonnet (analytical depth)
+- **Output**: Comprehensive summaries, key issue identification
+
+### Support Strategist
+- **Purpose**: Strategic response planning
+- **Recommended Models**: GPT-4o, Claude 3 Opus (complex reasoning)
+- **Output**: Action recommendations, escalation decisions
+
+### QA Reviewer
+- **Purpose**: Quality validation and consistency checking
+- **Recommended Models**: GPT-4o, Claude 3.5 Sonnet (thorough review)
+- **Output**: Quality assessments, improvement suggestions
+
+## Database Schema
+
+The system maintains comprehensive records including:
+- Support tickets with full metadata
+- Agent processing logs and timings
+- Quality evaluation scores
+- Model performance metrics
+- Historical trend data
+
+## Deployment
+
+The application is designed for deployment on Replit with automatic environment configuration. For other platforms, ensure all environment variables are properly set and the PostgreSQL database is accessible.
+
+## Contributing
+
+This project demonstrates advanced multi-agent AI orchestration with practical customer support applications. Contributions are welcome for:
+- Additional AI provider integrations
+- Enhanced quality metrics
+- New agent specializations
+- Performance optimizations
+
+## License
+
+This project is available under standard open source licensing terms.
+>>>>>>> 991d069 (Initial commit)

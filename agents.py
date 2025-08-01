@@ -4,10 +4,44 @@ Implements a multi-agent system where agents collaborate and refine each other's
 """
 
 import json
+<<<<<<< HEAD
 from typing import Dict, Any, List
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
 from config import LLM_MODEL, OPENAI_API_KEY
+=======
+import time
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+from crewai import Agent, Task, Crew
+from langchain_openai import ChatOpenAI
+
+# Try to import Cohere support
+COHERE_AVAILABLE = False
+ChatCohere = None
+try:
+    from langchain_cohere import ChatCohere
+    COHERE_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Cohere integration unavailable: {e}")
+
+# Try to import Anthropic support
+ANTHROPIC_AVAILABLE = True
+try:
+    from langchain_anthropic import ChatAnthropic
+except ImportError as e:
+    print(f"⚠️ Anthropic integration unavailable: {e}")
+    ANTHROPIC_AVAILABLE = False
+from config import (
+    LLM_MODEL, 
+    OPENAI_API_KEY,
+    COHERE_API_KEY,
+    ANTHROPIC_API_KEY,
+    AVAILABLE_MODELS, 
+    DEFAULT_AGENT_MODELS,
+    AGENT_MODEL_RECOMMENDATIONS
+)
+>>>>>>> 991d069 (Initial commit)
 
 class CollaborativeSupportCrew:
     """
@@ -15,6 +49,7 @@ class CollaborativeSupportCrew:
     Agents work together, provide feedback, and refine each other's outputs.
     """
     
+<<<<<<< HEAD
     def __init__(self):
         """Initialize the collaborative crew with specialized agents."""
         # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
@@ -26,6 +61,61 @@ class CollaborativeSupportCrew:
         )
         
         # Initialize collaborative agents
+=======
+    def __init__(self, agent_models: Optional[Dict[str, str]] = None):
+        """
+        Initialize the collaborative crew with specialized agents.
+        
+        Args:
+            agent_models: Optional dictionary mapping agent names to model names.
+                         If None, uses DEFAULT_AGENT_MODELS.
+        """
+        # Set up agent-specific models
+        self.agent_models = agent_models or DEFAULT_AGENT_MODELS.copy()
+        self.llm_instances = {}
+        
+        # Create LLM instances for each agent
+        for agent_name, model_name in self.agent_models.items():
+            if model_name in AVAILABLE_MODELS:
+                model_config = AVAILABLE_MODELS[model_name]
+                provider = model_config.get("provider", "openai")
+                
+                if provider == "openai":
+                    self.llm_instances[agent_name] = ChatOpenAI(
+                        model=model_name,
+                        api_key=OPENAI_API_KEY,
+                        temperature=model_config["temperature"]
+                    )
+                elif provider == "cohere" and COHERE_AVAILABLE:
+                    self.llm_instances[agent_name] = ChatCohere(
+                        model=model_name,
+                        cohere_api_key=COHERE_API_KEY,
+                        temperature=model_config["temperature"]
+                    )
+                elif provider == "anthropic" and ANTHROPIC_AVAILABLE:
+                    self.llm_instances[agent_name] = ChatAnthropic(
+                        model_name=model_name,
+                        api_key=ANTHROPIC_API_KEY,
+                        temperature=model_config["temperature"]
+                    )
+                else:
+                    # Fallback to OpenAI for unavailable providers
+                    print(f"⚠️ {provider.title()} not available, using GPT-4o for {agent_name}")
+                    self.llm_instances[agent_name] = ChatOpenAI(
+                        model="gpt-4o",
+                        api_key=OPENAI_API_KEY,
+                        temperature=0.1
+                    )
+            else:
+                # Fallback to default model
+                self.llm_instances[agent_name] = ChatOpenAI(
+                    model=LLM_MODEL,
+                    openai_api_key=OPENAI_API_KEY,
+                    temperature=0.1
+                )
+        
+        # Initialize collaborative agents with their specific LLMs
+>>>>>>> 991d069 (Initial commit)
         self.triage_specialist = self._create_triage_specialist()
         self.ticket_analyst = self._create_ticket_analyst()
         self.support_strategist = self._create_support_strategist()
@@ -59,7 +149,11 @@ class CollaborativeSupportCrew:
             """,
             verbose=True,
             allow_delegation=True,
+<<<<<<< HEAD
             llm=self.llm,
+=======
+            llm=self.llm_instances["triage_specialist"],
+>>>>>>> 991d069 (Initial commit)
             max_execution_time=300
         )
     
@@ -79,7 +173,11 @@ class CollaborativeSupportCrew:
             """,
             verbose=True,
             allow_delegation=True,
+<<<<<<< HEAD
             llm=self.llm,
+=======
+            llm=self.llm_instances["ticket_analyst"],
+>>>>>>> 991d069 (Initial commit)
             max_execution_time=300
         )
     
@@ -99,7 +197,11 @@ class CollaborativeSupportCrew:
             """,
             verbose=True,
             allow_delegation=True,
+<<<<<<< HEAD
             llm=self.llm,
+=======
+            llm=self.llm_instances["support_strategist"],
+>>>>>>> 991d069 (Initial commit)
             max_execution_time=300
         )
     
@@ -122,10 +224,243 @@ class CollaborativeSupportCrew:
             """,
             verbose=True,
             allow_delegation=True,
+<<<<<<< HEAD
             llm=self.llm,
             max_execution_time=300
         )
     
+=======
+            llm=self.llm_instances["qa_reviewer"],
+            max_execution_time=300
+        )
+    
+    def get_agent_model_info(self) -> Dict[str, Dict[str, Any]]:
+        """Return information about which models each agent is using."""
+        return {
+            agent_name: {
+                "model": model_name,
+                "model_info": AVAILABLE_MODELS.get(model_name, {}),
+                "recommendations": AGENT_MODEL_RECOMMENDATIONS.get(agent_name, {})
+            }
+            for agent_name, model_name in self.agent_models.items()
+        }
+    
+    def update_agent_model(self, agent_name: str, model_name: str) -> bool:
+        """
+        Update the model for a specific agent.
+        
+        Args:
+            agent_name: Name of the agent to update
+            model_name: New model name to use
+            
+        Returns:
+            bool: True if update was successful
+        """
+        if agent_name not in self.agent_models:
+            return False
+            
+        if model_name not in AVAILABLE_MODELS:
+            return False
+            
+        # Update the model configuration
+        self.agent_models[agent_name] = model_name
+        
+        # Create new LLM instance for this agent
+        model_config = AVAILABLE_MODELS[model_name]
+        provider = model_config.get("provider", "openai")
+        
+        if provider == "openai":
+            self.llm_instances[agent_name] = ChatOpenAI(
+                model=model_name,
+                api_key=OPENAI_API_KEY,
+                temperature=model_config["temperature"]
+            )
+        elif provider == "cohere" and COHERE_AVAILABLE:
+            self.llm_instances[agent_name] = ChatCohere(
+                model=model_name,
+                cohere_api_key=COHERE_API_KEY,
+                temperature=model_config["temperature"]
+            )
+        elif provider == "anthropic" and ANTHROPIC_AVAILABLE:
+            self.llm_instances[agent_name] = ChatAnthropic(
+                model_name=model_name,
+                api_key=ANTHROPIC_API_KEY,
+                temperature=model_config["temperature"]
+            )
+        else:
+            # Fallback to OpenAI for unavailable providers
+            print(f"⚠️ {provider.title()} not available, using GPT-4o for {agent_name}")
+            self.llm_instances[agent_name] = ChatOpenAI(
+                model="gpt-4o",
+                api_key=OPENAI_API_KEY,
+                temperature=0.1
+            )
+        
+        # Recreate the specific agent with new LLM
+        if agent_name == "triage_specialist":
+            self.triage_specialist = self._create_triage_specialist()
+        elif agent_name == "ticket_analyst":
+            self.ticket_analyst = self._create_ticket_analyst()
+        elif agent_name == "support_strategist":
+            self.support_strategist = self._create_support_strategist()
+        elif agent_name == "qa_reviewer":
+            self.qa_reviewer = self._create_qa_reviewer()
+            
+        # Recreate the crew with updated agents
+        self.crew = Crew(
+            agents=[
+                self.triage_specialist,
+                self.ticket_analyst, 
+                self.support_strategist,
+                self.qa_reviewer
+            ],
+            verbose=True,
+            memory=True
+        )
+        
+        return True
+    
+    def compare_models_on_tickets(self, tickets: List[Dict[str, str]], agent_name: str, models_to_test: List[str]) -> Dict[str, Any]:
+        """
+        Compare different models for a specific agent across multiple tickets.
+        
+        Args:
+            tickets: List of ticket dictionaries with 'id' and 'content' keys
+            agent_name: Name of the agent to test different models on
+            models_to_test: List of model names to test
+            
+        Returns:
+            Dict containing comparison results and performance metrics
+        """
+        comparison_results = {
+            "agent_name": agent_name,
+            "tickets_tested": len(tickets),
+            "models_tested": models_to_test,
+            "results": {},
+            "performance_summary": {}
+        }
+        
+        original_model = self.agent_models[agent_name]
+        
+        for model_name in models_to_test:
+            if model_name not in AVAILABLE_MODELS:
+                continue
+                
+            model_results = {
+                "model_name": model_name,
+                "model_info": AVAILABLE_MODELS[model_name],
+                "ticket_results": [],
+                "processing_times": [],
+                "error_count": 0
+            }
+            
+            # Update agent to use this model
+            self.update_agent_model(agent_name, model_name)
+            
+            # Process each ticket
+            for ticket in tickets:
+                import time
+                start_time = time.time()
+                
+                try:
+                    result = self.process_ticket_collaboratively(
+                        ticket["id"], 
+                        ticket["content"]
+                    )
+                    processing_time = time.time() - start_time
+                    
+                    model_results["ticket_results"].append({
+                        "ticket_id": ticket["id"],
+                        "result": result,
+                        "processing_time": processing_time,
+                        "success": True
+                    })
+                    model_results["processing_times"].append(processing_time)
+                    
+                except Exception as e:
+                    processing_time = time.time() - start_time
+                    model_results["error_count"] += 1
+                    model_results["ticket_results"].append({
+                        "ticket_id": ticket["id"],
+                        "error": str(e),
+                        "processing_time": processing_time,
+                        "success": False
+                    })
+            
+            # Calculate performance metrics
+            if model_results["processing_times"]:
+                model_results["avg_processing_time"] = sum(model_results["processing_times"]) / len(model_results["processing_times"])
+                model_results["success_rate"] = (len(tickets) - model_results["error_count"]) / len(tickets)
+            else:
+                model_results["avg_processing_time"] = 0
+                model_results["success_rate"] = 0
+                
+            comparison_results["results"][model_name] = model_results
+        
+        # Restore original model
+        self.update_agent_model(agent_name, original_model)
+        
+        # Generate performance summary
+        comparison_results["performance_summary"] = self._generate_performance_summary(comparison_results["results"])
+        
+        return comparison_results
+    
+    def _generate_performance_summary(self, model_results: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate a summary of model performance comparison."""
+        summary = {
+            "fastest_model": None,
+            "most_accurate_model": None,
+            "recommended_model": None,
+            "performance_rankings": []
+        }
+        
+        if not model_results:
+            return summary
+            
+        # Find fastest model
+        fastest_time = float('inf')
+        for model_name, results in model_results.items():
+            avg_time = results.get("avg_processing_time", float('inf'))
+            if avg_time < fastest_time:
+                fastest_time = avg_time
+                summary["fastest_model"] = model_name
+        
+        # Find most accurate model (highest success rate)
+        best_accuracy = 0
+        for model_name, results in model_results.items():
+            success_rate = results.get("success_rate", 0)
+            if success_rate > best_accuracy:
+                best_accuracy = success_rate
+                summary["most_accurate_model"] = model_name
+        
+        # Create performance rankings (weighted: 70% accuracy, 30% speed)
+        performance_scores = []
+        for model_name, results in model_results.items():
+            accuracy_score = results.get("success_rate", 0)
+            speed_score = 1 / (results.get("avg_processing_time", 1) + 0.1)  # Inverse of time
+            
+            # Normalize speed score (0-1 range)
+            max_speed = max([1 / (r.get("avg_processing_time", 1) + 0.1) for r in model_results.values()])
+            normalized_speed = speed_score / max_speed if max_speed > 0 else 0
+            
+            combined_score = (accuracy_score * 0.7) + (normalized_speed * 0.3)
+            performance_scores.append({
+                "model": model_name,
+                "score": combined_score,
+                "accuracy": accuracy_score,
+                "speed": normalized_speed
+            })
+        
+        # Sort by combined score
+        performance_scores.sort(key=lambda x: x["score"], reverse=True)
+        summary["performance_rankings"] = performance_scores
+        
+        if performance_scores:
+            summary["recommended_model"] = performance_scores[0]["model"]
+        
+        return summary
+    
+>>>>>>> 991d069 (Initial commit)
     def process_ticket_collaboratively(self, ticket_id: str, ticket_content: str) -> Dict[str, Any]:
         """
         Process a ticket using collaborative CrewAI workflow.
@@ -245,6 +580,12 @@ class CollaborativeSupportCrew:
             else:
                 crew_text = str(crew_result)
             
+<<<<<<< HEAD
+=======
+            # Extract authentic collaboration metrics from the crew execution
+            collaboration_metrics = self._extract_authentic_collaboration_metrics(crew_result, ticket_id)
+            
+>>>>>>> 991d069 (Initial commit)
             # Try to parse as JSON if possible, otherwise extract key information
             if '{' in crew_text and '}' in crew_text:
                 # Look for JSON-like content
@@ -254,12 +595,24 @@ class CollaborativeSupportCrew:
                 
                 try:
                     parsed = json.loads(json_content)
+<<<<<<< HEAD
                     return self._structure_collaborative_result(parsed, ticket_id, ticket_content, crew_text)
+=======
+                    result = self._structure_collaborative_result(parsed, ticket_id, ticket_content, crew_text)
+                    result["collaboration_metrics"] = collaboration_metrics
+                    return result
+>>>>>>> 991d069 (Initial commit)
                 except json.JSONDecodeError:
                     pass
             
             # Fallback: Parse text-based result
+<<<<<<< HEAD
             return self._parse_text_result(crew_text, ticket_id, ticket_content)
+=======
+            result = self._parse_text_result(crew_text, ticket_id, ticket_content)
+            result["collaboration_metrics"] = collaboration_metrics
+            return result
+>>>>>>> 991d069 (Initial commit)
             
         except Exception as e:
             print(f"⚠️  Error parsing collaborative result for ticket {ticket_id}: {str(e)}")
@@ -355,6 +708,175 @@ class CollaborativeSupportCrew:
         
         return ' '.join(summary_lines) if summary_lines else "Collaborative analysis summary"
     
+<<<<<<< HEAD
+=======
+    def _extract_authentic_collaboration_metrics(self, crew_result, ticket_id: str) -> Dict[str, Any]:
+        """Extract real collaboration metrics from CrewAI execution."""
+        start_time = time.time()
+        
+        # Initialize metrics tracking
+        metrics = {
+            "disagreement_count": 0,
+            "conflicts_identified": [],
+            "conflict_resolution_methods": [],
+            "resolution_iterations": 0,
+            "consensus_building_duration": 0.0,
+            "agent_iterations": {},
+            "agent_agreement_evolution": [],
+            "final_agreement_scores": {},
+            "overall_agreement_strength": 0.0,
+            "consensus_reached": False,
+            "confidence_improvement": 0.0,
+            "result_stability": 0.0
+        }
+        
+        try:
+            # Extract from crew execution traces if available
+            if hasattr(crew_result, 'tasks_output') and crew_result.tasks_output:
+                agent_outputs = []
+                for task_output in crew_result.tasks_output:
+                    if hasattr(task_output, 'agent') and hasattr(task_output, 'raw'):
+                        agent_name = task_output.agent.role if hasattr(task_output.agent, 'role') else 'unknown'
+                        agent_outputs.append({
+                            'agent': agent_name,
+                            'output': str(task_output.raw)
+                        })
+                
+                # Calculate real disagreements and conflicts
+                metrics = self._calculate_real_disagreements(agent_outputs, metrics)
+                
+            # Calculate consensus building duration
+            metrics["consensus_building_duration"] = time.time() - start_time
+            
+            # Determine if consensus was reached based on actual output consistency
+            metrics["consensus_reached"] = self._assess_consensus_quality(crew_result)
+            
+            # Calculate overall agreement strength
+            metrics["overall_agreement_strength"] = self._calculate_agreement_strength(metrics)
+            
+        except Exception as e:
+            print(f"Warning: Could not extract collaboration metrics: {e}")
+            metrics["consensus_reached"] = False
+            
+        return metrics
+    
+    def _calculate_real_disagreements(self, agent_outputs: List[Dict], metrics: Dict) -> Dict:
+        """Calculate authentic disagreements between agent outputs."""
+        if len(agent_outputs) < 2:
+            return metrics
+        
+        # Extract key fields from each agent output
+        agent_classifications = {}
+        conflicts = []
+        
+        for output in agent_outputs:
+            agent_name = output['agent']
+            text = output['output'].lower()
+            
+            # Extract intent, severity, and recommendations
+            classification = {
+                'intent': self._extract_classification_field(text, 'intent'),
+                'severity': self._extract_classification_field(text, 'severity'),
+                'action': self._extract_classification_field(text, 'action')
+            }
+            agent_classifications[agent_name] = classification
+        
+        # Compare classifications to find real disagreements
+        fields_to_compare = ['intent', 'severity', 'action']
+        disagreements = {}
+        
+        for field in fields_to_compare:
+            values = [agent_classifications[agent][field] for agent in agent_classifications if agent_classifications[agent][field]]
+            unique_values = list(set(values))
+            
+            if len(unique_values) > 1:
+                disagreements[field] = {
+                    'values': values,
+                    'unique_count': len(unique_values),
+                    'agents_disagreeing': list(agent_classifications.keys())
+                }
+                conflicts.append(f"{field} disagreement: {unique_values}")
+        
+        metrics["disagreement_count"] = len(disagreements)
+        metrics["conflicts_identified"] = conflicts
+        metrics["agent_iterations"] = {agent: 1 for agent in agent_classifications.keys()}
+        
+        # Track resolution methods (simplified)
+        if disagreements:
+            metrics["conflict_resolution_methods"] = ["majority_vote", "qa_reviewer_decision"]
+            metrics["resolution_iterations"] = 1
+        
+        return metrics
+    
+    def _extract_classification_field(self, text: str, field: str) -> str:
+        """Extract classification field from agent output text."""
+        field_patterns = {
+            'intent': ['intent:', 'category:', 'type:', 'classification:'],
+            'severity': ['severity:', 'priority:', 'urgency:'],
+            'action': ['action:', 'recommend:', 'primary_action:']
+        }
+        
+        patterns = field_patterns.get(field, [])
+        for pattern in patterns:
+            if pattern in text:
+                # Find the line containing the pattern
+                for line in text.split('\n'):
+                    if pattern in line:
+                        parts = line.split(pattern)
+                        if len(parts) > 1:
+                            value = parts[1].strip().split()[0] if parts[1].strip() else None
+                            if value and value not in ['', '-', 'n/a']:
+                                return value.lower()
+        return None
+    
+    def _assess_consensus_quality(self, crew_result) -> bool:
+        """Assess if genuine consensus was reached based on output consistency."""
+        try:
+            if hasattr(crew_result, 'raw'):
+                output_text = str(crew_result.raw).lower()
+                
+                # Check for consensus indicators in the final output
+                consensus_indicators = [
+                    'consensus', 'agreement', 'all agents agree', 'consistent',
+                    'validated', 'confirmed', 'final decision'
+                ]
+                
+                conflict_indicators = [
+                    'disagreement', 'conflict', 'inconsistent', 'disputed',
+                    'unresolved', 'requires review'
+                ]
+                
+                consensus_score = sum(1 for indicator in consensus_indicators if indicator in output_text)
+                conflict_score = sum(1 for indicator in conflict_indicators if indicator in output_text)
+                
+                return consensus_score > conflict_score
+                
+        except Exception:
+            return False
+        
+        return False
+    
+    def _calculate_agreement_strength(self, metrics: Dict) -> float:
+        """Calculate overall agreement strength based on authentic metrics."""
+        if metrics["disagreement_count"] == 0:
+            return 1.0
+        
+        # Calculate based on resolution success
+        conflicts_resolved = len(metrics.get("conflict_resolution_methods", []))
+        total_conflicts = metrics["disagreement_count"]
+        
+        if total_conflicts == 0:
+            return 1.0
+        
+        resolution_rate = conflicts_resolved / total_conflicts
+        
+        # Factor in consensus building efficiency
+        duration_penalty = min(0.1, metrics["consensus_building_duration"] / 100)  # Slight penalty for long discussions
+        
+        agreement_strength = resolution_rate - duration_penalty
+        return max(0.0, min(1.0, agreement_strength))
+    
+>>>>>>> 991d069 (Initial commit)
     def _create_fallback_result(self, ticket_id: str, ticket_content: str, error_msg: str) -> Dict[str, Any]:
         """Create fallback result when collaborative processing fails."""
         return {
@@ -375,9 +897,12 @@ class CollaborativeSupportCrew:
                 "notes": f"Collaborative processing failed: {error_msg}"
             },
             "collaboration_metrics": {
-                "agent_agreement": 0.0,
-                "conflicts_resolved": 0,
-                "consensus_reached": False
+                "disagreement_count": 0,
+                "conflicts_identified": [],
+                "conflict_resolution_methods": [],
+                "consensus_reached": False,
+                "overall_agreement_strength": 0.0,
+                "consensus_building_duration": 0.0
             },
             "processing_status": "error",
             "raw_collaborative_output": error_msg

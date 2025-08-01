@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 from models import (
-    SupportTicket, ProcessingLog, QualityEvaluation, AgentStatus,
+    SupportTicket, ProcessingLog, QualityEvaluation, AgentStatus, CollaborationMetrics,
     get_db_session, init_database
 )
 
@@ -295,5 +295,84 @@ class DatabaseService:
         finally:
             session.close()
 
+<<<<<<< HEAD
+=======
+    def save_collaboration_metrics(self, ticket_id: str, metrics: Dict[str, Any]) -> bool:
+        """Save authentic collaboration metrics to the database."""
+        session = get_db_session()
+        try:
+            collaboration = CollaborationMetrics(
+                ticket_id=ticket_id,
+                initial_disagreements=metrics.get('initial_disagreements', {}),
+                disagreement_count=metrics.get('disagreement_count', 0),
+                conflicts_identified=metrics.get('conflicts_identified', []),
+                conflict_resolution_methods=metrics.get('conflict_resolution_methods', []),
+                resolution_iterations=metrics.get('resolution_iterations', 0),
+                consensus_start_time=datetime.utcnow(),
+                consensus_end_time=datetime.utcnow(),
+                consensus_building_duration=metrics.get('consensus_building_duration', 0.0),
+                final_agreement_scores=metrics.get('final_agreement_scores', {}),
+                overall_agreement_strength=metrics.get('overall_agreement_strength', 0.0),
+                consensus_reached=metrics.get('consensus_reached', False),
+                agent_iterations=metrics.get('agent_iterations', {}),
+                agent_agreement_evolution=metrics.get('agent_agreement_evolution', []),
+                confidence_improvement=metrics.get('confidence_improvement', 0.0),
+                result_stability=metrics.get('result_stability', 0.0)
+            )
+            
+            session.add(collaboration)
+            session.commit()
+            return True
+            
+        except Exception as e:
+            session.rollback()
+            print(f"Error saving collaboration metrics: {e}")
+            return False
+        finally:
+            session.close()
+
+    def get_collaboration_analytics(self) -> Dict[str, Any]:
+        """Get analytics on agent collaboration and consensus building."""
+        session = get_db_session()
+        try:
+            metrics = session.query(CollaborationMetrics).all()
+            
+            if not metrics:
+                return {"total_collaborations": 0}
+            
+            total_collaborations = len(metrics)
+            consensus_achieved = sum(1 for m in metrics if m.consensus_reached)
+            avg_disagreements = sum(m.disagreement_count for m in metrics) / total_collaborations
+            avg_consensus_time = sum(m.consensus_building_duration for m in metrics) / total_collaborations
+            avg_agreement_strength = sum(m.overall_agreement_strength for m in metrics) / total_collaborations
+            
+            # Most common conflicts
+            all_conflicts = []
+            for m in metrics:
+                if m.conflicts_identified:
+                    all_conflicts.extend(m.conflicts_identified)
+            
+            conflict_frequency = {}
+            for conflict in all_conflicts:
+                conflict_type = conflict.split(':')[0] if ':' in conflict else conflict
+                conflict_frequency[conflict_type] = conflict_frequency.get(conflict_type, 0) + 1
+            
+            return {
+                "total_collaborations": total_collaborations,
+                "consensus_success_rate": (consensus_achieved / total_collaborations) * 100,
+                "avg_disagreements_per_ticket": avg_disagreements,
+                "avg_consensus_building_time": avg_consensus_time,
+                "avg_agreement_strength": avg_agreement_strength,
+                "most_common_conflicts": sorted(conflict_frequency.items(), key=lambda x: x[1], reverse=True)[:5],
+                "total_conflicts_resolved": sum(len(m.conflict_resolution_methods or []) for m in metrics)
+            }
+            
+        except Exception as e:
+            print(f"Error getting collaboration analytics: {e}")
+            return {"error": str(e)}
+        finally:
+            session.close()
+
+>>>>>>> 991d069 (Initial commit)
 # Global database service instance
 db_service = DatabaseService()

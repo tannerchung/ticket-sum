@@ -17,7 +17,13 @@ from plotly.subplots import make_subplots
 
 # Import our application modules
 from agents import CollaborativeSupportCrew
-from config import setup_langsmith, setup_kaggle
+from config import (
+    setup_langsmith, 
+    setup_kaggle, 
+    AVAILABLE_MODELS, 
+    DEFAULT_AGENT_MODELS,
+    AGENT_MODEL_RECOMMENDATIONS
+)
 from utils import validate_environment, load_ticket_data
 from database_service import db_service
 
@@ -684,7 +690,11 @@ def main():
     st.markdown("---")
     
     # Tabs for different monitoring views
+<<<<<<< HEAD
     tab1, tab2, tab3, tab4 = st.tabs(["🤖 Agent Monitor", "🔍 LangSmith Logs", "📊 DeepEval Assessment", "🗄️ Database Analytics"])
+=======
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🤖 Agent Monitor", "🔍 LangSmith Logs", "📊 DeepEval Assessment", "🗄️ Database Analytics", "🔄 Model Management"])
+>>>>>>> 991d069 (Initial commit)
     
     with tab1:
         # Only show agent monitor when there's actual agent activity (not just initialization)
@@ -707,6 +717,12 @@ def main():
     with tab4:
         display_database_analytics()
     
+<<<<<<< HEAD
+=======
+    with tab5:
+        display_model_management()
+    
+>>>>>>> 991d069 (Initial commit)
     # Footer
     st.markdown("---")
     st.markdown(
@@ -830,5 +846,298 @@ def display_database_analytics():
         st.error(f"Error loading database analytics: {str(e)}")
         st.info("Database might not be initialized yet. Process some tickets to see analytics.")
 
+<<<<<<< HEAD
+=======
+def display_model_management():
+    """Display model management and comparison interface."""
+    st.subheader("🔄 Model Management & Performance Testing")
+    
+    if not st.session_state.agents:
+        st.warning("Initialize agents first to manage models.")
+        return
+    
+    # Current model configuration
+    st.markdown("### 🎛️ Current Agent Models")
+    
+    try:
+        model_info = st.session_state.agents.get_agent_model_info()
+        
+        # Display current models in a nice grid
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**🏥 Triage Specialist**")
+            triage_info = model_info.get("triage_specialist", {})
+            current_model = triage_info.get("model", "Unknown")
+            model_details = triage_info.get("model_info", {})
+            st.info(f"**Model:** {current_model}\n\n**Description:** {model_details.get('description', 'N/A')}")
+            
+            st.markdown("**🎯 Support Strategist**")
+            strategist_info = model_info.get("support_strategist", {})
+            current_model = strategist_info.get("model", "Unknown")
+            model_details = strategist_info.get("model_info", {})
+            st.info(f"**Model:** {current_model}\n\n**Description:** {model_details.get('description', 'N/A')}")
+        
+        with col2:
+            st.markdown("**📊 Ticket Analyst**")
+            analyst_info = model_info.get("ticket_analyst", {})
+            current_model = analyst_info.get("model", "Unknown")
+            model_details = analyst_info.get("model_info", {})
+            st.info(f"**Model:** {current_model}\n\n**Description:** {model_details.get('description', 'N/A')}")
+            
+            st.markdown("**✅ QA Reviewer**")
+            qa_info = model_info.get("qa_reviewer", {})
+            current_model = qa_info.get("model", "Unknown")
+            model_details = qa_info.get("model_info", {})
+            st.info(f"**Model:** {current_model}\n\n**Description:** {model_details.get('description', 'N/A')}")
+        
+    except Exception as e:
+        st.error(f"Error getting model info: {str(e)}")
+        return
+    
+    st.markdown("---")
+    
+    # Model swapping interface
+    st.markdown("### 🔄 Swap Agent Models")
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        agent_to_modify = st.selectbox(
+            "Select Agent to Modify",
+            ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"],
+            format_func=lambda x: {
+                "triage_specialist": "🏥 Triage Specialist",
+                "ticket_analyst": "📊 Ticket Analyst", 
+                "support_strategist": "🎯 Support Strategist",
+                "qa_reviewer": "✅ QA Reviewer"
+            }[x]
+        )
+    
+    with col2:
+        available_models = list(AVAILABLE_MODELS.keys())
+        new_model = st.selectbox(
+            "Select New Model",
+            available_models,
+            format_func=lambda x: f"{AVAILABLE_MODELS[x]['name']} ({x})"
+        )
+    
+    # Show model details and recommendations
+    if new_model in AVAILABLE_MODELS:
+        model_details = AVAILABLE_MODELS[new_model]
+        st.markdown(f"**Model Details:** {model_details['description']}")
+        st.markdown(f"**Strengths:** {', '.join(model_details['strengths'])}")
+        
+        # Show agent-specific recommendations
+        if agent_to_modify in AGENT_MODEL_RECOMMENDATIONS:
+            recommendations = AGENT_MODEL_RECOMMENDATIONS[agent_to_modify]
+            recommended_models = recommendations.get("recommended", [])
+            reasoning = recommendations.get("reasoning", "")
+            
+            if new_model in recommended_models:
+                st.success(f"✅ Recommended for {agent_to_modify}: {reasoning}")
+            else:
+                st.warning(f"⚠️ Not specifically recommended for {agent_to_modify}: {reasoning}")
+    
+    if st.button("🔄 Update Agent Model"):
+        with st.spinner(f"Updating {agent_to_modify} to use {new_model}..."):
+            try:
+                success = st.session_state.agents.update_agent_model(agent_to_modify, new_model)
+                if success:
+                    st.success(f"✅ Successfully updated {agent_to_modify} to use {new_model}!")
+                    st.rerun()
+                else:
+                    st.error("❌ Failed to update agent model. Check model name and agent configuration.")
+            except Exception as e:
+                st.error(f"❌ Error updating model: {str(e)}")
+    
+    st.markdown("---")
+    
+    # Model comparison interface
+    st.markdown("### 📊 Model Performance Comparison")
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        test_agent = st.selectbox(
+            "Select Agent to Test",
+            ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"],
+            format_func=lambda x: {
+                "triage_specialist": "🏥 Triage Specialist",
+                "ticket_analyst": "📊 Ticket Analyst", 
+                "support_strategist": "🎯 Support Strategist",
+                "qa_reviewer": "✅ QA Reviewer"
+            }[x],
+            key="test_agent_select"
+        )
+    
+    with col2:
+        models_to_test = st.multiselect(
+            "Models to Compare",
+            available_models,
+            default=["gpt-4o", "gpt-4o-mini"],
+            format_func=lambda x: f"{AVAILABLE_MODELS[x]['name']} ({x})"
+        )
+    
+    # Test tickets selection
+    st.markdown("**Test Tickets:**")
+    test_option = st.radio(
+        "Choose test data",
+        ["Sample Tickets", "Custom Tickets"],
+        horizontal=True
+    )
+    
+    test_tickets = []
+    
+    if test_option == "Sample Tickets":
+        sample_tickets = load_sample_tickets()
+        selected_samples = st.multiselect(
+            "Select sample tickets to test",
+            range(len(sample_tickets)),
+            default=[0, 1, 2],
+            format_func=lambda i: f"{sample_tickets[i]['id']}: {sample_tickets[i]['title']}"
+        )
+        test_tickets = [{"id": sample_tickets[i]["id"], "content": sample_tickets[i]["message"]} 
+                       for i in selected_samples]
+    
+    else:  # Custom Tickets
+        st.markdown("**Add Custom Test Tickets:**")
+        num_custom = st.number_input("Number of custom tickets", min_value=1, max_value=5, value=2)
+        
+        for i in range(num_custom):
+            with st.expander(f"Custom Ticket {i+1}"):
+                ticket_id = st.text_input(f"Ticket ID", value=f"CUSTOM_{i+1}", key=f"custom_id_{i}")
+                ticket_content = st.text_area(f"Ticket Content", key=f"custom_content_{i}")
+                if ticket_id and ticket_content:
+                    test_tickets.append({"id": ticket_id, "content": ticket_content})
+    
+    # Run comparison
+    if st.button("🚀 Run Model Comparison") and test_tickets and models_to_test:
+        if len(test_tickets) == 0:
+            st.error("Please select or create test tickets.")
+            return
+            
+        with st.spinner(f"Testing {len(models_to_test)} models on {len(test_tickets)} tickets..."):
+            try:
+                comparison_results = st.session_state.agents.compare_models_on_tickets(
+                    test_tickets, test_agent, models_to_test
+                )
+                
+                # Store results in session state
+                if 'model_comparison_results' not in st.session_state:
+                    st.session_state.model_comparison_results = []
+                st.session_state.model_comparison_results.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'results': comparison_results
+                })
+                
+                # Display results
+                display_comparison_results(comparison_results)
+                
+            except Exception as e:
+                st.error(f"❌ Error running comparison: {str(e)}")
+    
+    # Display previous comparison results
+    if hasattr(st.session_state, 'model_comparison_results') and st.session_state.model_comparison_results:
+        st.markdown("---")
+        st.markdown("### 📈 Previous Comparison Results")
+        
+        for i, result_data in enumerate(reversed(st.session_state.model_comparison_results[-3:])):
+            with st.expander(f"Results from {result_data['timestamp']}"):
+                display_comparison_results(result_data['results'])
+
+def display_comparison_results(comparison_results):
+    """Display model comparison results with charts and metrics."""
+    st.markdown(f"**Agent Tested:** {comparison_results['agent_name']}")
+    st.markdown(f"**Tickets Processed:** {comparison_results['tickets_tested']}")
+    st.markdown(f"**Models Compared:** {', '.join(comparison_results['models_tested'])}")
+    
+    # Performance summary
+    summary = comparison_results.get('performance_summary', {})
+    
+    if summary:
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("🏆 Best Overall", summary.get('recommended_model', 'N/A'))
+        with col2:
+            st.metric("⚡ Fastest", summary.get('fastest_model', 'N/A'))
+        with col3:
+            st.metric("🎯 Most Accurate", summary.get('most_accurate_model', 'N/A'))
+    
+    # Performance rankings
+    rankings = summary.get('performance_rankings', [])
+    if rankings:
+        st.markdown("**Performance Rankings:**")
+        
+        ranking_data = []
+        for rank in rankings:
+            ranking_data.append({
+                'Model': rank['model'],
+                'Overall Score': f"{rank['score']:.3f}",
+                'Accuracy': f"{rank['accuracy']:.3f}",
+                'Speed Score': f"{rank['speed']:.3f}"
+            })
+        
+        ranking_df = pd.DataFrame(ranking_data)
+        st.dataframe(ranking_df, use_container_width=True)
+        
+        # Create performance chart
+        fig = go.Figure()
+        
+        models = [r['model'] for r in rankings]
+        scores = [r['score'] for r in rankings]
+        accuracy = [r['accuracy'] for r in rankings]
+        speed = [r['speed'] for r in rankings]
+        
+        fig.add_trace(go.Bar(
+            name='Overall Score',
+            x=models,
+            y=scores,
+            marker_color='lightblue'
+        ))
+        
+        fig.update_layout(
+            title='Model Performance Comparison',
+            xaxis_title='Model',
+            yaxis_title='Score',
+            showlegend=True
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Detailed results per model
+    results = comparison_results.get('results', {})
+    if results:
+        st.markdown("**Detailed Results:**")
+        
+        for model_name, model_results in results.items():
+            with st.expander(f"{model_name} - {AVAILABLE_MODELS.get(model_name, {}).get('name', model_name)}"):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.metric("Success Rate", f"{model_results.get('success_rate', 0):.1%}")
+                    st.metric("Average Time", f"{model_results.get('avg_processing_time', 0):.2f}s")
+                
+                with col2:
+                    st.metric("Total Errors", model_results.get('error_count', 0))
+                    st.metric("Tickets Processed", len(model_results.get('ticket_results', [])))
+                
+                # Show individual ticket results
+                ticket_results = model_results.get('ticket_results', [])
+                if ticket_results:
+                    results_data = []
+                    for result in ticket_results:
+                        results_data.append({
+                            'Ticket ID': result['ticket_id'],
+                            'Success': '✅' if result['success'] else '❌',
+                            'Processing Time': f"{result['processing_time']:.2f}s",
+                            'Status': 'Success' if result['success'] else f"Error: {result.get('error', 'Unknown')}"
+                        })
+                    
+                    results_df = pd.DataFrame(results_data)
+                    st.dataframe(results_df, use_container_width=True)
+
+>>>>>>> 991d069 (Initial commit)
 if __name__ == "__main__":
     main()

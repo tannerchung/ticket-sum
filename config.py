@@ -11,14 +11,17 @@ load_dotenv()
 
 # API Configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY", "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")
+COHERE_API_KEY = os.getenv("COHERE_API_KEY")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
 LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "ticket-sum")
-LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "false").lower() == "true"
+LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "true").lower() == "true"
 LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
 
 # Kaggle Configuration
-KAGGLE_USERNAME = os.getenv("KAGGLE_USERNAME", "tannerchung")
-KAGGLE_KEY = os.getenv("KAGGLE_KEY", "db38b7dbb8cb11cf37e98c2183c97bba")
+KAGGLE_USERNAME = os.getenv("KAGGLE_USERNAME")
+KAGGLE_KEY = os.getenv("KAGGLE_KEY")
+>>>>>>> 991d069 (Initial commit)
 
 # Dataset Configuration
 KAGGLE_DATASET = "suraj520/customer-support-ticket-dataset"
@@ -28,6 +31,111 @@ KAGGLE_DATASET = "suraj520/customer-support-ticket-dataset"
 # do not change this unless explicitly requested by the user
 LLM_MODEL = "gpt-4o"
 
+<<<<<<< HEAD
+=======
+# Available LLM Models for Agent Testing
+AVAILABLE_MODELS = {
+    "gpt-4o": {
+        "name": "GPT-4o",
+        "provider": "openai",
+        "description": "Latest OpenAI model - best overall performance",
+        "strengths": ["General reasoning", "Complex analysis", "Consistency"],
+        "temperature": 0.1
+    },
+    "gpt-4o-mini": {
+        "name": "GPT-4o Mini", 
+        "provider": "openai",
+        "description": "Faster, cost-effective version of GPT-4o",
+        "strengths": ["Speed", "Cost efficiency", "Simple tasks"],
+        "temperature": 0.1
+    },
+    "gpt-4-turbo": {
+        "name": "GPT-4 Turbo",
+        "provider": "openai", 
+        "description": "High-performance GPT-4 variant",
+        "strengths": ["Complex reasoning", "Long context", "Accuracy"],
+        "temperature": 0.1
+    },
+    "gpt-3.5-turbo": {
+        "name": "GPT-3.5 Turbo",
+        "provider": "openai",
+        "description": "Fast and efficient for simpler tasks",
+        "strengths": ["Speed", "Cost", "Basic classification"],
+        "temperature": 0.1
+    },
+    "command-r": {
+        "name": "Command R",
+        "provider": "cohere",
+        "description": "Cohere's flagship model for business applications",
+        "strengths": ["Business reasoning", "Factual accuracy", "Tool use"],
+        "temperature": 0.1
+    },
+    "command-r-plus": {
+        "name": "Command R+",
+        "provider": "cohere", 
+        "description": "Cohere's most advanced model with enhanced capabilities",
+        "strengths": ["Complex reasoning", "Multi-step analysis", "Advanced tool use"],
+        "temperature": 0.1
+    },
+    "command": {
+        "name": "Command",
+        "provider": "cohere",
+        "description": "Cohere's general-purpose conversational model",
+        "strengths": ["Conversation", "General tasks", "Cost efficiency"],
+        "temperature": 0.1
+    },
+    "claude-3-5-sonnet-20241022": {
+        "name": "Claude 3.5 Sonnet",
+        "provider": "anthropic",
+        "description": "Anthropic's most advanced model with excellent reasoning",
+        "strengths": ["Complex reasoning", "Code analysis", "Thoughtful responses"],
+        "temperature": 0.1
+    },
+    "claude-3-5-haiku-20241022": {
+        "name": "Claude 3.5 Haiku",
+        "provider": "anthropic", 
+        "description": "Fast and efficient Claude model for quick tasks",
+        "strengths": ["Speed", "Cost efficiency", "Quick analysis"],
+        "temperature": 0.1
+    },
+    "claude-3-opus-20240229": {
+        "name": "Claude 3 Opus",
+        "provider": "anthropic",
+        "description": "Anthropic's most powerful model for complex tasks",
+        "strengths": ["Deep analysis", "Creative reasoning", "Nuanced understanding"],
+        "temperature": 0.1
+    }
+}
+
+# Default Agent Model Configuration
+DEFAULT_AGENT_MODELS = {
+    "triage_specialist": "gpt-4o",
+    "ticket_analyst": "gpt-4o", 
+    "support_strategist": "gpt-4o",
+    "qa_reviewer": "gpt-4o"
+}
+
+# Agent-specific model recommendations
+AGENT_MODEL_RECOMMENDATIONS = {
+    "triage_specialist": {
+        "recommended": ["gpt-4o", "gpt-4o-mini", "command-r", "claude-3-5-haiku-20241022"],
+        "reasoning": "Fast classification requires speed and consistency. Claude 3.5 Haiku offers excellent speed with strong reasoning."
+    },
+    "ticket_analyst": {
+        "recommended": ["gpt-4o", "gpt-4-turbo", "command-r-plus", "claude-3-5-sonnet-20241022"],
+        "reasoning": "Deep analysis requires strong reasoning capabilities. Claude 3.5 Sonnet excels at thoughtful, detailed analysis."
+    },
+    "support_strategist": {
+        "recommended": ["gpt-4o", "gpt-4-turbo", "command-r-plus", "claude-3-opus-20240229"],
+        "reasoning": "Strategic planning needs advanced reasoning and context understanding. Claude 3 Opus provides the deepest analytical capabilities."
+    },
+    "qa_reviewer": {
+        "recommended": ["gpt-4o", "gpt-4-turbo", "command-r", "claude-3-5-sonnet-20241022"],
+        "reasoning": "Quality assurance requires thorough analysis and consistency checking. Claude 3.5 Sonnet provides excellent review capabilities."
+    }
+}
+
+>>>>>>> 991d069 (Initial commit)
 # Agent Prompts and Templates
 CLASSIFIER_PROMPT = """You are a customer support ticket classifier. Analyze and classify tickets accurately.
 

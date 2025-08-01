@@ -110,6 +110,46 @@ class AgentStatus(Base):
     def __repr__(self):
         return f"<AgentStatus(agent='{self.agent_name}', status='{self.status}')>"
 
+class CollaborationMetrics(Base):
+    """Model for tracking authentic agent collaboration and consensus building."""
+    __tablename__ = 'collaboration_metrics'
+    
+    id = Column(Integer, primary_key=True)
+    ticket_id = Column(String(100), nullable=False)
+    
+    # Initial disagreement tracking
+    initial_disagreements = Column(JSON)  # {field: [agent_values], conflict_type: description}
+    disagreement_count = Column(Integer, default=0)
+    
+    # Conflict resolution details
+    conflicts_identified = Column(JSON)  # List of specific conflicts found
+    conflict_resolution_methods = Column(JSON)  # How each conflict was resolved
+    resolution_iterations = Column(Integer, default=0)  # Number of back-and-forth cycles
+    
+    # Consensus building process
+    consensus_start_time = Column(DateTime)
+    consensus_end_time = Column(DateTime)
+    consensus_building_duration = Column(Float, default=0.0)  # in seconds
+    
+    # Final agreement tracking
+    final_agreement_scores = Column(JSON)  # {field: agreement_score}
+    overall_agreement_strength = Column(Float, default=0.0)
+    consensus_reached = Column(Boolean, default=False)
+    
+    # Agent participation
+    agent_iterations = Column(JSON)  # {agent_name: number_of_revisions}
+    agent_agreement_evolution = Column(JSON)  # Timeline of how agreement evolved
+    
+    # Quality of consensus
+    confidence_improvement = Column(Float, default=0.0)  # Initial vs final confidence
+    result_stability = Column(Float, default=0.0)  # Likelihood result won't change
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<CollaborationMetrics(ticket_id='{self.ticket_id}', consensus={self.consensus_reached})>"
+
+>>>>>>> 991d069 (Initial commit)
 # Database setup and session management
 def get_database_url():
     """Get the database URL from environment variables."""

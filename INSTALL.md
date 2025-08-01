@@ -1,0 +1,209 @@
+# Installation Guide
+
+This guide covers different ways to install and run the Support Ticket Summarizer.
+
+## Quick Start (Recommended)
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/YOUR_USERNAME/support-ticket-summarizer.git
+cd support-ticket-summarizer
+```
+
+### 2. Set Up Environment
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r pyproject.toml  # or use the dependencies listed in README.md
+```
+
+### 3. Configure Environment Variables
+Create a `.env` file in the project root:
+```bash
+# AI Provider API Keys
+OPENAI_API_KEY=your_openai_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+COHERE_API_KEY=your_cohere_api_key
+
+# Monitoring
+LANGSMITH_API_KEY=your_langsmith_api_key
+LANGSMITH_PROJECT=ticket-sum
+
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/ticket_db
+
+# Data Sources
+KAGGLE_USERNAME=your_kaggle_username  
+KAGGLE_KEY=your_kaggle_api_key
+```
+
+### 4. Set Up Database
+```bash
+# Install PostgreSQL and create database
+createdb ticket_db
+
+# The application will automatically create tables on first run
+```
+
+### 5. Run the Application
+```bash
+# Web Interface
+streamlit run streamlit_app.py --server.port 8501
+
+# Command Line
+python main.py
+```
+
+## Alternative Installation Methods
+
+### Using Docker (Coming Soon)
+Docker support will be added in a future release.
+
+### Using conda
+```bash
+conda create -n ticket-summarizer python=3.11
+conda activate ticket-summarizer
+pip install -r requirements.txt  # Use dependencies from README.md
+```
+
+### Using uv (Fast Python Package Manager)
+```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install dependencies
+uv sync
+uv run streamlit run streamlit_app.py
+```
+
+## API Key Setup
+
+### OpenAI API Key
+1. Go to [OpenAI Platform](https://platform.openai.com/)
+2. Create an account or sign in
+3. Navigate to API Keys section
+4. Create a new API key
+5. Add to your `.env` file
+
+### Anthropic API Key
+1. Go to [Anthropic Console](https://console.anthropic.com/)
+2. Create an account or sign in
+3. Generate an API key
+4. Add to your `.env` file
+
+### Cohere API Key (Optional)
+1. Go to [Cohere Dashboard](https://dashboard.cohere.ai/)
+2. Sign up or sign in
+3. Get your API key
+4. Add to your `.env` file
+
+### LangSmith API Key
+1. Go to [LangSmith](https://smith.langchain.com/)
+2. Create an account
+3. Generate an API key
+4. Add to your `.env` file
+
+### Kaggle API Key
+1. Go to [Kaggle](https://www.kaggle.com/)
+2. Go to Account Settings
+3. Create new API token
+4. Add username and key to your `.env` file
+
+## Database Setup Options
+
+### Local PostgreSQL
+```bash
+# Install PostgreSQL
+# Ubuntu/Debian
+sudo apt-get install postgresql postgresql-contrib
+
+# macOS
+brew install postgresql
+
+# Start PostgreSQL service
+sudo service postgresql start  # Linux
+brew services start postgresql  # macOS
+
+# Create database
+createdb ticket_db
+```
+
+### Cloud PostgreSQL
+- **Supabase**: Free tier available
+- **ElephantSQL**: Free tier available  
+- **Amazon RDS**: Paid service
+- **Google Cloud SQL**: Paid service
+
+Update your `DATABASE_URL` in `.env` with your cloud database connection string.
+
+## Troubleshooting
+
+### Common Issues
+
+#### Import Errors
+```bash
+# If you get import errors, make sure all dependencies are installed
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+#### Database Connection Errors
+- Check your `DATABASE_URL` format
+- Ensure PostgreSQL is running
+- Verify database exists and permissions are correct
+
+#### API Key Errors
+- Double-check all API keys in your `.env` file
+- Ensure API keys have proper permissions
+- Check API quota limits
+
+#### Port Already in Use
+```bash
+# If port 8501 is in use, specify a different port
+streamlit run streamlit_app.py --server.port 8502
+```
+
+### Performance Issues
+- Ensure you have sufficient RAM (4GB+ recommended)
+- Check your internet connection for API calls
+- Monitor API rate limits
+
+### Compatibility Issues
+- Python 3.11+ is required
+- If using older Python versions, some dependencies may need different versions
+
+## Development Setup
+
+For development work:
+
+```bash
+# Install development dependencies
+pip install pytest black flake8 mypy
+
+# Run tests
+pytest
+
+# Format code
+black .
+
+# Type checking
+mypy .
+```
+
+## Getting Help
+
+1. Check the [README.md](README.md) for detailed documentation
+2. Review the [GITHUB_SETUP.md](GITHUB_SETUP.md) for repository setup
+3. Create an issue on GitHub for bugs or feature requests
+4. Check the project documentation in `replit.md` for architecture details
+
+## System Requirements
+
+- **Python**: 3.11 or higher
+- **RAM**: 4GB minimum, 8GB recommended
+- **Storage**: 1GB free space
+- **Network**: Internet connection for API calls
+- **Database**: PostgreSQL 12 or higher
