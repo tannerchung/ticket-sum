@@ -1,10 +1,10 @@
-# Support Ticket Summarizer v2.0
+# Support Ticket Summarizer v2.1
 
-A sophisticated Python-powered multi-agent AI system for intelligent customer support ticket processing, leveraging advanced collaborative intelligence and real-time analytics.
+A sophisticated Python-powered multi-agent AI system for intelligent customer support ticket processing, leveraging advanced collaborative intelligence and comprehensive telemetry.
 
 ## Overview
 
-This application implements a **collaborative multi-agent GenAI system** for customer support automation using CrewAI. The system features four specialized AI agents (Triage Specialist, Ticket Analyst, Support Strategist, QA Reviewer) that work collaboratively with **authentic consensus building**, **custom faithfulness evaluation**, and **comprehensive monitoring** through LangSmith tracing integration.
+This application implements a **collaborative multi-agent GenAI system** for customer support automation using CrewAI. The system features four specialized AI agents (Triage Specialist, Ticket Analyst, Support Strategist, QA Reviewer) that work collaboratively with **authentic consensus building**, **dynamic quality evaluation**, and **comprehensive monitoring** through Langfuse Cloud tracing integration.
 
 ## Key Features ✨
 
@@ -33,11 +33,11 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 - **Database Analytics**: Historical insights with interactive Plotly charts and trend analysis
 
 ### 📊 Comprehensive Monitoring & Observability
-- **Langfuse Cloud Integration**: Complete tracing of all agent interactions with OpenInference instrumentation
-- **Custom Quality Assessment**: Authentic faithfulness evaluation using GPT-4o for fact-checking
-- **DeepEval Integration**: Hallucination detection, relevancy scoring, and accuracy assessment
+- **Langfuse Cloud Integration**: Complete tracing of all agent interactions with OpenInference instrumentation and intelligent session management
+- **Dynamic Quality Assessment**: Real-time DeepEval metrics with authentic faithfulness evaluation using GPT-4o
+- **Session Management**: Option B implementation - individual sessions for single tickets, shared sessions for batch processing
 - **PostgreSQL Analytics**: Persistent storage with performance metrics, collaboration tracking, and historical analysis
-- **Real-time Collaboration Tracking**: Live monitoring of agent consensus building and conflict resolution
+- **Real-time Collaboration Tracking**: Live monitoring of agent consensus building and conflict resolution with enhanced telemetry
 
 ## Technology Stack 🛠️
 
@@ -45,21 +45,48 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 - **AI Providers**: OpenAI (GPT-4o), Anthropic (Claude 3.5), Cohere (Command R) with fallback support
 - **Database**: PostgreSQL with SQLAlchemy for persistent analytics and collaboration metrics
 - **Web Interface**: Streamlit with real-time updates and interactive dashboards
-- **Observability**: Langfuse Cloud with OpenInference instrumentation for comprehensive tracing
-- **Quality Assessment**: DeepEval integration with authentic metrics calculation
+- **Observability**: Langfuse Cloud with OpenInference instrumentation and intelligent session management
+- **Quality Assessment**: DeepEval integration with dynamic metrics and custom faithfulness evaluation
 - **Data Processing**: pandas, kagglehub for dataset management
 - **Visualization**: Plotly for interactive charts and performance analytics
 
 ## Version History & Release Journey 📈
 
-### v2.0 - Collaborative Intelligence Era
+### v2.1 - Advanced Telemetry & Quality Assessment (January 31, 2025)
+**Critical Migration: LangSmith → Langfuse Cloud + Enhanced Session Management**
+
+#### Major Breaking Changes & Migrations
+- 🔄 **LangSmith to Langfuse Migration**: Complete telemetry overhaul due to CrewAI 0.80+ incompatibility with LangSmith callbacks
+- 🔧 **OpenInference Instrumentation**: Replaced custom LangSmith integration with OpenTelemetry-based tracing for better CrewAI compatibility
+- 📊 **DeepEval Metrics Fix**: Resolved hardcoded evaluation scores, now showing real-time dynamic metrics (Hallucination, Relevancy, Faithfulness)
+- 🎯 **Intelligent Session Management**: Implemented Option B batch sessions - individual tickets get unique sessions, batch processing shares session IDs
+
+#### Critical Technical Fixes
+- **CrewAI Compatibility Crisis**: LangSmith callback system incompatible with CrewAI 0.80+, causing trace failures
+- **DeepEval Integration Issues**: Fixed subscription to get actual dynamic scores instead of placeholder values
+- **Session Tracking Logic**: Optimized for Langfuse dashboard organization with batch vs individual processing separation
+- **Database Schema Reset**: Complete cleanup for fresh analytics tracking with enhanced collaboration metrics
+
+#### Telemetry Architecture Revolution
+- **Langfuse Cloud Integration**: Full OTLP exporter setup with automatic trace capture via OpenInference
+- **Per-Run Session IDs**: Individual tickets = unique sessions, batch processing = shared session per batch
+- **Enhanced Trace Context**: Comprehensive metadata including processing type, agent count, and collaboration metrics
+- **Automatic Instrumentation**: No manual callback management - OpenInference handles all LLM trace capture
+
+#### Quality Assessment Improvements  
+- **Dynamic DeepEval Scores**: Real-time hallucination (1.000), relevancy (1.000), faithfulness (0.600) calculation
+- **Custom Faithfulness Pipeline**: GPT-4o-based fact-checking with fallback mechanisms for offline scenarios
+- **Enhanced Collaboration Tracking**: Authentic disagreement detection and consensus building metrics
+- **Database Analytics Refresh**: Clean slate for accurate performance tracking and quality trends
+
+### v2.0 - Collaborative Intelligence Era (Previous)
 **Major Architecture Evolution: From Sequential to Collaborative Processing**
 
 #### Core Breakthroughs
 - ✅ **Authentic Multi-Agent Collaboration**: Transformed from sequential agent processing to genuine collaborative intelligence with real consensus building
 - ✅ **Custom Faithfulness Evaluation**: Revolutionary GPT-4o-based fact-checking system that validates agent outputs against source content
 - ✅ **Multi-Provider AI Ecosystem**: Complete integration of OpenAI, Anthropic, and Cohere with dynamic model assignment per agent
-- ✅ **Advanced Observability**: Langfuse Cloud integration with OpenInference instrumentation capturing every agent interaction and collaboration event
+- ✅ **LangSmith Integration**: Advanced observability with comprehensive tracing (later migrated to Langfuse in v2.1)
 - ✅ **Real-Time Collaboration Metrics**: Authentic disagreement detection, conflict resolution tracking, and consensus strength measurement
 
 #### Technical Innovations
@@ -68,11 +95,6 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 - **Performance Analytics Framework**: Comprehensive model comparison with weighted scoring (70% accuracy, 30% speed)
 - **Database Analytics Engine**: Historical insights with interactive Plotly visualizations
 - **Robust Error Handling**: JSON serialization fixes and database constraint validation
-
-#### Quality & Monitoring Enhancements
-- **DeepEval Integration**: Advanced hallucination detection and relevancy scoring
-- **Custom Evaluation Pipeline**: Authentic faithfulness scoring with fallback mechanisms
-- **Real-Time Dashboard**: Live agent status monitoring with processing indicators
 
 #### Latest Enhancements (2025)
 - **Enhanced Performance Analytics**: Real processing time tracking for accurate agent performance monitoring

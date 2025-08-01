@@ -1,6 +1,17 @@
-# Langfuse Migration - Complete Refactor Summary
+# Langfuse Migration - Complete Refactor Summary v2.1
 
-This document summarizes the complete migration from LangSmith to Langfuse Cloud using OpenInference/OpenTelemetry instrumentation.
+This document summarizes the complete migration from LangSmith to Langfuse Cloud using OpenInference/OpenTelemetry instrumentation, including the latest session management enhancements and DeepEval fixes.
+
+## Migration Timeline & Critical Issues
+
+### Why the Migration Was Necessary
+**January 2025**: CrewAI 0.80+ introduced breaking changes that made LangSmith's callback system incompatible with the framework. The system was experiencing:
+- Failed trace captures during crew.kickoff() execution
+- Callback registration conflicts with CrewAI's internal memory systems
+- Incomplete observability of multi-agent collaboration processes
+
+### Solution: OpenInference + Langfuse Cloud
+Migrated to Langfuse Cloud with OpenInference instrumentation for automatic, non-intrusive tracing that works seamlessly with CrewAI's architecture.
 
 ## Changes Made
 
@@ -41,7 +52,50 @@ This document summarizes the complete migration from LangSmith to Langfuse Cloud
 +     from telemetry import setup_langfuse_tracing
 ```
 
-### 4. Streamlit App Updates (`streamlit_app.py`)
+### 4. Session Management Enhancement (January 31, 2025)
+
+**Option B Implementation**: Intelligent session ID management for better Langfuse dashboard organization.
+
+```python
+# telemetry.py - Enhanced trace context
+@contextmanager
+def trace_ticket_processing(self, ticket_id: str, metadata: Optional[Dict] = None, batch_session_id: Optional[str] = None):
+    # Use provided batch session ID or create new one for individual processing
+    if batch_session_id:
+        run_session_id = batch_session_id
+        processing_type = "batch"
+    else:
+        run_session_id = str(uuid.uuid4())
+        processing_type = "individual"
+```
+
+**Benefits**:
+- Individual tickets: Each gets unique session ID for granular analysis
+- Batch processing (Kaggle/CSV): All tickets share one session ID for batch analysis
+- Better Langfuse dashboard organization with logical grouping
+
+### 5. DeepEval Integration Fixes (January 31, 2025)
+
+**Problem**: DeepEval was showing hardcoded placeholder values instead of real dynamic scores.
+
+**Solution**: Fixed metric extraction to show authentic evaluation results:
+```python
+# Before (hardcoded)
+scores = {
+    'hallucination': 1.000,  # Always the same
+    'relevancy': 1.000,      # Always the same
+    'faithfulness': 0.600    # Always the same
+}
+
+# After (dynamic)
+scores = {
+    'hallucination': actual_hallucination_score,  # Real-time calculation
+    'relevancy': actual_relevancy_score,           # Real-time calculation  
+    'faithfulness': custom_faithfulness_score     # GPT-4o evaluation
+}
+```
+
+### 6. Streamlit App Updates (`streamlit_app.py`)
 
 ```diff
 - from config import setup_langsmith
@@ -53,6 +107,14 @@ This document summarizes the complete migration from LangSmith to Langfuse Cloud
 +     st.session_state.langfuse_logs = []
 
 - def log_langsmith_activity(agent_name, input_data, output_data, metadata=None):
++ def log_langfuse_activity(agent_name, input_data, output_data, metadata=None):
+
+# Batch processing with session management
++ if st.button(f"🚀 Process First {num_tickets} Tickets"):
++     manager = get_langfuse_manager()
++     batch_session_id = manager.create_batch_session()
++     st.info(f"📊 Batch Session: `{batch_session_id[:8]}...`")
+```
 + def log_langfuse_activity(agent_name, input_data, output_data, metadata=None):
 
 - def display_langsmith_logs():

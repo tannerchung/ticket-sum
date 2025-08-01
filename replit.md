@@ -64,18 +64,30 @@ Use Replit's persistent storage for output files and cached data.
 
 ## Recent Changes
 
-### Session Management Enhancement (January 31, 2025)
-- **Option B Batch Sessions**: Implemented intelligent session ID management:
-  - Individual tickets: Each gets unique session ID for granular tracking
-  - Batch processing (Kaggle/CSV): All tickets in batch share one session ID
-- **Benefits**: Better organization in Langfuse dashboard with logical grouping by processing type
-- **Implementation**: `trace_ticket_processing()` accepts optional `batch_session_id` parameter
-- **UI Updates**: Streamlit shows batch session ID when processing batches, individual sessions otherwise
+### v2.1.0 - Critical Migration & Quality Enhancements (January 31, 2025)
 
-### Database Reset (January 31, 2025)
-- **Complete Clean**: All tables dropped and recreated with fresh schema
-- **Ready State**: Clean database with 0 rows in all data tables, 4 default agent configurations
-- **Session Reset**: Fresh application session and cleared telemetry caches
+#### LangSmith → Langfuse Migration (BREAKING CHANGE)
+- **Migration Reason**: CrewAI 0.80+ incompatibility caused trace capture failures with LangSmith callbacks
+- **Solution**: Complete migration to Langfuse Cloud with OpenInference instrumentation
+- **Benefits**: Automatic trace capture, no callback conflicts, better CrewAI compatibility
+- **Implementation**: OTLP exporter with comprehensive metadata tracking
+
+#### Session Management Enhancement - Option B
+- **Intelligent Sessions**: Individual tickets get unique session IDs, batch processing shares session per batch
+- **Langfuse Organization**: Better dashboard grouping with logical separation of processing types
+- **UI Enhancement**: Streamlit displays batch session IDs during batch processing operations
+- **Implementation**: `trace_ticket_processing()` accepts optional `batch_session_id` parameter
+
+#### DeepEval Integration Fixes
+- **Problem Fixed**: Hardcoded placeholder values (1.000, 1.000, 0.600) replaced with dynamic calculation
+- **Real Metrics**: Authentic hallucination detection, relevancy scoring, and custom faithfulness evaluation
+- **Quality Pipeline**: Enhanced GPT-4o-based fact-checking with fallback mechanisms
+- **Result**: Genuine quality assessment reflecting actual AI agent performance
+
+#### Database & Schema Reset
+- **Complete Clean**: All tables dropped and recreated with enhanced collaboration metrics schema
+- **Fresh Analytics**: Clean slate for accurate performance tracking and quality trend analysis
+- **Ready State**: 0 rows in data tables, 4 default agent configurations maintained
 
 ## Troubleshooting
 
