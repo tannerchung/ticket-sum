@@ -21,7 +21,6 @@ LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchai
 # Kaggle Configuration
 KAGGLE_USERNAME = os.getenv("KAGGLE_USERNAME")
 KAGGLE_KEY = os.getenv("KAGGLE_KEY")
->>>>>>> 991d069 (Initial commit)
 
 # Dataset Configuration
 KAGGLE_DATASET = "suraj520/customer-support-ticket-dataset"
@@ -31,8 +30,6 @@ KAGGLE_DATASET = "suraj520/customer-support-ticket-dataset"
 # do not change this unless explicitly requested by the user
 LLM_MODEL = "gpt-4o"
 
-<<<<<<< HEAD
-=======
 # Available LLM Models for Agent Testing
 AVAILABLE_MODELS = {
     "gpt-4o": {
@@ -135,7 +132,6 @@ AGENT_MODEL_RECOMMENDATIONS = {
     }
 }
 
->>>>>>> 991d069 (Initial commit)
 # Agent Prompts and Templates
 CLASSIFIER_PROMPT = """You are a customer support ticket classifier. Analyze and classify tickets accurately.
 

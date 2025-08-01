@@ -4,12 +4,6 @@ Implements a multi-agent system where agents collaborate and refine each other's
 """
 
 import json
-<<<<<<< HEAD
-from typing import Dict, Any, List
-from crewai import Agent, Task, Crew
-from langchain_openai import ChatOpenAI
-from config import LLM_MODEL, OPENAI_API_KEY
-=======
 import time
 from typing import Dict, Any, List, Optional
 from datetime import datetime
@@ -41,7 +35,6 @@ from config import (
     DEFAULT_AGENT_MODELS,
     AGENT_MODEL_RECOMMENDATIONS
 )
->>>>>>> 991d069 (Initial commit)
 
 class CollaborativeSupportCrew:
     """
@@ -49,19 +42,6 @@ class CollaborativeSupportCrew:
     Agents work together, provide feedback, and refine each other's outputs.
     """
     
-<<<<<<< HEAD
-    def __init__(self):
-        """Initialize the collaborative crew with specialized agents."""
-        # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-        # do not change this unless explicitly requested by the user
-        self.llm = ChatOpenAI(
-            model=LLM_MODEL,
-            api_key=OPENAI_API_KEY,
-            temperature=0.1  # Low temperature for consistent results
-        )
-        
-        # Initialize collaborative agents
-=======
     def __init__(self, agent_models: Optional[Dict[str, str]] = None):
         """
         Initialize the collaborative crew with specialized agents.
@@ -115,7 +95,6 @@ class CollaborativeSupportCrew:
                 )
         
         # Initialize collaborative agents with their specific LLMs
->>>>>>> 991d069 (Initial commit)
         self.triage_specialist = self._create_triage_specialist()
         self.ticket_analyst = self._create_ticket_analyst()
         self.support_strategist = self._create_support_strategist()
@@ -149,11 +128,8 @@ class CollaborativeSupportCrew:
             """,
             verbose=True,
             allow_delegation=True,
-<<<<<<< HEAD
             llm=self.llm,
-=======
             llm=self.llm_instances["triage_specialist"],
->>>>>>> 991d069 (Initial commit)
             max_execution_time=300
         )
     
@@ -173,11 +149,8 @@ class CollaborativeSupportCrew:
             """,
             verbose=True,
             allow_delegation=True,
-<<<<<<< HEAD
             llm=self.llm,
-=======
             llm=self.llm_instances["ticket_analyst"],
->>>>>>> 991d069 (Initial commit)
             max_execution_time=300
         )
     
@@ -197,11 +170,8 @@ class CollaborativeSupportCrew:
             """,
             verbose=True,
             allow_delegation=True,
-<<<<<<< HEAD
             llm=self.llm,
-=======
             llm=self.llm_instances["support_strategist"],
->>>>>>> 991d069 (Initial commit)
             max_execution_time=300
         )
     
@@ -224,12 +194,6 @@ class CollaborativeSupportCrew:
             """,
             verbose=True,
             allow_delegation=True,
-<<<<<<< HEAD
-            llm=self.llm,
-            max_execution_time=300
-        )
-    
-=======
             llm=self.llm_instances["qa_reviewer"],
             max_execution_time=300
         )
@@ -460,7 +424,6 @@ class CollaborativeSupportCrew:
         
         return summary
     
->>>>>>> 991d069 (Initial commit)
     def process_ticket_collaboratively(self, ticket_id: str, ticket_content: str) -> Dict[str, Any]:
         """
         Process a ticket using collaborative CrewAI workflow.
@@ -580,12 +543,9 @@ class CollaborativeSupportCrew:
             else:
                 crew_text = str(crew_result)
             
-<<<<<<< HEAD
-=======
             # Extract authentic collaboration metrics from the crew execution
             collaboration_metrics = self._extract_authentic_collaboration_metrics(crew_result, ticket_id)
             
->>>>>>> 991d069 (Initial commit)
             # Try to parse as JSON if possible, otherwise extract key information
             if '{' in crew_text and '}' in crew_text:
                 # Look for JSON-like content
@@ -595,24 +555,18 @@ class CollaborativeSupportCrew:
                 
                 try:
                     parsed = json.loads(json_content)
-<<<<<<< HEAD
                     return self._structure_collaborative_result(parsed, ticket_id, ticket_content, crew_text)
-=======
                     result = self._structure_collaborative_result(parsed, ticket_id, ticket_content, crew_text)
                     result["collaboration_metrics"] = collaboration_metrics
                     return result
->>>>>>> 991d069 (Initial commit)
                 except json.JSONDecodeError:
                     pass
             
             # Fallback: Parse text-based result
-<<<<<<< HEAD
             return self._parse_text_result(crew_text, ticket_id, ticket_content)
-=======
             result = self._parse_text_result(crew_text, ticket_id, ticket_content)
             result["collaboration_metrics"] = collaboration_metrics
             return result
->>>>>>> 991d069 (Initial commit)
             
         except Exception as e:
             print(f"⚠️  Error parsing collaborative result for ticket {ticket_id}: {str(e)}")
@@ -708,8 +662,6 @@ class CollaborativeSupportCrew:
         
         return ' '.join(summary_lines) if summary_lines else "Collaborative analysis summary"
     
-<<<<<<< HEAD
-=======
     def _extract_authentic_collaboration_metrics(self, crew_result, ticket_id: str) -> Dict[str, Any]:
         """Extract real collaboration metrics from CrewAI execution."""
         start_time = time.time()
@@ -876,7 +828,6 @@ class CollaborativeSupportCrew:
         agreement_strength = resolution_rate - duration_penalty
         return max(0.0, min(1.0, agreement_strength))
     
->>>>>>> 991d069 (Initial commit)
     def _create_fallback_result(self, ticket_id: str, ticket_content: str, error_msg: str) -> Dict[str, Any]:
         """Create fallback result when collaborative processing fails."""
         return {

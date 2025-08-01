@@ -690,11 +690,7 @@ def main():
     st.markdown("---")
     
     # Tabs for different monitoring views
-<<<<<<< HEAD
-    tab1, tab2, tab3, tab4 = st.tabs(["🤖 Agent Monitor", "🔍 LangSmith Logs", "📊 DeepEval Assessment", "🗄️ Database Analytics"])
-=======
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["🤖 Agent Monitor", "🔍 LangSmith Logs", "📊 DeepEval Assessment", "🗄️ Database Analytics", "🔄 Model Management"])
->>>>>>> 991d069 (Initial commit)
     
     with tab1:
         # Only show agent monitor when there's actual agent activity (not just initialization)
@@ -717,12 +713,8 @@ def main():
     with tab4:
         display_database_analytics()
     
-<<<<<<< HEAD
-=======
     with tab5:
         display_model_management()
-    
->>>>>>> 991d069 (Initial commit)
     # Footer
     st.markdown("---")
     st.markdown(
@@ -846,8 +838,6 @@ def display_database_analytics():
         st.error(f"Error loading database analytics: {str(e)}")
         st.info("Database might not be initialized yet. Process some tickets to see analytics.")
 
-<<<<<<< HEAD
-=======
 def display_model_management():
     """Display model management and comparison interface."""
     st.subheader("🔄 Model Management & Performance Testing")
@@ -1137,7 +1127,5 @@ def display_comparison_results(comparison_results):
                     
                     results_df = pd.DataFrame(results_data)
                     st.dataframe(results_df, use_container_width=True)
-
->>>>>>> 991d069 (Initial commit)
 if __name__ == "__main__":
     main()

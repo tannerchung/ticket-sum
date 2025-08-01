@@ -149,7 +149,6 @@ class CollaborationMetrics(Base):
     def __repr__(self):
         return f"<CollaborationMetrics(ticket_id='{self.ticket_id}', consensus={self.consensus_reached})>"
 
->>>>>>> 991d069 (Initial commit)
 # Database setup and session management
 def get_database_url():
     """Get the database URL from environment variables."""
