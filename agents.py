@@ -10,14 +10,20 @@ from datetime import datetime
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
 
-# Try to import Cohere support
+# Try to import Cohere support with better error handling
 COHERE_AVAILABLE = False
 ChatCohere = None
 try:
     from langchain_cohere import ChatCohere
-    COHERE_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ Cohere integration unavailable: {e}")
+    # Test if import actually works by checking class attributes
+    test_attrs = hasattr(ChatCohere, '__init__')
+    if test_attrs:
+        COHERE_AVAILABLE = True
+        print("✅ Cohere integration enabled successfully")
+    else:
+        print("⚠️ Cohere integration: Import successful but class not fully compatible")
+except Exception as e:
+    print(f"⚠️ Cohere integration unavailable: {str(e)}")
 
 # Try to import Anthropic support
 ANTHROPIC_AVAILABLE = False
@@ -26,7 +32,7 @@ try:
     from langchain_anthropic import ChatAnthropic
     ANTHROPIC_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ Anthropic integration unavailable: {e}")
+    print(f"⚠️ Anthropic integration unavailable: {str(e)}")
 from config import (
     LLM_MODEL, 
     OPENAI_API_KEY,
@@ -67,12 +73,20 @@ class CollaborativeSupportCrew:
                         api_key=OPENAI_API_KEY,
                         temperature=model_config["temperature"]
                     )
-                elif provider == "cohere" and COHERE_AVAILABLE:
-                    self.llm_instances[agent_name] = ChatCohere(
-                        model=model_name,
-                        cohere_api_key=COHERE_API_KEY,
-                        temperature=model_config["temperature"]
-                    )
+                elif provider == "cohere" and COHERE_AVAILABLE and ChatCohere:
+                    try:
+                        self.llm_instances[agent_name] = ChatCohere(
+                            model=model_name,
+                            cohere_api_key=COHERE_API_KEY,
+                            temperature=model_config["temperature"]
+                        )
+                    except Exception as e:
+                        print(f"⚠️ Failed to initialize Cohere for {agent_name}: {e}")
+                        self.llm_instances[agent_name] = ChatOpenAI(
+                            model="gpt-4o",
+                            api_key=OPENAI_API_KEY,
+                            temperature=0.1
+                        )
                 elif provider == "anthropic" and ANTHROPIC_AVAILABLE:
                     self.llm_instances[agent_name] = ChatAnthropic(
                         model_name=model_name,
@@ -237,12 +251,20 @@ class CollaborativeSupportCrew:
                 api_key=OPENAI_API_KEY,
                 temperature=model_config["temperature"]
             )
-        elif provider == "cohere" and COHERE_AVAILABLE:
-            self.llm_instances[agent_name] = ChatCohere(
-                model=model_name,
-                cohere_api_key=COHERE_API_KEY,
-                temperature=model_config["temperature"]
-            )
+        elif provider == "cohere" and COHERE_AVAILABLE and ChatCohere:
+            try:
+                self.llm_instances[agent_name] = ChatCohere(
+                    model=model_name,
+                    cohere_api_key=COHERE_API_KEY,
+                    temperature=model_config["temperature"]
+                )
+            except Exception as e:
+                print(f"⚠️ Failed to initialize Cohere for {agent_name}: {e}")
+                self.llm_instances[agent_name] = ChatOpenAI(
+                    model="gpt-4o",
+                    api_key=OPENAI_API_KEY,
+                    temperature=0.1
+                )
         elif provider == "anthropic" and ANTHROPIC_AVAILABLE:
             self.llm_instances[agent_name] = ChatAnthropic(
                 model_name=model_name,

@@ -4,13 +4,13 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
-    "cohere>=5.12.0",
+    "cohere==5.12.0",
     "crewai>=0.152.0",
     "deepeval>=3.3.3",
     "kagglehub>=0.3.12",
     "langchain>=0.3.27",
     "langchain-anthropic>=0.3.18",
-    "langchain-cohere>=0.4.4",
+    "langchain-cohere==0.4.4",
     "langchain-openai>=0.3.28",
     "langsmith>=0.4.9",
     "openai>=1.98.0",
