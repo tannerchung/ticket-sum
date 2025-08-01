@@ -3,7 +3,6 @@ Database service layer for the Support Ticket Summarizer system.
 Handles all database operations and integrations.
 """
 
-import json
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 from models import (
