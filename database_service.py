@@ -295,8 +295,6 @@ class DatabaseService:
         finally:
             session.close()
 
-<<<<<<< HEAD
-=======
     def save_collaboration_metrics(self, ticket_id: str, metrics: Dict[str, Any]) -> bool:
         """Save authentic collaboration metrics to the database."""
         session = get_db_session()
@@ -373,6 +371,6 @@ class DatabaseService:
         finally:
             session.close()
 
->>>>>>> 991d069 (Initial commit)
+
 # Global database service instance
 db_service = DatabaseService()

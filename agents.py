@@ -128,7 +128,6 @@ class CollaborativeSupportCrew:
             """,
             verbose=True,
             allow_delegation=True,
-            llm=self.llm,
             llm=self.llm_instances["triage_specialist"],
             max_execution_time=300
         )
@@ -149,7 +148,6 @@ class CollaborativeSupportCrew:
             """,
             verbose=True,
             allow_delegation=True,
-            llm=self.llm,
             llm=self.llm_instances["ticket_analyst"],
             max_execution_time=300
         )
@@ -170,7 +168,6 @@ class CollaborativeSupportCrew:
             """,
             verbose=True,
             allow_delegation=True,
-            llm=self.llm,
             llm=self.llm_instances["support_strategist"],
             max_execution_time=300
         )
