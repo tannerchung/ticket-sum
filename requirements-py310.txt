@@ -66,6 +66,7 @@ jsonpointer==3.0.0
 jsonref==1.1.0
 jsonschema==4.25.0
 jsonschema-specifications==2025.4.1
+kagglehub==0.3.12
 kubernetes==33.1.0
 langchain==0.3.27
 langchain-anthropic==0.3.18
@@ -173,6 +174,7 @@ urllib3==2.5.0
 uv==0.8.4
 uvicorn==0.35.0
 uvloop==0.21.0
+watchdog==6.0.0
 watchfiles==1.1.0
 wcwidth==0.2.13
 websocket-client==1.8.0
