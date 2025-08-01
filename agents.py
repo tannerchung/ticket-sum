@@ -227,6 +227,7 @@ class CollaborativeSupportCrew:
                         api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                         temperature=model_config["temperature"]
                     )
+                    # Note: Callbacks will be set during execution for proper LangSmith integration
                 elif provider == "cohere" and COHERE_AVAILABLE and ChatCohere:
                     try:
                         self.llm_instances[agent_name] = ChatCohere(
@@ -288,8 +289,71 @@ class CollaborativeSupportCrew:
                 self.qa_reviewer
             ],
             verbose=True,
-            memory=True  # Enable memory for agent collaboration
+            memory=True,  # Enable memory for agent collaboration
+            # Note: Callbacks will be set during execution for proper LangSmith integration
         )
+    
+    def _set_callbacks_on_llms(self, callback_manager):
+        """
+        Set callbacks on all LLM instances and agents for proper LangSmith tracing.
+        
+        Args:
+            callback_manager: The callback manager to set on all LLMs
+        """
+        try:
+            # Set callbacks on all LLM instances
+            for agent_name, llm in self.llm_instances.items():
+                if hasattr(llm, 'callbacks'):
+                    llm.callbacks = callback_manager
+                    print(f"✅ Set callbacks on {agent_name} LLM")
+            
+            # Set callbacks on all agents
+            for agent in [self.triage_specialist, self.ticket_analyst, self.support_strategist, self.qa_reviewer]:
+                if hasattr(agent, 'llm') and hasattr(agent.llm, 'callbacks'):
+                    agent.llm.callbacks = callback_manager
+                    print(f"✅ Set callbacks on {agent.role} agent")
+            
+            # Set callbacks on crew if supported
+            if hasattr(self.crew, 'callbacks'):
+                self.crew.callbacks = callback_manager
+                print("✅ Set callbacks on crew")
+            
+            print("🎯 All callbacks configured for LangSmith tracing")
+            
+        except Exception as e:
+            print(f"⚠️ Error setting callbacks: {e}")
+            print("📝 Continuing without callback configuration")
+    
+    def _set_callbacks_on_crew_llms(self, callback_manager):
+        """
+        Set callbacks directly on the crew's LLM instances for CrewAI compatibility.
+        
+        Args:
+            callback_manager: The callback manager to set on all LLMs
+        """
+        try:
+            # Set callbacks on crew's internal LLM instances if accessible
+            if hasattr(self.crew, 'agents'):
+                for agent in self.crew.agents:
+                    if hasattr(agent, 'llm') and hasattr(agent.llm, 'callbacks'):
+                        agent.llm.callbacks = callback_manager
+                        print(f"✅ Set callbacks on crew agent {agent.role} LLM")
+            
+            # Try to set callbacks on crew's internal manager if it exists
+            if hasattr(self.crew, 'manager') and hasattr(self.crew.manager, 'callbacks'):
+                self.crew.manager.callbacks = callback_manager
+                print("✅ Set callbacks on crew manager")
+            
+            # Try to set callbacks on crew's internal executor if it exists
+            if hasattr(self.crew, 'executor') and hasattr(self.crew.executor, 'callbacks'):
+                self.crew.executor.callbacks = callback_manager
+                print("✅ Set callbacks on crew executor")
+            
+            print("🎯 Crew LLM callbacks configured for LangSmith tracing")
+            
+        except Exception as e:
+            print(f"⚠️ Error setting crew callbacks: {e}")
+            print("📝 Continuing without crew callback configuration")
     
     def _create_triage_specialist(self) -> Agent:
         """Create the triage specialist for initial classification and severity assessment."""
@@ -663,12 +727,34 @@ class CollaborativeSupportCrew:
                 # Set up proper callback manager
                 callback_manager = create_callback_manager()
                 
-                # Configure crew with proper callbacks
-                if hasattr(self.crew, 'manager') and hasattr(self.crew.manager, 'callbacks'):
-                    self.crew.manager.callbacks = callback_manager
+                # Configure crew with proper callbacks - multiple approaches for compatibility
+                try:
+                    # Approach 1: Set callbacks on crew manager if available
+                    if hasattr(self.crew, 'manager') and hasattr(self.crew.manager, 'callbacks'):
+                        self.crew.manager.callbacks = callback_manager
+                        print("✅ Set callbacks on crew manager")
+                    
+                    # Approach 2: Set callbacks on individual agents
+                    for agent in [self.triage_specialist, self.ticket_analyst, self.support_strategist, self.qa_reviewer]:
+                        if hasattr(agent, 'llm') and hasattr(agent.llm, 'callbacks'):
+                            agent.llm.callbacks = callback_manager
+                    
+                    # Approach 3: Set callbacks on crew directly if supported
+                    if hasattr(self.crew, 'callbacks'):
+                        self.crew.callbacks = callback_manager
+                        print("✅ Set callbacks on crew directly")
+                        
+                except Exception as e:
+                    print(f"⚠️ Callback configuration warning: {e}")
                 
                 # Create timing tracker for manual timing estimation
                 timing_tracker = AgentTimingTracker()
+                
+                # Set callbacks on all LLM instances for proper tracing
+                self._set_callbacks_on_llms(callback_manager)
+                
+                # Also try setting callbacks directly on the crew's LLM instances
+                self._set_callbacks_on_crew_llms(callback_manager)
                 
                 # Pre-start timing for all agents (will be estimated from total time)
                 agent_names = ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"]
@@ -680,7 +766,26 @@ class CollaborativeSupportCrew:
                 crew_start_time = time.time()
                 consensus_start_time = time.time()  # Track consensus building start
                 
-                result = self.crew.kickoff()
+                # Try to execute with callbacks
+                try:
+                    # Attempt to pass callbacks to kickoff if supported
+                    if hasattr(self.crew, 'kickoff') and callable(getattr(self.crew, 'kickoff')):
+                        # Check if kickoff accepts callbacks parameter
+                        import inspect
+                        kickoff_sig = inspect.signature(self.crew.kickoff)
+                        if 'callbacks' in kickoff_sig.parameters:
+                            result = self.crew.kickoff(callbacks=callback_manager)
+                            print("✅ Executed crew with callbacks parameter")
+                        else:
+                            result = self.crew.kickoff()
+                            print("✅ Executed crew (no callbacks parameter)")
+                    else:
+                        result = self.crew.kickoff()
+                        print("✅ Executed crew (fallback)")
+                except Exception as e:
+                    print(f"⚠️ Error with callback execution: {e}")
+                    result = self.crew.kickoff()
+                    print("✅ Executed crew (error fallback)")
                 
                 consensus_end_time = time.time()  # Track consensus building end
                 crew_end_time = time.time()

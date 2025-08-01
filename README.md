@@ -143,11 +143,13 @@ This journey represents the evolution from basic multi-agent processing to sophi
 ## Quick Start
 
 ### Prerequisites
-- Python 3.10+ (3.10.18 recommended)
+- **Python 3.10+ (3.10.18 recommended)** - Required for CrewAI compatibility
 - PostgreSQL database
 - OpenAI API key
 - LangSmith API key (optional, for tracing)
 - Kaggle API credentials (optional, for datasets)
+
+**⚠️ Important**: Python 3.9 is not compatible with CrewAI 0.152.0 due to union operator syntax requirements.
 
 ### Environment Variables
 Create a `.env` file with:
@@ -165,8 +167,11 @@ KAGGLE_KEY=your_kaggle_key           # Optional
 git clone https://github.com/yourusername/ticket-sum.git
 cd ticket-sum
 
-# Activate Python 3.10 environment
+# Activate Python 3.10 environment (REQUIRED)
 source venv310/bin/activate
+
+# Verify Python version
+python --version  # Should show Python 3.10.18
 
 # Install dependencies
 pip install -r requirements-py310.txt
@@ -176,6 +181,11 @@ streamlit run streamlit_app.py --server.port 5000
 
 # Or run batch processing
 python main.py
+```
+
+**Quick Activation**: Use the provided activation script:
+```bash
+./activate_python310.sh
 ```
 
 ## 📊 Usage

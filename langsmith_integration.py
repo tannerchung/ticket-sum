@@ -69,6 +69,23 @@ class CrewAILangSmithHandler(BaseCallbackHandler):
             ticket_id = _current_ticket_id.get()
             agent_name = _current_agent_name.get()
             
+            # Try to extract agent information from serialized data
+            if not agent_name:
+                # Look for agent information in the serialized data
+                if 'name' in serialized:
+                    agent_name = serialized['name']
+                elif 'id' in serialized:
+                    # Try to extract agent name from ID
+                    agent_id = serialized['id']
+                    if 'triage' in str(agent_id).lower():
+                        agent_name = 'triage_specialist'
+                    elif 'analyst' in str(agent_id).lower():
+                        agent_name = 'ticket_analyst'
+                    elif 'strategist' in str(agent_id).lower():
+                        agent_name = 'support_strategist'
+                    elif 'qa' in str(agent_id).lower() or 'reviewer' in str(agent_id).lower():
+                        agent_name = 'qa_reviewer'
+            
             if agent_name:
                 # Map run_id to agent for duration calculation
                 self.agent_run_mapping[str(run_id)] = agent_name
@@ -80,9 +97,15 @@ class CrewAILangSmithHandler(BaseCallbackHandler):
                     'event_type': 'llm_start',
                     'timestamp': start_time,
                     'model_name': serialized.get('_type', 'unknown'),
-                    'prompts': prompts[:1] if prompts else []  # Only store first prompt for brevity
+                    'prompts': prompts[:1] if prompts else [],  # Only store first prompt for brevity
+                    'serialized_info': {
+                        'name': serialized.get('name', 'unknown'),
+                        'id': serialized.get('id', 'unknown'),
+                        'type': serialized.get('_type', 'unknown')
+                    }
                 }
                 self.agent_activities.append(activity)
+                print(f"🔗 LangSmith: {agent_name} LLM started (run_id: {run_id})")
     
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> Any:
         """Called when LLM ends running."""
@@ -126,6 +149,7 @@ class CrewAILangSmithHandler(BaseCallbackHandler):
                     'agent_total_duration': self.agent_durations[agent_name]  # Track cumulative time
                 }
                 self.agent_activities.append(activity)
+                print(f"🔗 LangSmith: {agent_name} LLM completed in {duration:.2f}s (total: {self.agent_durations[agent_name]:.2f}s)")
     
     def on_llm_error(self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any) -> Any:
         """Called when LLM encounters an error."""
