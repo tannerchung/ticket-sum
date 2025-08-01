@@ -59,7 +59,7 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 - 🔄 **LangSmith to Langfuse Migration**: Complete telemetry overhaul due to CrewAI 0.80+ incompatibility with LangSmith callbacks
 - 🔧 **OpenInference Instrumentation**: Replaced custom LangSmith integration with OpenTelemetry-based tracing for better CrewAI compatibility
 - 📊 **DeepEval Metrics Fix**: Resolved hardcoded evaluation scores, now showing real-time dynamic metrics (Hallucination, Relevancy, Faithfulness)
-- 🎯 **Intelligent Session Management**: Implemented Option B batch sessions - individual tickets get unique sessions, batch processing shares session IDs
+- 🎯 **Intelligent Session Management**: Implemented batch sessions - individual tickets get unique sessions, batch processing shares session IDs
 
 #### Critical Technical Fixes
 - **CrewAI Compatibility Crisis**: LangSmith callback system incompatible with CrewAI 0.80+, causing trace failures
