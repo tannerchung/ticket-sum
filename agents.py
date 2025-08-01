@@ -1205,7 +1205,7 @@ class CollaborativeSupportCrew:
         
         # Handle partial JSON responses like '\n    "primary_action"'
         if '"primary_action"' in response_text or '"priority"' in response_text:
-            print(f"⚠️  Detected partial JSON action response, using safe defaults")
+            print("⚠️  Detected partial JSON action response, using safe defaults")
             return {
                 "primary_action": "request_more_info",
                 "secondary_actions": [],

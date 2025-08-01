@@ -203,6 +203,9 @@ def setup_langsmith():
 # Kaggle Configuration
 def setup_kaggle():
     """Configure Kaggle API credentials"""
-    os.environ["KAGGLE_USERNAME"] = KAGGLE_USERNAME
-    os.environ["KAGGLE_KEY"] = KAGGLE_KEY
-    print(f"✅ Kaggle configured for user: {KAGGLE_USERNAME}")
+    if KAGGLE_USERNAME and KAGGLE_KEY:
+        os.environ["KAGGLE_USERNAME"] = KAGGLE_USERNAME
+        os.environ["KAGGLE_KEY"] = KAGGLE_KEY
+        print(f"✅ Kaggle configured for user: {KAGGLE_USERNAME}")
+    else:
+        print("⚠️ Kaggle credentials not configured - some features may be limited")
