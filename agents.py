@@ -10,6 +10,15 @@ from datetime import datetime
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
+from config import (
+    LLM_MODEL, 
+    OPENAI_API_KEY,
+    COHERE_API_KEY,
+    ANTHROPIC_API_KEY,
+    AVAILABLE_MODELS, 
+    DEFAULT_AGENT_MODELS,
+    AGENT_MODEL_RECOMMENDATIONS
+)
 
 # Try to import Cohere support with better error handling
 COHERE_AVAILABLE = False
@@ -34,15 +43,6 @@ try:
     ANTHROPIC_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ Anthropic integration unavailable: {str(e)}")
-from config import (
-    LLM_MODEL, 
-    OPENAI_API_KEY,
-    COHERE_API_KEY,
-    ANTHROPIC_API_KEY,
-    AVAILABLE_MODELS, 
-    DEFAULT_AGENT_MODELS,
-    AGENT_MODEL_RECOMMENDATIONS
-)
 
 class CollaborativeSupportCrew:
     """
