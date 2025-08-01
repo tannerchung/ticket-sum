@@ -231,7 +231,7 @@ class DatabaseService:
         """Get processing analytics for the last N days."""
         session = get_db_session()
         try:
-            from sqlalchemy import func, and_
+            from sqlalchemy import func
             from datetime import timedelta
             
             cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
