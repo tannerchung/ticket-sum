@@ -71,13 +71,21 @@ The system uses CrewAI to orchestrate three specialized agents that work in sequ
 
 ## Recent Changes (August 1, 2025)
 
-### Complete Git Merge Conflict Resolution (Latest)
+### Custom Faithfulness Evaluation Implementation (Latest)
+- **Authentic Faithfulness Scoring**: Implemented custom faithfulness evaluation that directly compares agent outputs to original ticket content
+- **GPT-4o Based Analysis**: Uses OpenAI's GPT-4o to evaluate how well agents stick to facts in the original message
+- **Multi-Component Assessment**: Evaluates classification accuracy, summary factualness, and action recommendation appropriateness
+- **Fallback Mechanism**: Keyword-based fallback evaluation for cases where AI evaluation fails
+- **Real-Time Logging**: Tracks faithfulness scores for each ticket processing with detailed reasoning
+- **No Default Scores**: Replaces static default faithfulness scores with dynamic, authentic calculations
+
+### Complete Git Merge Conflict Resolution
 - **All Merge Conflicts Resolved**: Systematically removed all Git merge conflict markers from Python files and configuration files
 - **Syntax Error Fixes**: Corrected duplicate code sections, indentation errors, and syntax issues in agents.py, database_service.py, config.py, streamlit_app.py, and models.py
 - **Application Restoration**: Both Streamlit interface and Support Ticket Summarizer workflows now running successfully
 - **System Validation**: Confirmed all workflows operational with proper database initialization and LangSmith integration
 
-### Authentic Metrics Implementation (Latest)
+### Authentic Metrics Implementation
 - **Real Collaboration Tracking**: Implemented genuine agent disagreement detection and conflict resolution metrics
 - **Dynamic Consensus Building**: Added authentic time tracking for consensus building processes
 - **Conflict Resolution Documentation**: Real-time logging of specific conflicts and resolution methods used

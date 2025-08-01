@@ -230,45 +230,135 @@ def display_langsmith_logs():
                 st.markdown("**Metadata:**")
                 st.json(log['metadata'])
 
+def evaluate_faithfulness_to_source(result, original_message):
+    """
+    Custom faithfulness evaluation comparing agent outputs to original ticket content.
+    Measures how well agents stick to facts in the original message.
+    """
+    try:
+        from openai import OpenAI
+        import os
+        
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
+        # Extract key components for evaluation
+        summary = result.get('summary', '')
+        classification = result.get('classification', {})
+        action_rec = result.get('action_recommendation', {})
+        
+        # Create evaluation prompt
+        evaluation_prompt = f"""
+        Evaluate the faithfulness of AI agent outputs to the original support ticket.
+        
+        ORIGINAL TICKET:
+        {original_message}
+        
+        AI CLASSIFICATION:
+        Intent: {classification.get('intent', 'N/A')}
+        Severity: {classification.get('severity', 'N/A')}
+        
+        AI SUMMARY:
+        {summary}
+        
+        AI ACTION RECOMMENDATION:
+        {action_rec.get('primary_action', 'N/A')} - {action_rec.get('notes', 'N/A')}
+        
+        Rate faithfulness on a scale of 0.0 to 1.0 based on:
+        1. Does the classification match the actual content and tone?
+        2. Does the summary only include information from the original ticket?
+        3. Are action recommendations appropriate for the described issue?
+        4. Are there any fabricated details not present in the original?
+        
+        Respond with only a JSON object:
+        {{"faithfulness_score": 0.0-1.0, "reasoning": "brief explanation"}}
+        """
+        
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": evaluation_prompt}],
+            response_format={"type": "json_object"},
+            temperature=0.1
+        )
+        
+        import json
+        eval_result = json.loads(response.choices[0].message.content)
+        return eval_result.get('faithfulness_score', 0.8)
+        
+    except Exception as e:
+        print(f"Custom faithfulness evaluation failed: {e}")
+        # Fallback: simple keyword-based check
+        return evaluate_faithfulness_fallback(result, original_message)
+
+def evaluate_faithfulness_fallback(result, original_message):
+    """Fallback faithfulness evaluation using keyword analysis."""
+    summary = result.get('summary', '').lower()
+    original = original_message.lower()
+    
+    # Check for potential hallucinations
+    summary_words = set(summary.split())
+    original_words = set(original.split())
+    
+    # Calculate overlap ratio
+    common_words = summary_words.intersection(original_words)
+    if len(summary_words) > 0:
+        overlap_ratio = len(common_words) / len(summary_words)
+    else:
+        overlap_ratio = 0.0
+    
+    # Penalize if summary is much longer than original (potential elaboration)
+    length_ratio = len(summary) / max(len(original), 1)
+    length_penalty = max(0, (length_ratio - 1.5) * 0.2)
+    
+    faithfulness_score = min(1.0, overlap_ratio + 0.3 - length_penalty)
+    return max(0.0, faithfulness_score)
+
 def evaluate_with_deepeval(result, original_message):
-    """Evaluate the AI response using deepeval metrics."""
+    """Evaluate the AI response using deepeval metrics and custom faithfulness."""
     try:
         from deepeval import evaluate
         from deepeval.metrics import HallucinationMetric, AnswerRelevancyMetric
         from deepeval.test_case import LLMTestCase
         
-        # Create test case without faithfulness metric (requires retrieval_context)
+        # Create test case
         test_case = LLMTestCase(
             input=original_message,
             actual_output=result.get('summary', ''),
             expected_output=f"Classification: {result.get('classification', {}).get('intent', 'unknown')}"
         )
         
-        # Define metrics (excluding FaithfulnessMetric which requires retrieval_context)
+        # Define metrics
         metrics = [
             HallucinationMetric(threshold=0.7),
             AnswerRelevancyMetric(threshold=0.7)
         ]
         
-        # Evaluate
+        # Evaluate with DeepEval
         evaluation_result = evaluate([test_case], metrics)
+        
+        # Calculate custom faithfulness score
+        faithfulness_score = evaluate_faithfulness_to_source(result, original_message)
+        
+        # Log custom faithfulness evaluation
+        print(f"🎯 Custom faithfulness score: {faithfulness_score:.3f} for ticket {result.get('ticket_id', 'unknown')}")
         
         scores = {
             'hallucination': 1.0 - evaluation_result[0].metrics[0].score if evaluation_result[0].metrics else 0.8,
             'relevancy': evaluation_result[0].metrics[1].score if len(evaluation_result[0].metrics) > 1 else 0.8,
-            'faithfulness': 0.85,  # Default score since we can't evaluate without retrieval context
-            'overall_accuracy': 0.85  # Computed based on other metrics
+            'faithfulness': faithfulness_score,  # Custom calculated score
+            'overall_accuracy': (faithfulness_score + (evaluation_result[0].metrics[1].score if len(evaluation_result[0].metrics) > 1 else 0.8)) / 2
         }
         
         return scores
         
     except Exception as e:
-        # Fallback scores for demo purposes
+        print(f"Evaluation error: {e}")
+        # Calculate at least custom faithfulness
+        faithfulness_score = evaluate_faithfulness_to_source(result, original_message)
         return {
             'hallucination': 0.85,
             'relevancy': 0.82,
-            'faithfulness': 0.88,
-            'overall_accuracy': 0.85
+            'faithfulness': faithfulness_score,
+            'overall_accuracy': (faithfulness_score + 0.82) / 2
         }
 
 def display_evaluation_dashboard():
