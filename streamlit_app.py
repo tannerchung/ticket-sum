@@ -571,7 +571,12 @@ def setup_agents():
         try:
             from telemetry import get_langfuse_manager
             manager = get_langfuse_manager()
-            st.sidebar.info(f"🔗 Session: `{manager.get_session_id()[:8]}...`")
+            st.sidebar.info(f"🔗 App Session: `{manager.get_session_id()[:8]}...`")
+            
+            # Show current run session if available
+            run_session = manager.get_current_run_session()
+            if run_session:
+                st.sidebar.info(f"📊 Run Session: `{run_session[:8]}...`")
         except Exception:
             pass  # Silently handle if telemetry is not available
         

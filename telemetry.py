@@ -98,21 +98,27 @@ class LangfuseManager:
         """
         Context manager for tracing ticket processing workflows.
         
-        OpenInference instrumentation handles all the actual tracing automatically.
-        This just provides timing and logging context.
+        Creates a new session ID for each ticket processing run to enable
+        better organization and analysis in Langfuse dashboard.
         
         Args:
             ticket_id: Unique identifier for the ticket
             metadata: Additional metadata to include in the trace
         """
+        # Create new session ID for this processing run
+        run_session_id = str(uuid.uuid4())
         trace_name = f"ticket-crew-execution-{ticket_id}"
         start_time = time.time()
         
-        # Simple context for logging - OpenInference handles actual tracing
+        # Update OTEL resource attributes with this run's session ID
+        if self.client:
+            os.environ['OTEL_RESOURCE_ATTRIBUTES'] = f"service.name=support-ticket-summarizer,session.id={run_session_id}"
+        
+        # Context with run-specific session ID
         trace_context = {
             "trace_name": trace_name,
             "ticket_id": ticket_id,
-            "session_id": self.session_id,
+            "session_id": run_session_id,  # Per-run session ID
             "system": "support-ticket-summarizer",
             "agent_count": 4,
             **(metadata or {})
@@ -123,7 +129,7 @@ class LangfuseManager:
             # Track processing start
             self.run_times[ticket_id] = start_time
             print(f"🔍 Starting trace context: {trace_name}")
-            print(f"📊 Session ID: {self.session_id}")
+            print(f"📊 Run Session ID: {run_session_id}")
             print("📡 OpenInference instrumentation will capture all LLM calls")
             
             yield trace_context
@@ -131,6 +137,7 @@ class LangfuseManager:
             # Track successful completion
             duration = time.time() - start_time
             print(f"✅ Completed trace {trace_name} in {duration:.2f}s")
+            print(f"📊 Session {run_session_id[:8]}... completed")
             
         except Exception as e:
             # Track errors
@@ -162,13 +169,16 @@ class LangfuseManager:
         return self.session_id
     
     def new_session(self) -> str:
-        """Start a new session and return the new session ID."""
+        """Start a new application session and return the new session ID."""
         self.session_id = str(uuid.uuid4())
-        # Update OTEL resource attributes with new session ID
-        if self.client:
-            os.environ['OTEL_RESOURCE_ATTRIBUTES'] = f"service.name=support-ticket-summarizer,session.id={self.session_id}"
-        print(f"🔄 New session started: {self.session_id}")
+        print(f"🔄 New application session started: {self.session_id}")
         return self.session_id
+    
+    def get_current_run_session(self) -> Optional[str]:
+        """Get the current run session ID if available."""
+        if hasattr(self, 'current_trace') and self.current_trace:
+            return self.current_trace.get('session_id')
+        return None
     
     def log_agent_activity(self, agent_name: str, input_data: Any, output_data: Any, 
                           metadata: Optional[Dict] = None):

@@ -62,6 +62,19 @@ Use Replit's persistent storage for output files and cached data.
 - Langfuse Cloud integration provides comprehensive external monitoring with OpenInference instrumentation
 - Database analytics available through the web interface
 
+## Recent Changes
+
+### Session Management Enhancement (January 31, 2025)
+- **Per-Run Session IDs**: Modified telemetry to create unique session IDs for each ticket processing batch instead of per application session
+- **Benefits**: Better organization in Langfuse dashboard, easier performance analysis per processing run
+- **Implementation**: `trace_ticket_processing()` now generates fresh session ID and updates OTEL resource attributes
+- **UI Updates**: Streamlit sidebar shows both application session and current run session
+
+### Database Reset (January 31, 2025)
+- **Complete Clean**: All tables dropped and recreated with fresh schema
+- **Ready State**: Clean database with 0 rows in all data tables, 4 default agent configurations
+- **Session Reset**: Fresh application session and cleared telemetry caches
+
 ## Troubleshooting
 
 ### Common Replit Issues
