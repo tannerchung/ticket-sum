@@ -188,32 +188,35 @@ def log_langsmith_activity(agent_name, input_data, output_data, metadata=None):
     try:
         import os
         if os.environ.get("LANGCHAIN_TRACING_V2") == "true":
-            from langchain.callbacks import LangChainTracer
-            from langchain.schema import LLMResult, Generation
+            # Use LangSmith Client directly for better error handling
+            from langsmith import Client
             
-            # Create a tracer instance
-            tracer = LangChainTracer()
-            
-            # Create a simple run to log the activity
-            run_id = str(uuid.uuid4())
-            
-            # Log the agent activity as a chain run
-            tracer.on_chain_start(
-                {"name": f"agent_{agent_name}"},
-                inputs=input_data,
-                run_id=run_id,
-                tags=[agent_name, "collaborative_crew"]
+            client = Client(
+                api_key=os.environ.get("LANGCHAIN_API_KEY"),
+                api_url=os.environ.get("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
             )
             
-            tracer.on_chain_end(
-                outputs=output_data,
-                run_id=run_id
-            )
+            # Create a run directly through the client
+            run_data = {
+                "name": f"agent_{agent_name}",
+                "inputs": input_data,
+                "outputs": output_data,
+                "run_type": "chain",
+                "project_name": os.environ.get("LANGCHAIN_PROJECT", "ticket-sum"),
+                "tags": [agent_name, "collaborative_crew"]
+            }
             
-            print(f"📡 Sent trace to LangSmith for {agent_name}")
+            try:
+                client.create_run(**run_data)
+                print(f"📡 Successfully sent trace to LangSmith for {agent_name}")
+            except Exception as api_e:
+                if "403" in str(api_e) or "Forbidden" in str(api_e):
+                    print(f"⚠️ LangSmith API permissions issue for {agent_name}: Check API key permissions")
+                else:
+                    print(f"⚠️ LangSmith API error for {agent_name}: {api_e}")
             
     except Exception as e:
-        print(f"⚠️ Failed to send trace to LangSmith: {e}")
+        print(f"⚠️ Failed to send trace to LangSmith for {agent_name}: {e}")
     
     # Keep only last 50 logs in session state
     if len(st.session_state.langsmith_logs) > 50:
@@ -350,11 +353,12 @@ def evaluate_with_deepeval(result, original_message):
         from deepeval.metrics import HallucinationMetric, AnswerRelevancyMetric
         from deepeval.test_case import LLMTestCase
         
-        # Create test case
+        # Create test case with proper context for hallucination metric
         test_case = LLMTestCase(
             input=original_message,
             actual_output=result.get('summary', ''),
-            expected_output=f"Classification: {result.get('classification', {}).get('intent', 'unknown')}"
+            expected_output=f"Classification: {result.get('classification', {}).get('intent', 'unknown')}",
+            context=[original_message]  # Provide context for hallucination metric
         )
         
         # Define metrics

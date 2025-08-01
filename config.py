@@ -197,8 +197,14 @@ def setup_langsmith():
         try:
             from langsmith import Client
             client = Client(api_key=LANGSMITH_API_KEY, api_url=LANGSMITH_ENDPOINT)
-            # Simple test to verify connection
-            print("🔗 LangSmith connection verified")
+            # Simple test to verify connection and permissions
+            try:
+                # Test if we can access the API
+                client.read_project(project_name=LANGSMITH_PROJECT)
+                print("🔗 LangSmith connection and permissions verified")
+            except Exception as perm_e:
+                print(f"⚠️ LangSmith connection OK but permissions issue: {perm_e}")
+                print("💡 Check if your API key has the correct permissions for this project")
         except Exception as e:
             print(f"⚠️ LangSmith connection test failed: {e}")
             
