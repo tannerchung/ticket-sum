@@ -602,17 +602,33 @@ def process_ticket(crew, ticket_id, ticket_content):
             # Save quality evaluation
             db_service.save_quality_evaluation(ticket_id, evaluation_scores)
             
-            # Log successful collaborative processing
+            # Log individual agent activities if available
+            individual_logs = result.get('individual_agent_logs', [])
+            if individual_logs:
+                for agent_log in individual_logs:
+                    db_service.save_processing_log(
+                        ticket_id=ticket_id,
+                        agent_name=agent_log['agent_name'],
+                        input_data=agent_log['input_data'],
+                        output_data=agent_log['output_data'],
+                        metadata=agent_log['metadata'],
+                        status=agent_log['status'],
+                        processing_time=agent_log['processing_time'],
+                        trace_id=agent_log['trace_id']
+                    )
+            
+            # Also log overall collaborative summary
             processing_time = time.time() - start_time
             db_service.save_processing_log(
                 ticket_id=ticket_id,
-                agent_name='collaborative_crew',
+                agent_name='collaborative_summary',
                 input_data=collaborative_input,
-                output_data=result,
+                output_data={'summary': 'Collaborative processing completed', 'total_agents': len(individual_logs)},
                 metadata={
                     'evaluation_scores': evaluation_scores,
                     'collaboration_metrics': result.get('collaboration_metrics', {}),
-                    'processing_time': processing_time
+                    'total_processing_time': processing_time,
+                    'individual_agents_logged': len(individual_logs)
                 },
                 status='success',
                 processing_time=processing_time

@@ -478,8 +478,14 @@ class CollaborativeSupportCrew:
                 print("⚠️ LangSmith tracing not enabled")
                 result = self.crew.kickoff()
             
+            # Extract individual agent activities for detailed logging
+            self.individual_agent_logs = self._extract_individual_agent_activities(result, ticket_id, ticket_content)
+            
             # Parse and structure the collaborative result
             final_result = self._parse_collaborative_result(result, ticket_id, ticket_content)
+            
+            # Add individual agent logs to the result for external logging
+            final_result["individual_agent_logs"] = self.individual_agent_logs
             
             print(f"✅ Collaborative processing completed for ticket {ticket_id}")
             return final_result
@@ -701,6 +707,75 @@ class CollaborativeSupportCrew:
         
         return ' '.join(summary_lines) if summary_lines else "Collaborative analysis summary"
     
+    def _extract_individual_agent_activities(self, crew_result, ticket_id: str, ticket_content: str) -> List[Dict[str, Any]]:
+        """Extract individual agent activities from CrewAI execution for detailed logging."""
+        individual_logs = []
+        
+        try:
+            if hasattr(crew_result, 'tasks_output') and crew_result.tasks_output:
+                # Map task outputs to agent activities
+                agent_mapping = {
+                    0: 'triage_specialist',
+                    1: 'ticket_analyst', 
+                    2: 'support_strategist',
+                    3: 'qa_reviewer'
+                }
+                
+                for i, task_output in enumerate(crew_result.tasks_output):
+                    if i < len(agent_mapping):
+                        agent_name = agent_mapping[i]
+                        
+                        # Extract agent-specific data
+                        agent_input = {
+                            'ticket_id': ticket_id,
+                            'ticket_content': ticket_content,
+                            'task_description': str(task_output.description) if hasattr(task_output, 'description') else 'Task description not available',
+                            'agent_role': agent_name
+                        }
+                        
+                        agent_output = {
+                            'raw_output': str(task_output.raw) if hasattr(task_output, 'raw') else str(task_output),
+                            'task_completion': 'success' if task_output else 'failed'
+                        }
+                        
+                        # Get agent-specific model information
+                        agent_model = self.agent_models.get(agent_name, 'gpt-4o')
+                        model_config = AVAILABLE_MODELS.get(agent_model, {})
+                        
+                        agent_metadata = {
+                            'model_used': agent_model,
+                            'model_provider': model_config.get('provider', 'openai'),
+                            'temperature': model_config.get('temperature', 0.1),
+                            'agent_position': i + 1,
+                            'total_agents': len(crew_result.tasks_output),
+                            'task_type': self._determine_task_type(i)
+                        }
+                        
+                        individual_logs.append({
+                            'agent_name': agent_name,
+                            'input_data': agent_input,
+                            'output_data': agent_output,
+                            'metadata': agent_metadata,
+                            'processing_time': 0.0,  # CrewAI doesn't expose individual timing
+                            'status': 'success',
+                            'trace_id': f"{ticket_id}_{agent_name}_{int(time.time())}"
+                        })
+                        
+        except Exception as e:
+            print(f"Warning: Could not extract individual agent activities: {e}")
+            
+        return individual_logs
+    
+    def _determine_task_type(self, task_index: int) -> str:
+        """Determine task type based on agent position."""
+        task_types = {
+            0: 'classification',
+            1: 'analysis', 
+            2: 'strategy',
+            3: 'review'
+        }
+        return task_types.get(task_index, 'unknown')
+
     def _extract_authentic_collaboration_metrics(self, crew_result, ticket_id: str) -> Dict[str, Any]:
         """Extract real collaboration metrics from CrewAI execution."""
         start_time = time.time()

@@ -92,6 +92,19 @@ The system uses CrewAI to orchestrate three specialized agents that work in sequ
   - **Data Captured**: Disagreement counts, conflict identification, resolution methods, consensus building duration, agreement scores
 - **Enhanced Monitoring**: Collaboration analytics now available in database dashboard with authentic multi-agent interaction data
 
+### Individual Agent Logging Implementation (August 1, 2025)
+- **Fixed Aggregate Logging Issue**: Resolved problem where all agents were logged as single "collaborative_crew" entity
+  - **Previous Problem**: Only one log entry per ticket with aggregate data, individual agent contributions lost
+  - **New Implementation**: Each agent (triage_specialist, ticket_analyst, support_strategist, qa_reviewer) now logs individually
+  - **Data Captured Per Agent**: 
+    - Individual input data (specific task description and role)
+    - Individual output data (agent's specific response)
+    - Agent-specific metadata (model used, provider, temperature, task type)
+    - Individual trace IDs for tracking
+    - Agent position and task type (classification, analysis, strategy, review)
+  - **Database Impact**: Processing logs now show 4+ individual agent entries plus 1 collaborative summary per ticket
+- **Improved Traceability**: Can now track exactly which agent contributed what output and with which model/settings
+
 ### Documentation Updates (Previous)
 - **README.md Version History**: Added comprehensive version journey documentation showing evolution from v1.0 sequential processing to v2.0 collaborative intelligence with detailed milestones and technical innovations
 - **README.md v2.0 Update**: Comprehensive revision reflecting major version changes including collaborative multi-agent architecture, authentic metrics, custom faithfulness evaluation, and multi-provider AI support
