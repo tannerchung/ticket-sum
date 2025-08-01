@@ -46,6 +46,8 @@ def load_ticket_data(max_tickets: int = None) -> pd.DataFrame:
         
         # Standardize column names if needed
         column_mapping = {}
+        timestamp_mapped = False  # Track if we've already mapped a timestamp column
+        
         for col in df.columns:
             lower_col = col.lower()
             if 'id' in lower_col and 'ticket' in lower_col:
@@ -54,12 +56,35 @@ def load_ticket_data(max_tickets: int = None) -> pd.DataFrame:
                 column_mapping[col] = 'message'
             elif 'customer' in lower_col and 'id' in lower_col:
                 column_mapping[col] = 'customer_id'
-            elif 'time' in lower_col or 'date' in lower_col:
-                column_mapping[col] = 'timestamp'
+            elif ('time' in lower_col or 'date' in lower_col) and not timestamp_mapped:
+                # Only map the first time/date column to avoid duplicates
+                if 'purchase' in lower_col or 'created' in lower_col:
+                    column_mapping[col] = 'timestamp'
+                    timestamp_mapped = True
         
         if column_mapping:
-            df = df.rename(columns=column_mapping)
-            print(f"🔄 Renamed columns: {column_mapping}")
+            # Check for duplicate values in column_mapping to prevent duplicate column names
+            target_columns = list(column_mapping.values())
+            if len(target_columns) != len(set(target_columns)):
+                print(f"⚠️ Warning: Duplicate column mappings detected: {column_mapping}")
+                # Remove duplicates by keeping only the first occurrence
+                seen = set()
+                clean_mapping = {}
+                for key, value in column_mapping.items():
+                    if value not in seen:
+                        clean_mapping[key] = value
+                        seen.add(value)
+                column_mapping = clean_mapping
+                print(f"🔧 Cleaned column mapping: {column_mapping}")
+            
+            try:
+                df = df.rename(columns=column_mapping)
+                print(f"🔄 Renamed columns: {column_mapping}")
+            except Exception as e:
+                print(f"❌ Error renaming columns: {e}")
+                print(f"📋 Original columns: {list(df.columns)}")
+                print(f"🔧 Attempted mapping: {column_mapping}")
+                raise ValueError(f"Column renaming failed: {e}")
         
         # Ensure required columns exist
         if 'ticket_id' not in df.columns:
