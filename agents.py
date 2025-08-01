@@ -87,7 +87,7 @@ class CollaborativeSupportCrew:
                             api_key=OPENAI_API_KEY,
                             temperature=0.1
                         )
-                elif provider == "anthropic" and ANTHROPIC_AVAILABLE:
+                elif provider == "anthropic" and ANTHROPIC_AVAILABLE and ChatAnthropic:
                     self.llm_instances[agent_name] = ChatAnthropic(
                         model_name=model_name,
                         api_key=ANTHROPIC_API_KEY,
@@ -261,11 +261,11 @@ class CollaborativeSupportCrew:
             except Exception as e:
                 print(f"⚠️ Failed to initialize Cohere for {agent_name}: {e}")
                 self.llm_instances[agent_name] = ChatOpenAI(
-                    model="gpt-4o",
+                    model="gpt-4o", 
                     api_key=OPENAI_API_KEY,
                     temperature=0.1
                 )
-        elif provider == "anthropic" and ANTHROPIC_AVAILABLE:
+        elif provider == "anthropic" and ANTHROPIC_AVAILABLE and ChatAnthropic:
             self.llm_instances[agent_name] = ChatAnthropic(
                 model_name=model_name,
                 api_key=ANTHROPIC_API_KEY,

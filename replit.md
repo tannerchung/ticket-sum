@@ -69,3 +69,6 @@ Enhanced processing logs to capture individual agent activities instead of aggre
 
 ### Kaggle Dataset Loading Fix
 Resolved duplicate column name errors when loading Kaggle datasets by implementing proper column mapping validation and duplicate prevention logic. The system now correctly handles multiple time/date columns without conflicts.
+
+### API Key Parameter Fixes
+Fixed LSP errors in agents.py related to API key parameter naming. Updated all LLM initializations to use correct parameter names (openai_api_key, anthropic_api_key, cohere_api_key) instead of generic "api_key" parameter. This resolves type checking errors and ensures proper integration with all AI providers.
