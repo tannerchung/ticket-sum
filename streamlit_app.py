@@ -42,6 +42,7 @@ def add_health_check():
         # Get query parameters (using new API)
         query_params = st.query_params
         if 'health' in query_params:
+            st.title("🏥 Health Check")
             st.success("✅ Application is healthy and running!")
             st.json({
                 "status": "healthy",
@@ -49,6 +50,15 @@ def add_health_check():
                 "timestamp": datetime.now().isoformat(),
                 "message": "Streamlit app is running successfully"
             })
+            
+            # Add navigation back to main app
+            st.markdown("---")
+            if st.button("🏠 Return to Main Application", type="primary"):
+                # Clear health parameter and reload
+                st.query_params.clear()
+                st.rerun()
+            
+            st.markdown("**Direct Link:** [Main Application](/?)")
             return True
         
         # Add health check button in sidebar for manual testing
@@ -67,6 +77,7 @@ def add_health_check():
         try:
             query_params = st.experimental_get_query_params()
             if 'health' in query_params:
+                st.title("🏥 Health Check")
                 st.success("✅ Application is healthy and running!")
                 st.json({
                     "status": "healthy",
@@ -74,6 +85,14 @@ def add_health_check():
                     "timestamp": datetime.now().isoformat(),
                     "message": "Streamlit app is running successfully"
                 })
+                
+                # Add navigation back to main app
+                st.markdown("---")
+                if st.button("🏠 Return to Main Application", type="primary"):
+                    # For older versions, provide clear instruction
+                    st.info("Remove '?health' from the URL or click the link below:")
+                
+                st.markdown("**Direct Link:** [Main Application](/?)")
                 return True
         except:
             pass
