@@ -854,54 +854,88 @@ def main():
     
     with col2:
         st.subheader("Load Kaggle Dataset")
-        if st.button("Load Real Customer Support Data"):
+        
+        # Initialize kaggle_df in session state if not exists
+        if 'kaggle_df' not in st.session_state:
+            st.session_state.kaggle_df = None
+        
+        # Load dataset button
+        if st.button("📥 Load Real Customer Support Data"):
             if st.session_state.agents:
                 with st.spinner("Loading Kaggle dataset..."):
                     try:
                         df = load_ticket_data()
-                        st.success(f"Loaded {len(df)} tickets from Kaggle!")
-                        st.dataframe(df.head(10))
-                        
-                        # Option to process subset
-                        num_tickets = st.slider("Number of tickets to process", 1, min(100, len(df)), 5)
-                        
-                        if st.button(f"Process First {num_tickets} Tickets"):
-                            progress_bar = st.progress(0)
-                            results = []
-                            
-                            for i in range(num_tickets):
-                                row = df.iloc[i]
-                                ticket_id = str(row['ticket_id'])
-                                message = str(row['message'])
-                                
-                                result = process_ticket(st.session_state.agents, ticket_id, message)
-                                if result:
-                                    results.append(result)
-                                
-                                progress_bar.progress(float(i + 1) / num_tickets)
-                            
-                            st.success(f"Processed {len(results)} Kaggle tickets!")
-                            
-                            # Show summary
-                            if results:
-                                intents = {}
-                                severities = {}
-                                for result in results:
-                                    intent = result.get('classification', {}).get('intent', 'unknown')
-                                    severity = result.get('classification', {}).get('severity', 'unknown')
-                                    intents[intent] = intents.get(intent, 0) + 1
-                                    severities[severity] = severities.get(severity, 0) + 1
-                                
-                                col1, col2 = st.columns(2)
-                                with col1:
-                                    st.bar_chart(pd.Series(intents, name="Intent Distribution"))
-                                with col2:
-                                    st.bar_chart(pd.Series(severities, name="Severity Distribution"))
-                    
+                        st.session_state.kaggle_df = df
+                        st.success(f"✅ Loaded {len(df)} tickets from Kaggle!")
+                        st.rerun()  # Refresh to show the dataset processing options
                     except Exception as e:
                         st.error(f"Error loading dataset: {str(e)}")
             else:
                 st.error("Please initialize agents first.")
+        
+        # Show dataset processing options if data is loaded
+        if st.session_state.kaggle_df is not None:
+            df = st.session_state.kaggle_df
+            st.info(f"📊 Dataset loaded: {len(df)} tickets available")
+            
+            # Show preview
+            with st.expander("📋 Preview Dataset", expanded=False):
+                st.dataframe(df.head(10))
+            
+            # Processing controls
+            st.markdown("**Process Tickets:**")
+            num_tickets = st.slider("Number of tickets to process", 1, min(100, len(df)), 5, key="kaggle_slider")
+            
+            if st.button(f"🚀 Process First {num_tickets} Tickets", type="primary", key="process_kaggle"):
+                if st.session_state.agents:
+                    progress_bar = st.progress(0)
+                    results = []
+                    
+                    for i in range(num_tickets):
+                        row = df.iloc[i]
+                        ticket_id = str(row['ticket_id'])
+                        message = str(row['message'])
+                        
+                        result = process_ticket(st.session_state.agents, ticket_id, message)
+                        if result:
+                            results.append(result)
+                        
+                        progress_bar.progress(float(i + 1) / num_tickets)
+                    
+                    st.success(f"✅ Processed {len(results)} Kaggle tickets!")
+                    
+                    # Show summary
+                    if results:
+                        st.markdown("**📈 Processing Summary:**")
+                        intents = {}
+                        severities = {}
+                        for result in results:
+                            intent = result.get('classification', {}).get('intent', 'unknown')
+                            severity = result.get('classification', {}).get('severity', 'unknown')
+                            intents[intent] = intents.get(intent, 0) + 1
+                            severities[severity] = severities.get(severity, 0) + 1
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.bar_chart(pd.Series(intents, name="Intent Distribution"))
+                        with col2:
+                            st.bar_chart(pd.Series(severities, name="Severity Distribution"))
+                        
+                        # Download results
+                        batch_json = json.dumps(results, indent=2)
+                        st.download_button(
+                            label="📥 Download Kaggle Results",
+                            data=batch_json,
+                            file_name=f"kaggle_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                            mime="application/json"
+                        )
+                else:
+                    st.error("Please initialize agents first.")
+            
+            # Clear dataset button
+            if st.button("🗑️ Clear Dataset", key="clear_kaggle"):
+                st.session_state.kaggle_df = None
+                st.rerun()
     
     # Monitoring and Evaluation Sections
     st.markdown("---")
