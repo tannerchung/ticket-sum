@@ -74,13 +74,21 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 - **Custom Evaluation Pipeline**: Authentic faithfulness scoring with fallback mechanisms
 - **Real-Time Dashboard**: Live agent status monitoring with processing indicators
 
-#### Enterprise-Grade Code Quality (August 1, 2025)
+#### Enterprise-Grade Code Quality & Reliability (August 1, 2025)
 - **Zero LSP Diagnostic Errors**: Achieved complete code quality excellence across entire codebase
 - **Modern Python Standards**: Updated to timezone-aware datetime handling, replacing deprecated utcnow() calls
 - **Complete Type Safety**: Proper SecretStr handling for all AI providers with conditional null validation
 - **Clean Code Standards**: Removed all unused imports, optimized f-strings, production-ready code quality
 - **Streamlined User Experience**: Eliminated redundant console output for professional application startup
 - **Comprehensive Tracing**: Complete LangSmith observability for all system operations
+
+#### Quality Assessment & Data Extraction Improvements (August 1, 2025)
+- **Real DeepEval Integration**: Fixed hardcoded evaluation scores to display actual DeepEval metrics (Hallucination: 0.0-1.0, Relevancy: 0.0-1.0)
+- **Enhanced Data Extraction**: Improved collaborative processing with better regex patterns for severity, priority, and action extraction
+- **Severity Format Handling**: Proper parsing of formats like "High (adjusted from Medium)" from collaborative agent outputs
+- **LangSmith Connection Management**: Added proper client cleanup to prevent connection leaks and resource management
+- **Action Plan Enhancement**: Full descriptive text extraction for primary actions instead of generic codes
+- **Priority Level Recognition**: Accurate extraction of priority levels from multi-agent collaborative discussions
 
 ### v1.5 - Enhanced Processing & Monitoring
 **Foundation Building: Observability and Quality Assessment**
@@ -227,103 +235,27 @@ for _, row in df.iterrows():
 - **Quality Metrics**: Hallucination detection, relevancy scoring, accuracy assessment
 - **System Health**: Database analytics, error tracking, performance monitoring
 
+## 🚀 Deployment
+
+The application is designed for flexible deployment with automatic environment configuration:
+
+- **Replit**: Automatic setup with integrated database and secrets management
+- **Local Development**: Full PostgreSQL and environment variable configuration
+- **Cloud Platforms**: Compatible with major cloud providers (AWS, GCP, Azure)
+- **Docker**: Containerized deployment ready (Dockerfile included)
+
+Ensure all environment variables are properly configured and PostgreSQL database is accessible.
+
 ## 🤝 Contributing
 
-This is a demonstration project showcasing multi-agent AI collaboration for customer support automation. The system emphasizes real agent interaction, consensus building, and comprehensive monitoring.
+This project demonstrates advanced multi-agent AI orchestration with practical customer support applications. Contributions are welcome for:
+
+- **Additional AI Provider Integrations**: New model providers and capabilities
+- **Enhanced Quality Metrics**: Advanced evaluation frameworks and scoring systems
+- **Agent Specializations**: New agent types and collaborative patterns
+- **Performance Optimizations**: Speed improvements and resource efficiency
+- **Integration Extensions**: CRM systems, ticketing platforms, and workflow tools
 
 ## 📝 License
 
-This project is for educational and demonstration purposes, showcasing advanced AI agent collaboration techniques.
-- API keys for AI providers (OpenAI, Anthropic, optionally Cohere)
-
-### Environment Setup
-1. Clone the repository
-2. Install dependencies: `uv sync`
-3. Set up environment variables:
-   ```
-   OPENAI_API_KEY=your_openai_key
-   ANTHROPIC_API_KEY=your_anthropic_key
-   COHERE_API_KEY=your_cohere_key (optional)
-   LANGSMITH_API_KEY=your_langsmith_key
-   DATABASE_URL=your_postgres_url
-   KAGGLE_USERNAME=your_kaggle_username
-   KAGGLE_KEY=your_kaggle_key
-   ```
-
-### Running the Application
-
-#### Web Interface
-```bash
-streamlit run streamlit_app.py --server.port 5000 --server.address 0.0.0.0
-```
-
-#### Command Line Processing
-```bash
-python main.py
-```
-
-## Features
-
-### Model Management
-- **Individual Agent Models**: Assign different AI models to each agent
-- **Real-time Swapping**: Change models without restarting the system
-- **Performance Comparison**: Test multiple models on the same tickets
-- **Smart Recommendations**: Agent-specific model suggestions based on task requirements
-
-### Data Sources
-- **Kaggle Integration**: Automatically downloads customer support datasets
-- **CSV Upload**: Process your own ticket data
-- **Sample Data**: Built-in test tickets for demonstration
-
-### Quality Assurance
-- **Multi-layer Validation**: Agents review each other's work
-- **Consistency Checking**: Automated quality assessments
-- **Performance Metrics**: Track accuracy, speed, and effectiveness
-- **Historical Analysis**: Trend monitoring and improvement tracking
-
-## Agent Specializations
-
-### Triage Specialist
-- **Purpose**: Fast, accurate ticket classification
-- **Recommended Models**: GPT-4o, Claude 3.5 Haiku (speed + accuracy)
-- **Output**: Intent classification, severity assessment, confidence scores
-
-### Ticket Analyst
-- **Purpose**: Deep content analysis and summarization
-- **Recommended Models**: GPT-4o, Claude 3.5 Sonnet (analytical depth)
-- **Output**: Comprehensive summaries, key issue identification
-
-### Support Strategist
-- **Purpose**: Strategic response planning
-- **Recommended Models**: GPT-4o, Claude 3 Opus (complex reasoning)
-- **Output**: Action recommendations, escalation decisions
-
-### QA Reviewer
-- **Purpose**: Quality validation and consistency checking
-- **Recommended Models**: GPT-4o, Claude 3.5 Sonnet (thorough review)
-- **Output**: Quality assessments, improvement suggestions
-
-## Database Schema
-
-The system maintains comprehensive records including:
-- Support tickets with full metadata
-- Agent processing logs and timings
-- Quality evaluation scores
-- Model performance metrics
-- Historical trend data
-
-## Deployment
-
-The application is designed for deployment on Replit with automatic environment configuration. For other platforms, ensure all environment variables are properly set and the PostgreSQL database is accessible.
-
-## Contributing
-
-This project demonstrates advanced multi-agent AI orchestration with practical customer support applications. Contributions are welcome for:
-- Additional AI provider integrations
-- Enhanced quality metrics
-- New agent specializations
-- Performance optimizations
-
-## License
-
-This project is available under standard open source licensing terms.
+This project is available under standard open source licensing terms for educational and demonstration purposes, showcasing advanced AI agent collaboration techniques in customer support automation.
