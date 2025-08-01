@@ -52,7 +52,7 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 
 ## Version History & Release Journey 📈
 
-### v2.0 - Collaborative Intelligence Era (August 2025)
+### v2.0 - Collaborative Intelligence Era
 **Major Architecture Evolution: From Sequential to Collaborative Processing**
 
 #### Core Breakthroughs
@@ -75,7 +75,7 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 - **Real-Time Dashboard**: Live agent status monitoring with processing indicators
 - **Comprehensive Tracing**: Complete LangSmith observability for all system operations
 
-### v1.5 - Enhanced Processing & Monitoring (July 2025)
+### v1.5 - Enhanced Processing & Monitoring
 **Foundation Building: Observability and Quality Assessment**
 
 #### Key Additions
@@ -91,7 +91,7 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 - **Error Handling**: Initial robust error management and logging systems
 - **Configuration Management**: Centralized config system with environment validation
 
-### v1.0 - Multi-Agent Foundation (June 2025)
+### v1.0 - Multi-Agent Foundation
 **Genesis: Sequential Multi-Agent Architecture**
 
 #### Original Implementation
