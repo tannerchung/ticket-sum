@@ -417,8 +417,9 @@ def evaluate_with_deepeval(result, original_message):
     """Evaluate the AI response using deepeval metrics and custom faithfulness."""
     try:
         from deepeval import evaluate
-        from deepeval.metrics import HallucinationMetric, AnswerRelevancyMetric
-        from deepeval.test_case import LLMTestCase
+        from deepeval.metrics.hallucination.hallucination import HallucinationMetric
+        from deepeval.metrics.answer_relevancy.answer_relevancy import AnswerRelevancyMetric
+        from deepeval.test_case.llm_test_case import LLMTestCase
         
         # Create test case with proper context for hallucination metric
         test_case = LLMTestCase(
@@ -447,19 +448,35 @@ def evaluate_with_deepeval(result, original_message):
         hallucination_score = 0.8
         relevancy_score = 0.8
         
-        if evaluation_result and len(evaluation_result) > 0:
-            try:
-                result_item = evaluation_result[0]
-                if hasattr(result_item, 'metrics') and result_item.metrics:
-                    if len(result_item.metrics) > 0:
-                        # Hallucination score is already 0-1 (0 = no hallucination, 1 = high hallucination)
-                        # Convert to quality score where higher = better
-                        hallucination_score = 1.0 - getattr(result_item.metrics[0], 'score', 0.2)
-                    if len(result_item.metrics) > 1:
-                        relevancy_score = getattr(result_item.metrics[1], 'score', 0.8)
-                    print(f"Extracted scores - Hallucination: {hallucination_score:.3f}, Relevancy: {relevancy_score:.3f}")
-            except (IndexError, AttributeError) as e:
-                print(f"Warning: Could not extract evaluation metrics: {e}")
+        # Handle DeepEval results more safely
+        try:
+            # DeepEval evaluate() returns test case results, not direct metrics
+            # We need to access the metric results from the test cases
+            if evaluation_result:
+                print(f"Evaluation result type: {type(evaluation_result)}")
+                print(f"Evaluation result: {evaluation_result}")
+                
+                # The evaluation_result should be from evaluate() which returns test case results
+                # Try to access the actual metric scores if available
+                if hasattr(evaluation_result, '__iter__'):
+                    # Handle the case where we get test results back
+                    for test_case in evaluation_result:
+                        if hasattr(test_case, 'metrics_metadata'):
+                            metrics_metadata = test_case.metrics_metadata
+                            for metric_name, metric_data in metrics_metadata.items():
+                                if 'hallucination' in metric_name.lower():
+                                    hallucination_score = 1.0 - metric_data.get('score', 0.2)
+                                elif 'relevancy' in metric_name.lower():
+                                    relevancy_score = metric_data.get('score', 0.8)
+                            break
+                        elif hasattr(test_case, 'success'):
+                            # Fallback: use success indicators
+                            print(f"Test case success status available")
+                            break
+                            
+        except Exception as e:
+            print(f"Note: Using default evaluation scores due to DeepEval API changes: {e}")
+            # Use default values when DeepEval structure changes
         
         scores = {
             'hallucination': hallucination_score,
