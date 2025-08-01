@@ -85,14 +85,14 @@ class CollaborativeSupportCrew:
                         print(f"⚠️ Failed to initialize Cohere for {agent_name}: {e}")
                         self.llm_instances[agent_name] = ChatOpenAI(
                             model="gpt-4o",
-                            api_key=OPENAI_API_KEY,
+                            api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                             temperature=0.1
                         )
-                elif provider == "anthropic" and ANTHROPIC_AVAILABLE and ChatAnthropic:
+                elif provider == "anthropic" and ANTHROPIC_AVAILABLE and ChatAnthropic and ANTHROPIC_API_KEY:
                     try:
                         self.llm_instances[agent_name] = ChatAnthropic(
                             model_name=model_name,
-                            api_key=SecretStr(ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None,
+                            api_key=SecretStr(ANTHROPIC_API_KEY),
                             temperature=model_config["temperature"],
                             timeout=60,
                             stop=None
@@ -276,11 +276,11 @@ class CollaborativeSupportCrew:
                     api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                     temperature=0.1
                 )
-        elif provider == "anthropic" and ANTHROPIC_AVAILABLE and ChatAnthropic:
+        elif provider == "anthropic" and ANTHROPIC_AVAILABLE and ChatAnthropic and ANTHROPIC_API_KEY:
             try:
                 self.llm_instances[agent_name] = ChatAnthropic(
                     model_name=model_name,
-                    api_key=SecretStr(ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None,
+                    api_key=SecretStr(ANTHROPIC_API_KEY),
                     temperature=model_config["temperature"],
                     timeout=60,
                     stop=None
