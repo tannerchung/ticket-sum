@@ -1,24 +1,31 @@
 [project]
-name = "repl-nix-workspace"
-version = "0.1.0"
-description = "Add your description here"
+name = "support-ticket-summarizer"
+version = "2.0.0"
+description = "Multi-Agent AI System for Customer Support Automation"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "cohere==5.12.0",
-    "crewai>=0.152.0",
-    "deepeval>=3.3.3",
-    "kagglehub>=0.3.12",
-    "langchain>=0.3.27",
-    "langchain-anthropic>=0.3.18",
-    "langchain-cohere==0.4.4",
-    "langchain-openai>=0.3.28",
-    "langsmith>=0.4.9",
-    "openai>=1.98.0",
-    "pandas>=2.3.1",
-    "plotly>=6.2.0",
-    "psycopg2-binary>=2.9.10",
-    "python-dotenv>=1.1.1",
-    "sqlalchemy>=2.0.42",
-    "streamlit>=1.47.1",
-    "tqdm>=4.67.1",
+    "streamlit>=1.28.0",
+    "crewai>=0.28.8",
+    "langsmith>=0.1.77",
+    "langchain-openai>=0.1.7",
+    "pandas>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "tqdm>=4.65.0",
+    "kagglehub>=0.2.0",
+    "plotly>=5.15.0",
+    "psycopg2-binary>=2.9.0",
+    "sqlalchemy>=2.0.0",
+    "deepeval>=0.21.0",
+    "cohere>=4.21.0",
+    "langchain-anthropic>=0.1.0",
+    "langchain-cohere>=0.1.0",
+    "openai>=1.0.0",
 ]
+
+[project.scripts]
+start = "main:main"
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
