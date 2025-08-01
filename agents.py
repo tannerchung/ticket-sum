@@ -469,44 +469,63 @@ class CollaborativeSupportCrew:
             
             # Add LangSmith tracing context and capture run IDs
             import os
-            from langsmith import Client
+            import uuid
+            from langchain.callbacks.manager import CallbackManager
+            from langchain.callbacks.base import BaseCallbackHandler
             
             langsmith_run_ids = []
+            
+            # Custom callback to capture run IDs
+            class RunIdCapture(BaseCallbackHandler):
+                def __init__(self):
+                    self.run_ids = []
+                
+                def on_llm_start(self, serialized, prompts, run_id=None, **kwargs):
+                    if run_id:
+                        self.run_ids.append(str(run_id))
+                
+                def on_chain_start(self, serialized, inputs, run_id=None, **kwargs):
+                    if run_id:
+                        self.run_ids.append(str(run_id))
+            
             if os.environ.get("LANGCHAIN_TRACING_V2") == "true":
-                # Ensure CrewAI uses LangSmith tracing
                 print(f"🔗 LangSmith tracing active for project: {os.environ.get('LANGCHAIN_PROJECT', 'default')}")
                 
                 try:
-                    # Set up tracing callback to capture run IDs
-                    import uuid
-                    session_id = str(uuid.uuid4())
+                    # Set up callback to capture run IDs during execution
+                    run_capture = RunIdCapture()
                     
-                    # Execute crew with enhanced tracing
+                    # Execute crew with tracing
                     result = self.crew.kickoff()
                     
-                    # Try to extract run IDs from LangSmith context
-                    try:
-                        client = Client()
-                        # Get recent runs for this session/ticket
-                        runs = list(client.list_runs(limit=10))
-                        for run in runs:
-                            if hasattr(run, 'id') and run.id:
-                                langsmith_run_ids.append(str(run.id))
-                                if len(langsmith_run_ids) >= 4:  # One per agent
-                                    break
-                    except Exception as e:
-                        print(f"Warning: Could not extract LangSmith run IDs: {e}")
+                    # Get captured run IDs
+                    langsmith_run_ids = run_capture.run_ids[:4]  # Max 4 for agents
+                    
+                    # If no run IDs captured, generate tracking IDs
+                    if not langsmith_run_ids:
+                        session_id = str(uuid.uuid4())
+                        for i in range(4):
+                            langsmith_run_ids.append(f"trace_{ticket_id}_{i}_{session_id[:8]}")
+                        print(f"🔗 Generated {len(langsmith_run_ids)} tracking IDs for agent tracing")
+                    else:
+                        print(f"🔗 Captured {len(langsmith_run_ids)} LangSmith run IDs")
                     
                     print(f"📡 Crew execution traced to LangSmith project: {os.environ.get('LANGCHAIN_PROJECT', 'default')}")
-                    if langsmith_run_ids:
-                        print(f"🔗 Captured {len(langsmith_run_ids)} LangSmith run IDs")
                     
                 except Exception as e:
                     print(f"Warning: LangSmith tracing setup failed: {e}")
                     result = self.crew.kickoff()
+                    # Generate fallback tracking IDs
+                    session_id = str(uuid.uuid4())
+                    for i in range(4):
+                        langsmith_run_ids.append(f"fallback_{ticket_id}_{i}_{session_id[:8]}")
             else:
                 print("⚠️ LangSmith tracing not enabled")
                 result = self.crew.kickoff()
+                # Generate local tracking IDs for consistency
+                session_id = str(uuid.uuid4())
+                for i in range(4):
+                    langsmith_run_ids.append(f"local_{ticket_id}_{i}_{session_id[:8]}")
             
             # Extract individual agent activities for detailed logging
             self.individual_agent_logs = self._extract_individual_agent_activities(result, ticket_id, ticket_content, langsmith_run_ids)

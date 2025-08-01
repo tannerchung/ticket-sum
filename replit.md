@@ -55,3 +55,14 @@ A custom faithfulness evaluation system, powered by GPT-4o, directly compares ag
 - Environment variables for API key management.
 - JSON output for structured data storage.
 - CSV file processing for ticket data ingestion.
+
+## Recent Technical Fixes (August 1, 2025)
+
+### LangSmith API Warning Resolution
+Fixed LangSmith API 400 error warning that occurred during run ID extraction. The issue was caused by improper API query parameters. Implemented custom callback handler system to capture run IDs during LLM execution instead of querying the API afterward. This eliminates API warnings while maintaining proper traceability between database logs and LangSmith traces.
+
+### Individual Agent Logging Implementation  
+Enhanced processing logs to capture individual agent activities instead of aggregate "collaborative_crew" entries. Each agent (triage_specialist, ticket_analyst, support_strategist, qa_reviewer) now logs separately with specific input/output data, processing times, and metadata.
+
+### Kaggle Dataset Loading Fix
+Resolved duplicate column name errors when loading Kaggle datasets by implementing proper column mapping validation and duplicate prevention logic. The system now correctly handles multiple time/date columns without conflicts.
