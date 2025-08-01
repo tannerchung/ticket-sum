@@ -20,12 +20,13 @@ except ImportError as e:
     print(f"⚠️ Cohere integration unavailable: {e}")
 
 # Try to import Anthropic support
-ANTHROPIC_AVAILABLE = True
+ANTHROPIC_AVAILABLE = False
+ChatAnthropic = None
 try:
     from langchain_anthropic import ChatAnthropic
+    ANTHROPIC_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ Anthropic integration unavailable: {e}")
-    ANTHROPIC_AVAILABLE = False
 from config import (
     LLM_MODEL, 
     OPENAI_API_KEY,
@@ -90,7 +91,7 @@ class CollaborativeSupportCrew:
                 # Fallback to default model
                 self.llm_instances[agent_name] = ChatOpenAI(
                     model=LLM_MODEL,
-                    openai_api_key=OPENAI_API_KEY,
+                    api_key=OPENAI_API_KEY,
                     temperature=0.1
                 )
         
