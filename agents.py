@@ -846,7 +846,7 @@ class CollaborativeSupportCrew:
         
         return ' '.join(summary_lines) if summary_lines else "Collaborative analysis summary"
     
-    def _extract_individual_agent_activities(self, crew_result, ticket_id: str, ticket_content: str, langsmith_run_ids: List[str] = None) -> List[Dict[str, Any]]:
+    def _extract_individual_agent_activities(self, crew_result, ticket_id: str, ticket_content: str, langsmith_run_ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Extract individual agent activities from CrewAI execution for detailed logging."""
         individual_logs = []
         
