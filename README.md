@@ -33,7 +33,7 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 - **Database Analytics**: Historical insights with interactive Plotly charts and trend analysis
 
 ### 📊 Comprehensive Monitoring & Observability
-- **LangSmith Integration**: Complete tracing of all agent interactions, memory operations, and LLM calls
+- **Langfuse Cloud Integration**: Complete tracing of all agent interactions with OpenInference instrumentation
 - **Custom Quality Assessment**: Authentic faithfulness evaluation using GPT-4o for fact-checking
 - **DeepEval Integration**: Hallucination detection, relevancy scoring, and accuracy assessment
 - **PostgreSQL Analytics**: Persistent storage with performance metrics, collaboration tracking, and historical analysis
@@ -45,7 +45,7 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 - **AI Providers**: OpenAI (GPT-4o), Anthropic (Claude 3.5), Cohere (Command R) with fallback support
 - **Database**: PostgreSQL with SQLAlchemy for persistent analytics and collaboration metrics
 - **Web Interface**: Streamlit with real-time updates and interactive dashboards
-- **Observability**: LangSmith for comprehensive tracing, custom faithfulness evaluation
+- **Observability**: Langfuse Cloud with OpenInference instrumentation for comprehensive tracing
 - **Quality Assessment**: DeepEval integration with authentic metrics calculation
 - **Data Processing**: pandas, kagglehub for dataset management
 - **Visualization**: Plotly for interactive charts and performance analytics
@@ -59,7 +59,7 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 - ✅ **Authentic Multi-Agent Collaboration**: Transformed from sequential agent processing to genuine collaborative intelligence with real consensus building
 - ✅ **Custom Faithfulness Evaluation**: Revolutionary GPT-4o-based fact-checking system that validates agent outputs against source content
 - ✅ **Multi-Provider AI Ecosystem**: Complete integration of OpenAI, Anthropic, and Cohere with dynamic model assignment per agent
-- ✅ **Advanced Observability**: LangSmith integration capturing every agent interaction, memory operation, and collaboration event
+- ✅ **Advanced Observability**: Langfuse Cloud integration with OpenInference instrumentation capturing every agent interaction and collaboration event
 - ✅ **Real-Time Collaboration Metrics**: Authentic disagreement detection, conflict resolution tracking, and consensus strength measurement
 
 #### Technical Innovations
@@ -84,7 +84,7 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 **Foundation Building: Observability and Quality Assessment**
 
 #### Key Additions
-- 🔍 **LangSmith Integration**: Initial tracing and logging implementation for LLM interactions
+- 🔍 **Langfuse Integration**: Advanced tracing and logging with OpenInference instrumentation for LLM interactions
 - 📊 **PostgreSQL Database**: Persistent storage for tickets, processing logs, and evaluations
 - 🎯 **Quality Metrics**: Basic DeepEval integration for response quality assessment
 - 📈 **Streamlit Interface**: Interactive web dashboard for real-time monitoring

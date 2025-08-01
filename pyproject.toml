@@ -7,7 +7,9 @@ requires-python = ">=3.11"
 dependencies = [
     "streamlit>=1.28.0",
     "crewai>=0.28.8",
-    "langsmith>=0.1.77",
+    "langfuse>=2.0.0",
+    "openinference-instrumentation-crewai>=0.1.0",
+    "openinference-instrumentation-litellm>=0.1.0",
     "langchain-openai>=0.1.7",
     "pandas>=2.0.0",
     "python-dotenv>=1.0.0",
@@ -21,6 +23,9 @@ dependencies = [
     "langchain-anthropic>=0.1.0",
     "langchain-cohere>=0.1.0",
     "openai>=1.0.0",
+    "langsmith>=0.4.9",
+    "pydantic>=2.11.7",
+    "openinference-instrumentation>=0.1.36",
 ]
 
 [project.scripts]

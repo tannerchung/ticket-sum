@@ -18,7 +18,7 @@ from plotly.subplots import make_subplots
 # Import our application modules
 from agents import CollaborativeSupportCrew
 from config import (
-    setup_langsmith, 
+    setup_langfuse, 
     setup_kaggle, 
     AVAILABLE_MODELS, 
     DEFAULT_AGENT_MODELS,
@@ -121,8 +121,8 @@ def initialize_session_state():
             'support_strategist': {'status': 'inactive', 'last_run': None, 'processing': False},
             'qa_reviewer': {'status': 'inactive', 'last_run': None, 'processing': False}
         }
-    if 'langsmith_logs' not in st.session_state:
-        st.session_state.langsmith_logs = []
+    if 'langfuse_logs' not in st.session_state:
+        st.session_state.langfuse_logs = []
     if 'evaluation_results' not in st.session_state:
         st.session_state.evaluation_results = []
 
@@ -235,33 +235,35 @@ def display_agent_monitor():
             </div>
             """, unsafe_allow_html=True)
 
-def log_langsmith_activity(agent_name, input_data, output_data, metadata=None):
-    """Log LangSmith-style activity for visualization and send to LangSmith."""
+def log_langfuse_activity(agent_name, input_data, output_data, metadata=None):
+    """Log Langfuse-style activity for visualization and send to Langfuse."""
     log_entry = {
         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         'agent': agent_name,
         'input': input_data,
         'output': output_data,
         'metadata': metadata or {},
-        'trace_id': str(uuid.uuid4())[:8]
+        'trace_id': f"lf-{int(time.time() * 1000)}"
     }
-    st.session_state.langsmith_logs.append(log_entry)
+    st.session_state.langfuse_logs.append(log_entry)
     
-    # Note: LangSmith tracing is now handled automatically by LangChain
-    # This function only manages session state logging for the Streamlit dashboard
-    # Actual tracing runs are created and managed by the proper callback handlers
-    if os.environ.get("LANGCHAIN_TRACING_V2") == "true":
-        print(f"📊 Activity logged for {agent_name} (LangSmith handles actual tracing)")
+    # Import and use telemetry logging
+    try:
+        from telemetry import log_activity
+        log_activity(agent_name, input_data, output_data, metadata)
+        print(f"📊 Activity logged for {agent_name} (Langfuse handles actual tracing)")
+    except ImportError:
+        print(f"📊 Activity logged for {agent_name} (Langfuse telemetry not available)")
     
     # Keep only last 50 logs in session state
-    if len(st.session_state.langsmith_logs) > 50:
-        st.session_state.langsmith_logs = st.session_state.langsmith_logs[-50:]
+    if len(st.session_state.langfuse_logs) > 50:
+        st.session_state.langfuse_logs = st.session_state.langfuse_logs[-50:]
 
-def display_langsmith_logs():
-    """Display LangSmith-style logging interface."""
-    st.subheader("🔍 LangSmith Activity Logs")
+def display_langfuse_logs():
+    """Display Langfuse-style logging interface."""
+    st.subheader("🔍 Langfuse Activity Logs")
     
-    if not st.session_state.langsmith_logs:
+    if not st.session_state.langfuse_logs:
         st.info("No activity logs yet. Process a ticket to see detailed traces here.")
         return
     
@@ -276,7 +278,7 @@ def display_langsmith_logs():
         show_last = st.selectbox("Show Last:", [10, 25, 50])
     
     # Filter logs
-    filtered_logs = st.session_state.langsmith_logs
+    filtered_logs = st.session_state.langfuse_logs
     if selected_agent != "All":
         filtered_logs = [log for log in filtered_logs if log['agent'] == selected_agent]
     
@@ -530,7 +532,7 @@ def display_evaluation_dashboard():
         st.plotly_chart(fig, use_container_width=True)
 
 def setup_agents():
-    """Initialize the collaborative CrewAI system with LangSmith tracing."""
+    """Initialize the collaborative CrewAI system with Langfuse tracing."""
     try:
         print("🚀 Initializing Support Ticket Summarizer...")
         
@@ -538,9 +540,9 @@ def setup_agents():
             st.error("Environment validation failed. Please check your API keys.")
             return None
         
-        # Set up LangSmith tracing
-        print("📡 Configuring LangSmith tracing...")
-        setup_langsmith()
+        # Set up Langfuse tracing
+        print("📡 Configuring Langfuse tracing...")
+        setup_langfuse()
         
         setup_kaggle()
         
@@ -568,7 +570,7 @@ def process_ticket(crew, ticket_id, ticket_content):
         result = crew.process_ticket_collaboratively(ticket_id, ticket_content)
         
         # Log collaborative activity
-        log_langsmith_activity(
+        log_langfuse_activity(
             'collaborative_crew', 
             collaborative_input, 
             result,
@@ -615,7 +617,7 @@ def process_ticket(crew, ticket_id, ticket_content):
                         status=agent_log['status'],
                         processing_time=agent_log['processing_time'],
                         trace_id=agent_log['trace_id'],
-                        langsmith_run_id=agent_log.get('langsmith_run_id')
+                        langfuse_trace_id=agent_log.get('langfuse_trace_id')
                     )
             
             # Also log overall collaborative summary
@@ -952,7 +954,7 @@ def main():
     st.markdown("---")
     
     # Tabs for different monitoring views
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🤖 Agent Monitor", "🔍 LangSmith Logs", "📊 DeepEval Assessment", "🗄️ Database Analytics", "🔄 Model Management"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🤖 Agent Monitor", "🔍 Langfuse Logs", "📊 DeepEval Assessment", "🗄️ Database Analytics", "🔄 Model Management"])
     
     with tab1:
         # Only show agent monitor when there's actual agent activity (not just initialization)
@@ -967,7 +969,7 @@ def main():
             st.markdown("**How it works:** Process a ticket below to see the four AI agents actively collaborate, question each other, and reach consensus on ticket classification, analysis, and action planning.")
     
     with tab2:
-        display_langsmith_logs()
+        display_langfuse_logs()
     
     with tab3:
         display_evaluation_dashboard()
@@ -983,7 +985,7 @@ def main():
         """
         <div style='text-align: center; color: #666;'>
         Built with CrewAI, OpenAI GPT-4o, and Streamlit<br>
-        Enhanced with real-time monitoring, LangSmith tracing, and DeepEval quality assessment
+        Enhanced with real-time monitoring, Langfuse tracing, and DeepEval quality assessment
         </div>
         """, 
         unsafe_allow_html=True

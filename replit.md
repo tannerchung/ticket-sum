@@ -12,7 +12,9 @@ Replit automatically handles Python dependencies and provides integrated secrets
 Set up the following secrets in Replit's Secrets tab:
 - `OPENAI_API_KEY`: Your OpenAI API key
 - `DATABASE_URL`: PostgreSQL connection string (use Replit DB or external)
-- `LANGSMITH_API_KEY`: LangSmith tracing key (optional)
+- `LANGFUSE_PUBLIC_KEY`: Langfuse Cloud public key for tracing
+- `LANGFUSE_SECRET_KEY`: Langfuse Cloud secret key for tracing
+- `LANGFUSE_HOST`: Langfuse Cloud host (optional, defaults to https://us.cloud.langfuse.com)
 - `KAGGLE_USERNAME`: Kaggle username (optional)
 - `KAGGLE_KEY`: Kaggle API key (optional)
 
@@ -57,7 +59,7 @@ Use Replit's persistent storage for output files and cached data.
 
 ### Monitoring
 - Console output is available in Replit's terminal
-- LangSmith integration provides external monitoring
+- Langfuse Cloud integration provides comprehensive external monitoring with OpenInference instrumentation
 - Database analytics available through the web interface
 
 ## Troubleshooting

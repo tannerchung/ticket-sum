@@ -638,17 +638,13 @@ class CollaborativeSupportCrew:
             # Update crew with current tasks
             self.crew.tasks = tasks
             
-            # Execute collaborative workflow with proper LangSmith tracing
+            # Execute collaborative workflow with proper Langfuse tracing
             print("🔄 Executing collaborative crew workflow...")
             
-            # Import the new LangSmith integration
-            from langsmith_integration import (
-                langsmith_context,
-                get_langsmith_handler,
-                get_run_information,
-                clear_run_information,
-                submit_completion_metadata,
-                create_callback_manager
+            # Import the new Langfuse telemetry integration
+            from telemetry import (
+                create_trace_context,
+                get_langfuse_manager
             )
             
             # Clear any previous run information
@@ -658,12 +654,9 @@ class CollaborativeSupportCrew:
             consensus_start_time = None
             consensus_end_time = None
             
-            # Execute with proper LangSmith context and callback integration plus timing
-            with langsmith_context(ticket_id):
-                # Set up proper callback manager
-                callback_manager = create_callback_manager()
-                
-                # Configure crew with proper callbacks
+            # Execute with proper Langfuse context and tracing integration plus timing
+            with create_trace_context(ticket_id, {"system": "collaborative_crew"}):
+                # OpenInference instrumentation handles callbacks automatically
                 if hasattr(self.crew, 'manager') and hasattr(self.crew.manager, 'callbacks'):
                     self.crew.manager.callbacks = callback_manager
                 
@@ -688,43 +681,29 @@ class CollaborativeSupportCrew:
                 print(f"⏱️ Total crew execution time: {total_execution_time:.2f}s")
                 print(f"🤝 Consensus building time: {consensus_end_time - consensus_start_time:.2f}s")
                 
-                # Get run information from our callback handler (includes actual LLM timing)
-                run_info = get_run_information()
-                langsmith_run_ids = run_info.get('run_ids', [])
-                handler = get_langsmith_handler()
-                callback_durations = handler.get_agent_durations()
+                # Get run information from Langfuse manager (includes actual LLM timing)
+                langfuse_manager = get_langfuse_manager()
+                langfuse_activities = langfuse_manager.get_agent_activities()
                 
-                print(f"🔗 Captured {len(langsmith_run_ids)} LangSmith run IDs from {len(run_info.get('unique_agents', []))} agents")
+                print(f"🔗 Captured {len(langfuse_activities)} Langfuse activities from collaborative agents")
                 
-                # Update timing tracker with actual callback durations where available,
-                # or estimate from total time for agents without callback data
+                # Update timing tracker with estimated durations
+                # OpenInference instrumentation handles the actual timing
                 for agent_name in agent_names:
-                    if agent_name in callback_durations and callback_durations[agent_name] > 0:
-                        # Use actual timing from callbacks
-                        actual_duration = callback_durations[agent_name]
-                        timing_tracker.end_agent_timing(agent_name, ticket_id, actual_duration)
-                        print(f"📊 {agent_name}: {actual_duration:.2f}s (from callbacks)")
-                    else:
-                        # Estimate from total time divided by number of agents
-                        estimated_duration = total_execution_time / len(agent_names)
-                        timing_tracker.end_agent_timing(agent_name, ticket_id, estimated_duration)
-                        print(f"📊 {agent_name}: {estimated_duration:.2f}s (estimated)")
+                    # Estimate from total time (roughly equal distribution among 4 agents)
+                    estimated_duration = total_execution_time / len(agent_names)
+                    timing_tracker.end_agent_timing(agent_name, ticket_id, estimated_duration)
+                    print(f"📊 {agent_name}: {estimated_duration:.2f}s (estimated)")
                 
                 # Store timing tracker for use in individual agent log extraction
                 self._current_timing_tracker = timing_tracker
                 
-                # Submit completion metadata to LangSmith
-                if langsmith_run_ids:
-                    completion_metadata = {
-                        "agents_involved": ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"],
-                        "total_activities": run_info.get('total_activities', 0),
-                        "unique_agents": len(run_info.get('unique_agents', []))
-                    }
-                    submit_completion_metadata(ticket_id, completion_metadata)
+                # Submit completion metadata to Langfuse
+                langfuse_manager.flush()
             
-            # Extract individual agent activities from callback handler with timing data
-            self.individual_agent_logs = self._extract_individual_agent_activities_from_handler(
-                result, ticket_id, ticket_content, run_info, getattr(self, '_current_timing_tracker', None)
+            # Extract individual agent activities from Langfuse telemetry with timing data
+            self.individual_agent_logs = self._extract_individual_agent_activities(
+                result, ticket_id, ticket_content, langfuse_activities, getattr(self, '_current_timing_tracker', None)
             )
             
             # Parse and structure the collaborative result with consensus timing
@@ -1117,7 +1096,7 @@ class CollaborativeSupportCrew:
         
         return ' '.join(summary_lines) if summary_lines else "Collaborative analysis summary"
     
-    def _extract_individual_agent_activities(self, crew_result, ticket_id: str, ticket_content: str, langsmith_run_ids: Optional[List[str]] = None, timing_tracker: Optional[AgentTimingTracker] = None) -> List[Dict[str, Any]]:
+    def _extract_individual_agent_activities(self, crew_result, ticket_id: str, ticket_content: str, langfuse_activities: Optional[List[Dict]] = None, timing_tracker: Optional[AgentTimingTracker] = None) -> List[Dict[str, Any]]:
         """Extract individual agent activities from CrewAI execution for detailed logging."""
         individual_logs = []
         
@@ -1161,10 +1140,10 @@ class CollaborativeSupportCrew:
                             'task_type': self._determine_task_type(i)
                         }
                         
-                        # Assign LangSmith run ID if available
-                        langsmith_run_id = None
-                        if langsmith_run_ids and i < len(langsmith_run_ids):
-                            langsmith_run_id = langsmith_run_ids[i]
+                        # Assign Langfuse trace ID if available
+                        langfuse_trace_id = None
+                        if langfuse_activities and i < len(langfuse_activities):
+                            langfuse_trace_id = langfuse_activities[i].get('trace_id')
                         
                         # Calculate processing time using timing tracker if available
                         processing_time = 0.0
@@ -1184,7 +1163,7 @@ class CollaborativeSupportCrew:
                             'processing_time': processing_time,
                             'status': 'success',
                             'trace_id': f"{ticket_id}_{agent_name}_{int(time.time())}",
-                            'langsmith_run_id': langsmith_run_id
+                            'langfuse_trace_id': langfuse_trace_id
                         })
                         
         except Exception as e:
@@ -1193,7 +1172,7 @@ class CollaborativeSupportCrew:
         return individual_logs
     
     def _extract_individual_agent_activities_from_handler(self, crew_result, ticket_id: str, ticket_content: str, run_info: Dict[str, Any], timing_tracker: Optional[AgentTimingTracker] = None) -> List[Dict[str, Any]]:
-        """Extract individual agent activities from LangSmith callback handler."""
+        """Extract individual agent activities from Langfuse telemetry manager."""
         individual_logs = []
         
         try:
@@ -1311,7 +1290,7 @@ class CollaborativeSupportCrew:
                     'processing_time': processing_time,
                     'status': 'success',
                     'trace_id': f"{ticket_id}_{agent_name}_{int(time.time())}",
-                    'langsmith_run_id': main_activity.get('run_id')
+                    'langfuse_trace_id': main_activity.get('trace_id')
                 })
                         
         except Exception as e:

@@ -13,10 +13,12 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
-LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "default")
-LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "true").lower() == "true"
-LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+
+# Langfuse Configuration
+LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
+LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")
+LANGFUSE_HOST = os.getenv("LANGFUSE_HOST", "https://us.cloud.langfuse.com")
+LANGFUSE_TRACING = os.getenv("LANGFUSE_TRACING", "true").lower() == "true"
 
 # Kaggle Configuration
 KAGGLE_USERNAME = os.getenv("KAGGLE_USERNAME")
@@ -179,27 +181,19 @@ Return ONLY valid JSON (no extra text):
 Intent: {intent}, Severity: {severity}
 Summary: {summary}"""
 
-# LangSmith Configuration
-def setup_langsmith():
-    """Configure LangSmith tracing with proper integration"""
+# Langfuse Configuration
+def setup_langfuse():
+    """Configure Langfuse tracing with OpenInference instrumentation"""
     try:
-        # Import and use the new LangSmith integration
-        from langsmith_integration import setup_langsmith_tracing
-        return setup_langsmith_tracing()
-    except ImportError:
-        # Fallback to old method if integration module not available
-        if LANGSMITH_TRACING and LANGSMITH_API_KEY:
-            os.environ["LANGCHAIN_TRACING_V2"] = "true"
-            os.environ["LANGCHAIN_ENDPOINT"] = LANGSMITH_ENDPOINT
-            os.environ["LANGCHAIN_API_KEY"] = LANGSMITH_API_KEY
-            os.environ["LANGCHAIN_PROJECT"] = LANGSMITH_PROJECT
-            
-            print(f"✅ LangSmith tracing enabled for project: {LANGSMITH_PROJECT}")
-            print(f"📡 LangSmith endpoint: {LANGSMITH_ENDPOINT}")
-            return True
-        else:
-            print("❌ LangSmith tracing disabled (missing API key or disabled)")
-            return False
+        # Import and use the new Langfuse telemetry integration
+        from telemetry import setup_langfuse_tracing
+        return setup_langfuse_tracing()
+    except ImportError as e:
+        print(f"⚠️ Langfuse telemetry module not available: {e}")
+        return False
+    except Exception as e:
+        print(f"⚠️ Langfuse setup failed: {e}")
+        return False
 
 # Kaggle Configuration
 def setup_kaggle():
