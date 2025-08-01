@@ -41,7 +41,7 @@ def add_health_check():
     try:
         # Get query parameters (using new API)
         query_params = st.query_params
-        if 'health' in query_params or st.sidebar.button("Health Check", key="health_btn", help="Check app health"):
+        if 'health' in query_params:
             st.success("✅ Application is healthy and running!")
             st.json({
                 "status": "healthy",
@@ -50,6 +50,18 @@ def add_health_check():
                 "message": "Streamlit app is running successfully"
             })
             return True
+        
+        # Add health check button in sidebar for manual testing
+        if st.sidebar.button("Health Check", key="health_btn", help="Check app health"):
+            st.success("✅ Application is healthy and running!")
+            st.json({
+                "status": "healthy",
+                "service": "support-ticket-summarizer",
+                "timestamp": datetime.now().isoformat(),
+                "message": "Manual health check completed successfully"
+            })
+            return True
+            
     except Exception as e:
         # Fallback for older Streamlit versions
         try:

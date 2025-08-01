@@ -1,0 +1,33 @@
+[run]
+# Use the run.py entry point which properly configures and starts Streamlit
+command = ["python", "run.py"]
+
+[deployment]
+run = ["python", "run.py"]
+deploymentTarget = "gce"
+
+[nix]
+channel = "stable-23.11"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[languages.python3]
+pattern = "**/*.py"
+
+[languages.python3.languageServer]
+start = "pylsp"
+
+# Environment variables for deployment
+[env]
+STREAMLIT_SERVER_PORT = "5000"
+STREAMLIT_SERVER_ADDRESS = "0.0.0.0"
+STREAMLIT_SERVER_HEADLESS = "true"
+STREAMLIT_BROWSER_GATHER_USAGE_STATS = "false"
+
+# Deployment configuration
+[deployment.health]
+path = "/"
+timeout = 30
+period = 5
