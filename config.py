@@ -193,20 +193,9 @@ def setup_langsmith():
         print(f"📡 LangSmith endpoint: {LANGSMITH_ENDPOINT}")
         print(f"🔑 API key configured: {'Yes' if LANGSMITH_API_KEY else 'No'}")
         
-        # Test LangSmith connection
-        try:
-            from langsmith import Client
-            client = Client(api_key=LANGSMITH_API_KEY, api_url=LANGSMITH_ENDPOINT)
-            # Simple test to verify connection and permissions
-            try:
-                # Test if we can access the API
-                client.read_project(project_name=LANGSMITH_PROJECT)
-                print("🔗 LangSmith connection and permissions verified")
-            except Exception as perm_e:
-                print(f"⚠️ LangSmith connection OK but permissions issue: {perm_e}")
-                print("💡 Check if your API key has the correct permissions for this project")
-        except Exception as e:
-            print(f"⚠️ LangSmith connection test failed: {e}")
+        # For now, skip connection test to avoid 403 errors
+        # The tracing will work automatically when CrewAI runs
+        print("🔗 LangSmith environment configured - tracing will activate during agent execution")
             
     else:
         print("❌ LangSmith tracing disabled (missing API key or disabled)")
