@@ -88,11 +88,21 @@ class CollaborativeSupportCrew:
                             temperature=0.1
                         )
                 elif provider == "anthropic" and ANTHROPIC_AVAILABLE and ChatAnthropic:
-                    self.llm_instances[agent_name] = ChatAnthropic(
-                        model_name=model_name,
-                        api_key=ANTHROPIC_API_KEY,
-                        temperature=model_config["temperature"]
-                    )
+                    try:
+                        self.llm_instances[agent_name] = ChatAnthropic(
+                            model_name=model_name,
+                            api_key=ANTHROPIC_API_KEY,
+                            temperature=model_config["temperature"],
+                            timeout=60,
+                            stop=None
+                        )
+                    except Exception as e:
+                        print(f"⚠️ Failed to initialize Anthropic for {agent_name}: {e}")
+                        self.llm_instances[agent_name] = ChatOpenAI(
+                            model="gpt-4o",
+                            api_key=OPENAI_API_KEY,
+                            temperature=0.1
+                        )
                 else:
                     # Fallback to OpenAI for unavailable providers
                     print(f"⚠️ {provider.title()} not available, using GPT-4o for {agent_name}")
@@ -266,11 +276,21 @@ class CollaborativeSupportCrew:
                     temperature=0.1
                 )
         elif provider == "anthropic" and ANTHROPIC_AVAILABLE and ChatAnthropic:
-            self.llm_instances[agent_name] = ChatAnthropic(
-                model_name=model_name,
-                api_key=ANTHROPIC_API_KEY,
-                temperature=model_config["temperature"]
-            )
+            try:
+                self.llm_instances[agent_name] = ChatAnthropic(
+                    model_name=model_name,
+                    api_key=ANTHROPIC_API_KEY,
+                    temperature=model_config["temperature"],
+                    timeout=60,
+                    stop=None
+                )
+            except Exception as e:
+                print(f"⚠️ Failed to initialize Anthropic for {agent_name}: {e}")
+                self.llm_instances[agent_name] = ChatOpenAI(
+                    model="gpt-4o",
+                    api_key=OPENAI_API_KEY,
+                    temperature=0.1
+                )
         else:
             # Fallback to OpenAI for unavailable providers
             print(f"⚠️ {provider.title()} not available, using GPT-4o for {agent_name}")
