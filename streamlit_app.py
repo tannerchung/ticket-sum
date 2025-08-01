@@ -352,7 +352,8 @@ def evaluate_faithfulness_to_source(result, original_message):
         )
         
         import json
-        eval_result = json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content
+        eval_result = json.loads(content) if content else {"faithfulness_score": 0.8}
         return eval_result.get('faithfulness_score', 0.8)
         
     except Exception as e:
@@ -431,13 +432,13 @@ def evaluate_with_deepeval(result, original_message):
                 if hasattr(evaluation_result, '__iter__'):
                     # Handle the case where we get test results back
                     for test_case in evaluation_result:
-                        if hasattr(test_case, 'metrics_metadata'):
-                            metrics_metadata = test_case.metrics_metadata
-                            for metric_name, metric_data in metrics_metadata.items():
-                                if 'hallucination' in metric_name.lower():
-                                    hallucination_score = 1.0 - metric_data.get('score', 0.2)
-                                elif 'relevancy' in metric_name.lower():
-                                    relevancy_score = metric_data.get('score', 0.8)
+                        if hasattr(test_case, 'metrics_data'):
+                            # Use metrics_data instead of metrics_metadata
+                            for metric_data in test_case.metrics_data:
+                                if 'hallucination' in metric_data.name.lower():
+                                    hallucination_score = 1.0 - metric_data.score if metric_data.score else 0.8
+                                elif 'relevancy' in metric_data.name.lower():
+                                    relevancy_score = metric_data.score if metric_data.score else 0.8
                             break
                         elif hasattr(test_case, 'success'):
                             # Fallback: use success indicators
@@ -617,7 +618,7 @@ def process_ticket(crew, ticket_id, ticket_content):
                         status=agent_log['status'],
                         processing_time=agent_log['processing_time'],
                         trace_id=agent_log['trace_id'],
-                        langfuse_trace_id=agent_log.get('langfuse_trace_id')
+                        # Removed langfuse_trace_id parameter - not needed anymore
                     )
             
             # Also log overall collaborative summary
@@ -843,7 +844,7 @@ def main():
                 results = []
                 
                 for i, row in df.iterrows():
-                    ticket_id = str(row.get('ticket_id', f'BATCH_{i+1}'))
+                    ticket_id = str(row.get('ticket_id', f'BATCH_{int(i)+1}'))
                     message = str(row.get('message', ''))
                     
                     if message.strip():
@@ -851,7 +852,7 @@ def main():
                         if result:
                             results.append(result)
                     
-                    progress_bar.progress(float(i + 1) / len(df))
+                    progress_bar.progress(float(int(i) + 1) / len(df))
                 
                 st.success(f"Processed {len(results)} tickets successfully!")
                 

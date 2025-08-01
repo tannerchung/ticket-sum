@@ -95,24 +95,17 @@ class LangfuseManager:
         """
         Context manager for tracing ticket processing workflows.
         
-        Wraps crew.kickoff() calls in a root span so that multiple agent calls
-        log under a single trace context.
+        OpenInference instrumentation handles all the actual tracing automatically.
+        This just provides timing and logging context.
         
         Args:
             ticket_id: Unique identifier for the ticket
             metadata: Additional metadata to include in the trace
         """
-        if not self.client:
-            # Fallback if not initialized
-            yield None
-            return
-        
         trace_name = f"ticket-crew-execution-{ticket_id}"
         start_time = time.time()
         
-        # Create a trace using the proper Langfuse API
-        # The OpenInference instrumentation handles the actual tracing
-        # We just need to provide a simple context for manual logging
+        # Simple context for logging - OpenInference handles actual tracing
         trace_context = {
             "trace_name": trace_name,
             "ticket_id": ticket_id,
@@ -121,17 +114,18 @@ class LangfuseManager:
             **(metadata or {})
         }
         self.current_trace = trace_context
+        
         try:
             # Track processing start
             self.run_times[ticket_id] = start_time
-            print(f"🔍 Starting Langfuse trace: {trace_name}")
+            print(f"🔍 Starting trace context: {trace_name}")
+            print("📡 OpenInference instrumentation will capture all LLM calls")
             
             yield trace_context
             
             # Track successful completion
             duration = time.time() - start_time
             print(f"✅ Completed trace {trace_name} in {duration:.2f}s")
-            print("📡 OpenInference instrumentation captured all LLM calls automatically")
             
         except Exception as e:
             # Track errors
@@ -139,8 +133,12 @@ class LangfuseManager:
             print(f"❌ Trace {trace_name} failed after {duration:.2f}s: {e}")
             raise
         finally:
-            # Ensure traces are flushed
-            self.flush()
+            # Flush if client is available
+            if self.client:
+                try:
+                    self.client.flush()
+                except Exception:
+                    pass  # Ignore flush errors
     
     def flush(self):
         """Flush any pending traces to Langfuse."""
