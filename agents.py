@@ -647,9 +647,6 @@ class CollaborativeSupportCrew:
                 get_langfuse_manager
             )
             
-            # Clear any previous run information
-            clear_run_information()
-            
             # Initialize consensus timing variables
             consensus_start_time = None
             consensus_end_time = None
@@ -657,8 +654,6 @@ class CollaborativeSupportCrew:
             # Execute with proper Langfuse context and tracing integration plus timing
             with create_trace_context(ticket_id, {"system": "collaborative_crew"}):
                 # OpenInference instrumentation handles callbacks automatically
-                if hasattr(self.crew, 'manager') and hasattr(self.crew.manager, 'callbacks'):
-                    self.crew.manager.callbacks = callback_manager
                 
                 # Create timing tracker for manual timing estimation
                 timing_tracker = AgentTimingTracker()
