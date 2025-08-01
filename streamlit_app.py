@@ -376,11 +376,26 @@ def evaluate_with_deepeval(result, original_message):
         # Log custom faithfulness evaluation
         print(f"🎯 Custom faithfulness score: {faithfulness_score:.3f} for ticket {result.get('ticket_id', 'unknown')}")
         
+        # Extract scores safely from evaluation result
+        hallucination_score = 0.8
+        relevancy_score = 0.8
+        
+        if evaluation_result and len(evaluation_result) > 0:
+            try:
+                result_item = evaluation_result[0]
+                if hasattr(result_item, 'metrics') and result_item.metrics:
+                    if len(result_item.metrics) > 0:
+                        hallucination_score = 1.0 - getattr(result_item.metrics[0], 'score', 0.2)
+                    if len(result_item.metrics) > 1:
+                        relevancy_score = getattr(result_item.metrics[1], 'score', 0.8)
+            except (IndexError, AttributeError) as e:
+                print(f"Warning: Could not extract evaluation metrics: {e}")
+        
         scores = {
-            'hallucination': 1.0 - evaluation_result[0].metrics[0].score if evaluation_result[0].metrics else 0.8,
-            'relevancy': evaluation_result[0].metrics[1].score if len(evaluation_result[0].metrics) > 1 else 0.8,
+            'hallucination': hallucination_score,
+            'relevancy': relevancy_score,
             'faithfulness': faithfulness_score,  # Custom calculated score
-            'overall_accuracy': (faithfulness_score + (evaluation_result[0].metrics[1].score if len(evaluation_result[0].metrics) > 1 else 0.8)) / 2
+            'overall_accuracy': (faithfulness_score + relevancy_score) / 2
         }
         
         return scores

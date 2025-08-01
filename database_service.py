@@ -30,26 +30,31 @@ class DatabaseService:
             # Check if ticket already exists
             existing_ticket = session.query(SupportTicket).filter_by(ticket_id=ticket_id).first()
             
+            # Ensure required fields have default values to prevent null violations
+            original_message = (result.get('original_message') or 
+                              result.get('original_content') or 
+                              'No content available')
+            
             if existing_ticket:
                 # Update existing ticket
-                existing_ticket.original_message = result.get('original_message')
-                existing_ticket.intent = result.get('classification', {}).get('intent')
-                existing_ticket.severity = result.get('classification', {}).get('severity')
-                existing_ticket.classification_confidence = result.get('classification', {}).get('confidence')
-                existing_ticket.summary = result.get('summary')
-                existing_ticket.action_recommendation = result.get('action_recommendation')
+                existing_ticket.original_message = original_message
+                existing_ticket.intent = result.get('classification', {}).get('intent') or 'general_inquiry'
+                existing_ticket.severity = result.get('classification', {}).get('severity') or 'medium'
+                existing_ticket.classification_confidence = result.get('classification', {}).get('confidence') or 0.5
+                existing_ticket.summary = result.get('summary') or 'Summary not available'
+                existing_ticket.action_recommendation = result.get('action_recommendation') or {}
                 existing_ticket.processing_status = result.get('processing_status', 'completed')
                 existing_ticket.processed_at = datetime.utcnow()
             else:
                 # Create new ticket
                 existing_ticket = SupportTicket(
                     ticket_id=ticket_id,
-                    original_message=result.get('original_message'),
-                    intent=result.get('classification', {}).get('intent'),
-                    severity=result.get('classification', {}).get('severity'),
-                    classification_confidence=result.get('classification', {}).get('confidence'),
-                    summary=result.get('summary'),
-                    action_recommendation=result.get('action_recommendation'),
+                    original_message=original_message,
+                    intent=result.get('classification', {}).get('intent') or 'general_inquiry',
+                    severity=result.get('classification', {}).get('severity') or 'medium',
+                    classification_confidence=result.get('classification', {}).get('confidence') or 0.5,
+                    summary=result.get('summary') or 'Summary not available',
+                    action_recommendation=result.get('action_recommendation') or {},
                     processing_status=result.get('processing_status', 'completed'),
                     processed_at=datetime.utcnow(),
                     source='manual'
@@ -75,12 +80,27 @@ class DatabaseService:
         """Save a processing log entry."""
         session = get_db_session()
         try:
+            # Serialize data to ensure JSON compatibility
+            def make_json_safe(obj):
+                """Convert objects to JSON-serializable format."""
+                if obj is None:
+                    return {}
+                if hasattr(obj, '__dict__'):
+                    return str(obj)
+                if hasattr(obj, 'raw'):
+                    return str(obj.raw)
+                return obj
+            
+            safe_input_data = make_json_safe(input_data)
+            safe_output_data = make_json_safe(output_data)
+            safe_metadata = make_json_safe(metadata)
+            
             log = ProcessingLog(
                 ticket_id=ticket_id,
                 agent_name=agent_name,
-                input_data=input_data,
-                output_data=output_data,
-                processing_metadata=metadata,
+                input_data=safe_input_data,
+                output_data=safe_output_data,
+                processing_metadata=safe_metadata,
                 processing_time=processing_time,
                 status=status,
                 error_message=error_message,
