@@ -818,8 +818,8 @@ class CollaborativeSupportCrew:
         """Extract field value from text using keyword matching."""
         text_lower = text.lower()
         for keyword in keywords:
-            for line in text.split('\n'):
-                if keyword in line.lower():
+            for line in text_lower.split('\n'):
+                if keyword in line:
                     # Try to extract value after colon or similar patterns
                     parts = line.split(':')
                     if len(parts) > 1:
