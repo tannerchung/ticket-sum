@@ -37,14 +37,14 @@ class DatabaseService:
             
             if existing_ticket:
                 # Update existing ticket
-                existing_ticket.original_message = original_message
-                existing_ticket.intent = str(result.get('classification', {}).get('intent') or 'general_inquiry')
-                existing_ticket.severity = str(result.get('classification', {}).get('severity') or 'medium')
-                existing_ticket.classification_confidence = float(result.get('classification', {}).get('confidence') or 0.5)
-                existing_ticket.summary = str(result.get('summary') or 'Summary not available')
-                existing_ticket.action_recommendation = result.get('action_recommendation') or {}
-                existing_ticket.processing_status = str(result.get('processing_status', 'completed'))
-                existing_ticket.processed_at = datetime.utcnow()
+                existing_ticket.original_message = original_message  # type: ignore
+                existing_ticket.intent = str(result.get('classification', {}).get('intent') or 'general_inquiry')  # type: ignore
+                existing_ticket.severity = str(result.get('classification', {}).get('severity') or 'medium')  # type: ignore
+                existing_ticket.classification_confidence = float(result.get('classification', {}).get('confidence') or 0.5)  # type: ignore
+                existing_ticket.summary = str(result.get('summary') or 'Summary not available')  # type: ignore
+                existing_ticket.action_recommendation = result.get('action_recommendation') or {}  # type: ignore
+                existing_ticket.processing_status = str(result.get('processing_status', 'completed'))  # type: ignore
+                existing_ticket.processed_at = datetime.utcnow()  # type: ignore
             else:
                 # Create new ticket
                 existing_ticket = SupportTicket(
@@ -152,11 +152,11 @@ class DatabaseService:
         try:
             agent = session.query(AgentStatus).filter_by(agent_name=agent_name).first()
             if agent:
-                agent.status = status
-                agent.is_processing = is_processing
-                agent.current_ticket_id = current_ticket_id
-                agent.last_activity = datetime.utcnow()
-                agent.updated_at = datetime.utcnow()
+                agent.status = status  # type: ignore
+                agent.is_processing = is_processing  # type: ignore
+                agent.current_ticket_id = current_ticket_id  # type: ignore
+                agent.last_activity = datetime.utcnow()  # type: ignore
+                agent.updated_at = datetime.utcnow()  # type: ignore
             else:
                 agent = AgentStatus(
                     agent_name=agent_name,
