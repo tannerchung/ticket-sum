@@ -594,6 +594,11 @@ def process_ticket(crew, ticket_id, ticket_content):
             # Save ticket result
             db_service.save_ticket_result(result)
             
+            # Save collaboration metrics
+            collaboration_metrics = result.get('collaboration_metrics', {})
+            if collaboration_metrics:
+                db_service.save_collaboration_metrics(ticket_id, collaboration_metrics)
+            
             # Save quality evaluation
             db_service.save_quality_evaluation(ticket_id, evaluation_scores)
             
