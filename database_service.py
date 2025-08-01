@@ -80,20 +80,9 @@ class DatabaseService:
         """Save a processing log entry."""
         session = get_db_session()
         try:
-            # Serialize data to ensure JSON compatibility
-            def make_json_safe(obj):
-                """Convert objects to JSON-serializable format."""
-                if obj is None:
-                    return {}
-                if hasattr(obj, '__dict__'):
-                    return str(obj)
-                if hasattr(obj, 'raw'):
-                    return str(obj.raw)
-                return obj
-            
-            safe_input_data = make_json_safe(input_data)
-            safe_output_data = make_json_safe(output_data)
-            safe_metadata = make_json_safe(metadata)
+            safe_input_data = self._make_json_safe(input_data)
+            safe_output_data = self._make_json_safe(output_data)
+            safe_metadata = self._make_json_safe(metadata)
             
             log = ProcessingLog(
                 ticket_id=ticket_id,
@@ -118,6 +107,82 @@ class DatabaseService:
             return False
         finally:
             session.close()
+
+    def save_processing_log_with_agent_stats(self, ticket_id: str, agent_name: str, 
+                                           input_data: Dict, output_data: Dict, 
+                                           metadata: Dict, status: str = 'success',
+                                           processing_time: float = 0.0, 
+                                           error_message: Optional[str] = None,
+                                           trace_id: Optional[str] = None,
+                                           langsmith_run_id: Optional[str] = None) -> bool:
+        """Save processing log AND update agent statistics."""
+        session = get_db_session()
+        try:
+            # Save the log (existing code)
+            safe_input_data = self._make_json_safe(input_data)
+            safe_output_data = self._make_json_safe(output_data)
+            safe_metadata = self._make_json_safe(metadata)
+            
+            log = ProcessingLog(
+                ticket_id=ticket_id,
+                agent_name=agent_name,
+                input_data=safe_input_data,
+                output_data=safe_output_data,
+                processing_metadata=safe_metadata,
+                processing_time=processing_time,
+                status=status,
+                error_message=error_message,
+                trace_id=trace_id,
+                langsmith_run_id=langsmith_run_id
+            )
+            session.add(log)
+            
+            # UPDATE AGENT STATISTICS (this was missing!)
+            agent_status = session.query(AgentStatus).filter_by(agent_name=agent_name).first()
+            if not agent_status:
+                agent_status = AgentStatus(agent_name=agent_name)
+                session.add(agent_status)
+            
+            # Update statistics
+            agent_status.total_processed = (agent_status.total_processed or 0) + 1
+            agent_status.last_activity = datetime.now(timezone.utc)
+            
+            if status == 'success':
+                agent_status.success_count = (agent_status.success_count or 0) + 1
+            else:
+                agent_status.error_count = (agent_status.error_count or 0) + 1
+            
+            # Update average processing time
+            if agent_status.total_processed > 1:
+                current_avg = agent_status.average_processing_time or 0
+                new_avg = ((current_avg * (agent_status.total_processed - 1)) + processing_time) / agent_status.total_processed
+                agent_status.average_processing_time = new_avg
+            else:
+                agent_status.average_processing_time = processing_time
+            
+            session.commit()
+            return True
+            
+        except Exception as e:
+            session.rollback()
+            print(f"Error saving processing log with stats: {e}")
+            return False
+        finally:
+            session.close()
+
+    def _make_json_safe(self, obj):
+        """Convert objects to JSON-serializable format."""
+        if obj is None:
+            return {}
+        if isinstance(obj, dict):
+            return {k: self._make_json_safe(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [self._make_json_safe(item) for item in obj]
+        if hasattr(obj, '__dict__'):
+            return str(obj)
+        if hasattr(obj, 'raw'):
+            return str(obj.raw)
+        return obj
     
     def save_quality_evaluation(self, ticket_id: str, evaluation_scores: Dict[str, float]) -> bool:
         """Save quality evaluation scores."""
@@ -195,6 +260,39 @@ class DatabaseService:
         except Exception as e:
             print(f"Error getting agent statistics: {e}")
             return {}
+        finally:
+            session.close()
+
+    def get_all_agent_statistics(self) -> List[Dict[str, Any]]:
+        """Get performance statistics for all agents."""
+        session = get_db_session()
+        try:
+            agents = session.query(AgentStatus).all()
+            results = []
+            
+            for agent in agents:
+                total_processed = agent.total_processed or 0
+                success_count = agent.success_count or 0
+                error_count = agent.error_count or 0
+                
+                results.append({
+                    'agent_name': agent.agent_name,
+                    'total_processed': total_processed,
+                    'success_count': success_count,
+                    'error_count': error_count,
+                    'success_rate': (success_count / max(total_processed, 1)) * 100,
+                    'average_processing_time': agent.average_processing_time or 0.0,
+                    'last_activity': agent.last_activity.isoformat() if agent.last_activity else None,
+                    'status': agent.status,
+                    'is_processing': agent.is_processing,
+                    'current_ticket_id': agent.current_ticket_id
+                })
+            
+            return sorted(results, key=lambda x: x['total_processed'], reverse=True)
+            
+        except Exception as e:
+            print(f"Error getting all agent statistics: {e}")
+            return []
         finally:
             session.close()
     

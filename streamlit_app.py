@@ -614,7 +614,7 @@ def process_ticket(crew, ticket_id, ticket_content):
             individual_logs = result.get('individual_agent_logs', [])
             if individual_logs:
                 for agent_log in individual_logs:
-                    db_service.save_processing_log(
+                    db_service.save_processing_log_with_agent_stats(
                         ticket_id=ticket_id,
                         agent_name=agent_log['agent_name'],
                         input_data=agent_log['input_data'],
@@ -628,7 +628,7 @@ def process_ticket(crew, ticket_id, ticket_content):
             
             # Also log overall collaborative summary
             processing_time = time.time() - start_time
-            db_service.save_processing_log(
+            db_service.save_processing_log_with_agent_stats(
                 ticket_id=ticket_id,
                 agent_name='collaborative_summary',
                 input_data=collaborative_input,
