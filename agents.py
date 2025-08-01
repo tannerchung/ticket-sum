@@ -485,7 +485,7 @@ class CollaborativeSupportCrew:
             self.crew.tasks = tasks
             
             # Execute collaborative workflow with LangSmith tracing
-            print(f"🔄 Executing collaborative crew workflow...")
+            print("🔄 Executing collaborative crew workflow...")
             
             # Add LangSmith tracing context and capture run IDs
             import os
