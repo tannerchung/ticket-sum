@@ -6,10 +6,10 @@ import os
 import json
 import pandas as pd
 import kagglehub
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from tqdm import tqdm
 
-def load_ticket_data(max_tickets: int = None) -> pd.DataFrame:
+def load_ticket_data(max_tickets: Optional[int] = None) -> pd.DataFrame:
     """
     Load customer support ticket data from Kaggle dataset.
     
@@ -114,7 +114,7 @@ def load_ticket_data(max_tickets: int = None) -> pd.DataFrame:
             df = df.head(max_tickets)
             print(f"📊 Limited dataset to {max_tickets} tickets (was {final_count})")
         
-        return df
+        return df  # type: ignore
         
     except Exception as e:
         print(f"❌ Error loading ticket data: {str(e)}")

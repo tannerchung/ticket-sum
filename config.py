@@ -192,10 +192,6 @@ def setup_langsmith():
         print(f"✅ LangSmith tracing enabled for project: {LANGSMITH_PROJECT}")
         print(f"📡 LangSmith endpoint: {LANGSMITH_ENDPOINT}")
         print(f"🔑 API key configured: {'Yes' if LANGSMITH_API_KEY else 'No'}")
-        
-        # For now, skip connection test to avoid 403 errors
-        # The tracing will work automatically when CrewAI runs
-        print("🔗 LangSmith environment configured - tracing will activate during agent execution")
             
     else:
         print("❌ LangSmith tracing disabled (missing API key or disabled)")

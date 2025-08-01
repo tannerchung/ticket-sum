@@ -527,20 +527,9 @@ def setup_agents():
             st.error("Environment validation failed. Please check your API keys.")
             return None
         
-        # Set up LangSmith tracing with explicit environment configuration
+        # Set up LangSmith tracing
         print("📡 Configuring LangSmith tracing...")
         setup_langsmith()
-        
-        # Ensure LangSmith environment is properly set for the current session
-        import os
-        if os.environ.get("LANGSMITH_API_KEY"):
-            os.environ["LANGCHAIN_TRACING_V2"] = "true"
-            os.environ["LANGCHAIN_PROJECT"] = os.environ.get("LANGCHAIN_PROJECT", "default")
-            print(f"🔗 LangSmith tracing enabled for project: {os.environ.get('LANGCHAIN_PROJECT')}")
-            st.success(f"LangSmith tracing enabled for project: {os.environ.get('LANGCHAIN_PROJECT')}")
-        else:
-            print("⚠️ LangSmith API key not found - tracing will be disabled")
-            st.warning("LangSmith API key not found - tracing will be disabled")
         
         setup_kaggle()
         
