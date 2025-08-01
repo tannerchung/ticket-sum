@@ -1,10 +1,10 @@
 # Claude Code Integration Guide
 
-This document provides guidance for Claude Code when working with the Support Ticket Summarizer v2.0 project.
+This document provides Claude Code specific guidance, development workflows, and technical context for working with the Support Ticket Summarizer v2.0 project.
 
-## Project Overview
+## Development Context
 
-The Support Ticket Summarizer is a sophisticated multi-agent AI system that processes customer support tickets using collaborative intelligence. The system features four specialized agents working together to classify, analyze, and recommend actions for support tickets.
+This is a sophisticated multi-agent AI system with enhanced timing infrastructure and Python 3.10 compatibility. Focus on maintaining the collaborative intelligence architecture while ensuring proper timing data collection and performance analytics.
 
 ## Key Components
 
@@ -30,23 +30,23 @@ The Support Ticket Summarizer is a sophisticated multi-agent AI system that proc
 - **Environment Management**: Secure handling of API keys and database URLs
 - **LangSmith Configuration**: Tracing and observability setup
 
-## Recent Improvements (August 1, 2025)
+## Recent Critical Fixes (Latest)
 
-### Quality Assessment Fixes
-- **Real DeepEval Scores**: Fixed hardcoded evaluation metrics to display actual DeepEval results
-- **Score Extraction**: Proper handling of Hallucination (0.0-1.0) and Relevancy (0.0-1.0) scores
-- **Debug Logging**: Added comprehensive logging for score extraction debugging
+### Enhanced Timing System (Current Priority)
+- **AgentTimingTracker**: Thread-safe timing infrastructure replacing hardcoded 0.0 processing times
+- **Multi-Priority Timing**: 4-level fallback system (tracker → callbacks → summed → timestamps)
+- **Real Database Integration**: Processing times > 0.0 now flow to database correctly
+- **Performance Analytics**: Accurate agent timing for monitoring dashboards
 
-### Data Extraction Enhancements
-- **Severity Parsing**: Improved regex patterns to handle formats like "High (adjusted from Medium)"
-- **Action Plan Extraction**: Full descriptive text capture instead of generic action codes
-- **Priority Recognition**: Better extraction of priority levels from collaborative discussions
-- **Regex Optimization**: More precise patterns with proper boundary handling
+### Python 3.10 Compatibility 
+- **CrewAI Union Syntax**: Fixed Python 3.9 incompatibility with CrewAI 0.152.0
+- **Cohere Integration**: Downgraded to compatible version (5.12.0) for langchain-cohere
+- **Virtual Environment**: `venv310/` with all working dependencies locked
 
-### LangSmith Connection Management
-- **Resource Cleanup**: Added proper client connection cleanup to prevent memory leaks
-- **Error Handling**: Robust error management for LangSmith API interactions
-- **Connection Pooling**: Efficient management of client connections
+### Quality Assessment & Data Extraction
+- **Real DeepEval Scores**: Fixed hardcoded evaluation metrics to display actual results
+- **Enhanced Regex Patterns**: Better parsing of collaborative agent outputs
+- **LangSmith Cleanup**: Proper connection management preventing memory leaks
 
 ## Testing and Quality Assurance
 
@@ -148,19 +148,19 @@ KAGGLE_USERNAME=...
 KAGGLE_KEY=...
 ```
 
-### Installation Commands
+### Python 3.10 Environment Setup
 ```bash
-# Install dependencies
-uv add crewai langsmith langchain-openai pandas python-dotenv tqdm kagglehub streamlit plotly psycopg2-binary sqlalchemy deepeval
+# Use Python 3.10 environment (REQUIRED)
+source venv310/bin/activate
 
-# Or using pip
-pip install -r requirements.txt
+# Install from locked requirements
+pip install -r requirements-py310.txt
 
-# Run web interface
+# Run with Python 3.10
 streamlit run streamlit_app.py --server.port 5000
 
-# Run batch processing
-python main.py
+# Test timing integration
+python test_timing_simple.py
 ```
 
 ## Debugging Tips

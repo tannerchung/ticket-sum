@@ -13,6 +13,9 @@ The project has been successfully upgraded to **Python 3.10** to resolve compati
 - **Python**: 3.10.18 (installed via Homebrew)
 - **CrewAI**: 0.152.0 (latest version with full compatibility)
 - **LangSmith**: 0.4.9
+- **Cohere**: 5.12.0 (compatible with langchain-cohere)
+- **LangChain-Cohere**: 0.4.4 (working)
+- **LangChain-Anthropic**: 0.3.18 (working)
 - **Virtual Environment**: `venv310/`
 
 ## How to Use Python 3.10 Environment
@@ -49,6 +52,16 @@ python -c "from crewai import Agent; print('✅ CrewAI works!')"
 - Callback handler timing accumulation working
 - Multi-priority timing fallback logic working  
 - Database flow receiving non-zero processing times
+
+## Fixed Issues
+
+### ✅ Cohere Integration Issue Resolved
+**Issue**: `ChatResponse` import error from newer Cohere SDK (5.16.1)  
+**Solution**: Downgraded to Cohere 5.12.0 which is compatible with langchain-cohere 0.4.4
+
+### ✅ CrewAI Python Compatibility Resolved  
+**Issue**: Union syntax (`Type | None`) incompatible with Python 3.9  
+**Solution**: Upgraded to Python 3.10.18
 
 ## Migration Notes
 

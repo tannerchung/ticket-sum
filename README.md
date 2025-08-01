@@ -74,21 +74,11 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 - **Custom Evaluation Pipeline**: Authentic faithfulness scoring with fallback mechanisms
 - **Real-Time Dashboard**: Live agent status monitoring with processing indicators
 
-#### Enterprise-Grade Code Quality & Reliability (August 1, 2025)
-- **Zero LSP Diagnostic Errors**: Achieved complete code quality excellence across entire codebase
-- **Modern Python Standards**: Updated to timezone-aware datetime handling, replacing deprecated utcnow() calls
-- **Complete Type Safety**: Proper SecretStr handling for all AI providers with conditional null validation
-- **Clean Code Standards**: Removed all unused imports, optimized f-strings, production-ready code quality
-- **Streamlined User Experience**: Eliminated redundant console output for professional application startup
-- **Comprehensive Tracing**: Complete LangSmith observability for all system operations
-
-#### Quality Assessment & Data Extraction Improvements (August 1, 2025)
-- **Real DeepEval Integration**: Fixed hardcoded evaluation scores to display actual DeepEval metrics (Hallucination: 0.0-1.0, Relevancy: 0.0-1.0)
-- **Enhanced Data Extraction**: Improved collaborative processing with better regex patterns for severity, priority, and action extraction
-- **Severity Format Handling**: Proper parsing of formats like "High (adjusted from Medium)" from collaborative agent outputs
-- **LangSmith Connection Management**: Added proper client cleanup to prevent connection leaks and resource management
-- **Action Plan Enhancement**: Full descriptive text extraction for primary actions instead of generic codes
-- **Priority Level Recognition**: Accurate extraction of priority levels from multi-agent collaborative discussions
+#### Latest Enhancements (2025)
+- **Enhanced Performance Analytics**: Real processing time tracking for accurate agent performance monitoring
+- **Improved Accuracy**: Better extraction of severity levels, priorities, and action recommendations
+- **Quality Assessment**: Real-time evaluation metrics with authentic DeepEval integration
+- **Multi-Model Support**: Seamless switching between OpenAI, Anthropic, and Cohere models
 
 ### v1.5 - Enhanced Processing & Monitoring
 **Foundation Building: Observability and Quality Assessment**
@@ -153,7 +143,7 @@ This journey represents the evolution from basic multi-agent processing to sophi
 ## Quick Start
 
 ### Prerequisites
-- Python 3.11+
+- Python 3.10+ (3.10.18 recommended)
 - PostgreSQL database
 - OpenAI API key
 - LangSmith API key (optional, for tracing)
@@ -171,11 +161,18 @@ KAGGLE_KEY=your_kaggle_key           # Optional
 
 ### Installation
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/ticket-sum.git
+cd ticket-sum
+
+# Activate Python 3.10 environment
+source venv310/bin/activate
+
 # Install dependencies
-uv add crewai langsmith langchain-openai pandas python-dotenv tqdm kagglehub streamlit plotly psycopg2-binary sqlalchemy deepeval
+pip install -r requirements-py310.txt
 
 # Run the Streamlit interface
-streamlit run streamlit_app.py --server.port 5000 --server.address 0.0.0.0
+streamlit run streamlit_app.py --server.port 5000
 
 # Or run batch processing
 python main.py

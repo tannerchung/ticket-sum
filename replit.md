@@ -1,95 +1,74 @@
-# Support Ticket Summarizer
+# Support Ticket Summarizer - Replit Deployment
 
-## Overview
-This Python application provides a multi-agent GenAI system built with CrewAI to automate customer support ticket processing. It aims to classify, summarize, and recommend actions for support tickets, leveraging advanced AI models. The project downloads ticket data from Kaggle, processes it through a specialized agent pipeline, and delivers structured outputs with robust logging and tracing. Its vision is to automate and enhance customer support operations, offering significant market potential for efficiency and improved service quality.
+## Replit-Specific Setup
+This document covers deployment and configuration specific to the Replit platform.
 
-## User Preferences
-Preferred communication style: Simple, everyday language.
+## Environment Configuration
+Replit automatically handles Python dependencies and provides integrated secrets management.
 
-## System Architecture
+## Replit Configuration
 
-### Multi-Agent Architecture
-The system orchestrates three specialized agents using CrewAI: a ClassifierAgent for intent and severity, a SummarizerAgent for concise content summaries, and an ActionRecommenderAgent for next-step suggestions. Each agent has specific roles, goals, and backstories.
+### Required Secrets
+Set up the following secrets in Replit's Secrets tab:
+- `OPENAI_API_KEY`: Your OpenAI API key
+- `DATABASE_URL`: PostgreSQL connection string (use Replit DB or external)
+- `LANGSMITH_API_KEY`: LangSmith tracing key (optional)
+- `KAGGLE_USERNAME`: Kaggle username (optional)
+- `KAGGLE_KEY`: Kaggle API key (optional)
 
-### LLM Integration
-The system integrates various large language models, allowing for multi-provider support (OpenAI, Cohere, Anthropic). Agents can be assigned different models, and dynamic model swapping is supported without system restart. A performance testing framework compares models, and agent-specific recommendations are provided.
+### Python Version
+Ensure Replit is configured for Python 3.10+ for compatibility with CrewAI.
 
-### Data Processing Pipeline
-Customer support ticket datasets are downloaded from Kaggle. The system processes CSV files with automatic column mapping, executes sequential agent processing, and outputs structured results in JSON format.
+## Replit Deployment Steps
 
-### Observability and Monitoring
-Integration with LangSmith provides comprehensive tracing and logging of LLM calls. Progress bars and terminal output offer real-time monitoring, and processing results are saved to JSON files. Individual agent logging is implemented to track contributions.
+### 1. Fork/Import Repository
+Import the repository into Replit or fork from GitHub.
 
-### Configuration and Error Handling
-Environment-based configuration (`.env` files) and centralized `config.py` manage prompts, API keys, and model settings. The system includes environment validation, robust data loading, and progress tracking.
+### 2. Configure Python Version
+Ensure Replit uses Python 3.10+ in the `.replit` configuration.
 
-### Streamlit Web Interface
-An interactive web application provides real-time agent status monitoring, sample ticket previews, and LangSmith-style activity logging. It includes DeepEval integration for quality assessment (hallucination, relevancy, faithfulness, accuracy), batch processing capabilities, and visual analytics dashboards using Plotly.
+### 3. Install Dependencies
+Replit will automatically install from `requirements-py310.txt`.
 
-### Database Integration
-A PostgreSQL database persistently stores tickets, processing logs, and quality evaluations. It includes data models for support tickets, agent processing logs, quality assessments, and agent status. The database service layer provides analytics, performance metrics, and historical data insights, including real-time agent performance monitoring and historical ticket analysis. Authentic collaboration metrics (disagreement, conflict resolution, consensus building) are also tracked and stored.
+### 4. Set Environment Secrets
+Add all required API keys in Replit's Secrets tab.
 
-### Custom Faithfulness Evaluation
-A custom faithfulness evaluation system, powered by GPT-4o, directly compares agent outputs to original ticket content. It assesses classification accuracy, summary factualness, and action recommendation appropriateness, with real-time logging of scores and reasoning.
+### 5. Database Setup
+- Use Replit's PostgreSQL addon, or
+- Connect to external PostgreSQL database
+- Set `DATABASE_URL` in secrets
 
-## External Dependencies
+### 6. Run Application
+```bash
+streamlit run streamlit_app.py --server.port 5000
+```
 
-### AI/ML Services
-- **OpenAI API**: GPT models (GPT-4o, GPT-4o-mini, GPT-3.5-turbo)
-- **Cohere API**: Command models (Command R, Command R+, Command)
-- **Anthropic API**: Claude models (Claude 3.5 Sonnet, Claude 3.5 Haiku, Claude 3 Opus)
-- **LangSmith**: Observability and tracing for LLM applications.
+## Replit-Specific Considerations
 
-### Data Sources
-- **Kaggle API**: For downloading customer support ticket datasets.
-- **kagglehub**: Python library for programmatic Kaggle dataset access.
+### Performance Optimization
+- Replit has resource limits; monitor memory usage during large batch processing
+- Consider using smaller AI models for cost efficiency in Replit environment
 
-### Core Libraries
-- **CrewAI**: Multi-agent orchestration framework.
-- **LangChain**: LLM application framework.
-- **pandas**: Data manipulation and CSV processing.
-- **python-dotenv**: Environment variable management.
-- **tqdm**: Progress bar functionality.
+### Port Configuration
+Default Streamlit port (5000) works well with Replit's port forwarding.
 
-### Development Tools
-- Environment variables for API key management.
-- JSON output for structured data storage.
-- CSV file processing for ticket data ingestion.
+### File Storage
+Use Replit's persistent storage for output files and cached data.
 
-## Recent Technical Fixes (August 1, 2025)
+### Monitoring
+- Console output is available in Replit's terminal
+- LangSmith integration provides external monitoring
+- Database analytics available through the web interface
 
-### LangSmith API Warning Resolution
-Fixed LangSmith API 400 error warning that occurred during run ID extraction. The issue was caused by improper API query parameters. Implemented custom callback handler system to capture run IDs during LLM execution instead of querying the API afterward. This eliminates API warnings while maintaining proper traceability between database logs and LangSmith traces.
+## Troubleshooting
 
-### LangSmith Trace Completion Fix  
-Resolved issue where LangSmith traces remained in "running" state on dashboard after job completion. Added proper trace completion callbacks (on_llm_end, on_chain_end, on_llm_error, on_chain_error) and feedback submission. Now traces complete properly and feedback tab contains metadata about ticket processing, agent involvement, and completion status.
+### Common Replit Issues
+1. **Dependency Installation**: If packages fail to install, check Python version compatibility
+2. **Port Binding**: Ensure Streamlit runs on correct port for Replit forwarding
+3. **Environment Variables**: Verify secrets are properly set in Replit's interface
+4. **Memory Limits**: Replit has resource constraints for intensive AI processing
 
-### Individual Agent Logging Implementation  
-Enhanced processing logs to capture individual agent activities instead of aggregate "collaborative_crew" entries. Each agent (triage_specialist, ticket_analyst, support_strategist, qa_reviewer) now logs separately with specific input/output data, processing times, and metadata.
-
-### Kaggle Dataset Loading Fix
-Resolved duplicate column name errors when loading Kaggle datasets by implementing proper column mapping validation and duplicate prevention logic. The system now correctly handles multiple time/date columns without conflicts.
-
-### API Key Parameter Fixes
-Fixed LSP errors in agents.py related to API key parameter naming. Updated all LLM initializations to use correct parameter names (openai_api_key, anthropic_api_key, cohere_api_key) instead of generic "api_key" parameter. This resolves type checking errors and ensures proper integration with all AI providers.
-
-### Enterprise-Grade Code Quality Achievement (August 1, 2025)
-Achieved complete code quality excellence with zero LSP diagnostic errors across the entire codebase. Key improvements include:
-
-- **SecretStr API Key Handling**: Fixed all AI provider integrations (OpenAI, Cohere, Anthropic) to properly handle SecretStr types with conditional null handling and proper type conversion.
-- **Modern DateTime Implementation**: Replaced all deprecated `datetime.utcnow()` calls with timezone-aware `datetime.now(timezone.utc)` following current Python best practices.
-- **Complete Type Safety**: Implemented proper Optional[int] type annotations and resolved all SQLAlchemy ORM type conflicts with appropriate type ignore comments.
-- **Clean Import Management**: Removed all unused imports and f-strings without placeholders, achieving production-ready code standards.
-- **Streamlined Console Output**: Eliminated redundant startup messages for a clean, professional application initialization experience.
-
-### Console Output Optimization
-Cleaned up application startup process by removing duplicate LangSmith tracing messages and redundant confirmation outputs. The system now provides clear, non-repetitive console logs during initialization while maintaining full functionality and observability.
-
-### Quality Assessment & Data Extraction Improvements (August 1, 2025)
-- **Real DeepEval Integration**: Fixed hardcoded evaluation scores in Streamlit dashboard to display actual DeepEval metrics. The system now shows real Hallucination (0.0-1.0) and Relevancy (0.0-1.0) scores instead of static fallback values.
-- **Enhanced Data Extraction**: Improved regex patterns in collaborative processing for better extraction of severity, priority, and action recommendations from multi-agent outputs.
-- **Severity Format Handling**: Added support for complex severity formats like "High (adjusted from Medium)" that result from collaborative agent discussions and consensus building.
-- **LangSmith Connection Management**: Implemented proper client cleanup with finally blocks to prevent connection leaks and ensure efficient resource management.
-- **Action Plan Enhancement**: Enhanced primary action extraction to capture full descriptive text instead of generic action codes, providing more meaningful recommendations.
-- **Priority Level Recognition**: Improved extraction of priority levels from collaborative discussions, properly handling patterns like "High priority" from agent outputs.
-- **Debug Logging**: Added comprehensive debug logging for evaluation score extraction to facilitate troubleshooting and verification of real metric values.
+### Version Compatibility
+- **Python**: 3.10+ required for CrewAI compatibility
+- **Cohere**: Version 5.12.0 for langchain-cohere compatibility
+- **Database**: PostgreSQL required (SQLite not recommended for production)
