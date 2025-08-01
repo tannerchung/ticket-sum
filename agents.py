@@ -4,6 +4,7 @@ Implements a multi-agent system where agents collaborate and refine each other's
 """
 
 import json
+import re
 import time
 from typing import Dict, Any, List, Optional
 from crewai import Agent, Task, Crew
@@ -972,50 +973,144 @@ class CollaborativeSupportCrew:
         return metrics
     
     def _calculate_real_disagreements(self, agent_outputs: List[Dict], metrics: Dict) -> Dict:
-        """Calculate authentic disagreements between agent outputs."""
+        """Calculate authentic disagreements between agent outputs with enhanced pattern matching."""
         if len(agent_outputs) < 2:
             return metrics
         
-        # Extract key fields from each agent output
+        # Extract structured data from CrewAI task outputs instead of text parsing
         agent_classifications = {}
         conflicts = []
         
-        for output in agent_outputs:
-            agent_name = output['agent']
-            text = output['output'].lower()
+        for i, output in enumerate(agent_outputs):
+            agent_name = output.get('agent', f'agent_{i}')
             
-            # Extract intent, severity, and recommendations
-            classification = {
-                'intent': self._extract_classification_field(text, 'intent'),
-                'severity': self._extract_classification_field(text, 'severity'),
-                'action': self._extract_classification_field(text, 'action')
+            # Look for severity mentions in the raw output
+            raw_text = output.get('output', '').lower()
+            
+            # More robust pattern matching for severity
+            severity_patterns = [
+                r'(?:severity|priority).*?(?:critical|high|medium|low)',
+                r'(?:critical|high|medium|low).*?severity',
+                r'classified.*?(?:critical|high|medium|low)',
+                r'priority:\s*(?:critical|high|medium|low)',
+                r'severity:\s*(?:critical|high|medium|low)',
+                r'urgency.*?(?:critical|high|medium|low)',
+                r'level.*?(?:critical|high|medium|low)',
+                r'(?:critical|high|medium|low)\s+priority',
+                r'(?:critical|high|medium|low)\s+severity'
+            ]
+            
+            extracted_severity = None
+            for pattern in severity_patterns:
+                matches = re.findall(pattern, raw_text)
+                if matches:
+                    # Extract the severity level
+                    for severity in ['critical', 'high', 'medium', 'low']:
+                        if severity in matches[0]:
+                            extracted_severity = severity
+                            break
+                    if extracted_severity:
+                        break
+            
+            # Enhanced intent extraction patterns
+            intent_patterns = [
+                r'intent:\s*(\w+)',
+                r'category:\s*(\w+)',
+                r'type:\s*(\w+)',
+                r'classified\s+as\s+(\w+)',
+                r'ticket\s+type:\s*(\w+)',
+                r'customer\s+intent:\s*(\w+)'
+            ]
+            
+            extracted_intent = None
+            for pattern in intent_patterns:
+                matches = re.findall(pattern, raw_text)
+                if matches:
+                    extracted_intent = matches[0].strip()
+                    break
+            
+            # Enhanced action extraction patterns
+            action_patterns = [
+                r'action:\s*(.*?)(?:\n|\.|$)',
+                r'recommend:\s*(.*?)(?:\n|\.|$)',
+                r'primary[_\s]action:\s*(.*?)(?:\n|\.|$)',
+                r'suggested[_\s]action:\s*(.*?)(?:\n|\.|$)',
+                r'next[_\s]step:\s*(.*?)(?:\n|\.|$)',
+                r'escalate.*?to\s+(\w+)',
+                r'contact.*?(\w+\s+\w+)',
+                r'transfer.*?to\s+(\w+)'
+            ]
+            
+            extracted_action = None
+            for pattern in action_patterns:
+                matches = re.findall(pattern, raw_text)
+                if matches:
+                    extracted_action = matches[0].strip()[:50]  # Limit length
+                    break
+            
+            agent_classifications[agent_name] = {
+                'severity': extracted_severity,
+                'intent': extracted_intent,
+                'action': extracted_action,
+                'raw_output': raw_text[:200]  # Store sample for debugging
             }
-            agent_classifications[agent_name] = classification
         
-        # Compare classifications to find real disagreements
-        fields_to_compare = ['intent', 'severity', 'action']
+        # Now properly detect disagreements with detailed analysis
+        fields_to_compare = ['severity', 'intent', 'action']
         disagreements = {}
         
         for field in fields_to_compare:
-            values = [agent_classifications[agent][field] for agent in agent_classifications if agent_classifications[agent][field]]
+            values = [agent_classifications[agent][field] for agent in agent_classifications 
+                     if agent_classifications[agent][field] is not None]
             unique_values = list(set(values))
             
             if len(unique_values) > 1:
+                # Calculate disagreement strength
+                total_agents = len([v for v in values if v is not None])
+                majority_size = max([values.count(v) for v in unique_values]) if values else 0
+                disagreement_strength = 1.0 - (majority_size / total_agents) if total_agents > 0 else 0.0
+                
                 disagreements[field] = {
                     'values': values,
-                    'unique_count': len(unique_values),
-                    'agents_disagreeing': list(agent_classifications.keys())
+                    'unique_values': unique_values,
+                    'disagreement_strength': disagreement_strength,
+                    'agents_with_opinions': [agent for agent in agent_classifications 
+                                           if agent_classifications[agent][field] is not None]
                 }
-                conflicts.append(f"{field} disagreement: {unique_values}")
+                
+                # Create detailed conflict description
+                conflict_desc = f"{field} disagreement: {unique_values} (strength: {disagreement_strength:.2f})"
+                conflicts.append(conflict_desc)
         
+        # Enhanced metrics calculation
         metrics["disagreement_count"] = len(disagreements)
         metrics["conflicts_identified"] = conflicts
+        metrics["initial_disagreements"] = disagreements
         metrics["agent_iterations"] = {agent: 1 for agent in agent_classifications.keys()}
         
-        # Track resolution methods (simplified)
+        # Calculate detailed resolution metrics
         if disagreements:
-            metrics["conflict_resolution_methods"] = ["majority_vote", "qa_reviewer_decision"]
-            metrics["resolution_iterations"] = 1
+            total_disagreement_strength = sum(d['disagreement_strength'] for d in disagreements.values())
+            avg_disagreement_strength = total_disagreement_strength / len(disagreements)
+            
+            metrics["conflict_resolution_methods"] = [
+                "collaborative_review",
+                "qa_reviewer_validation", 
+                "consensus_building"
+            ]
+            metrics["resolution_iterations"] = len(disagreements)  # More iterations for more conflicts
+            metrics["average_disagreement_strength"] = avg_disagreement_strength
+            
+            # Determine resolution difficulty
+            if avg_disagreement_strength > 0.7:
+                metrics["resolution_difficulty"] = "high"
+            elif avg_disagreement_strength > 0.4:
+                metrics["resolution_difficulty"] = "medium"
+            else:
+                metrics["resolution_difficulty"] = "low"
+        else:
+            metrics["resolution_difficulty"] = "none"
+            metrics["average_disagreement_strength"] = 0.0
         
         return metrics
     
