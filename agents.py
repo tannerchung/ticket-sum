@@ -471,9 +471,11 @@ class CollaborativeSupportCrew:
             import os
             if os.environ.get("LANGCHAIN_TRACING_V2") == "true":
                 # Ensure CrewAI uses LangSmith tracing
+                print(f"🔗 LangSmith tracing active for project: {os.environ.get('LANGCHAIN_PROJECT', 'default')}")
                 result = self.crew.kickoff()
-                print(f"📡 Crew execution traced to LangSmith project: {os.environ.get('LANGCHAIN_PROJECT', 'ticket-sum')}")
+                print(f"📡 Crew execution traced to LangSmith project: {os.environ.get('LANGCHAIN_PROJECT', 'default')}")
             else:
+                print("⚠️ LangSmith tracing not enabled")
                 result = self.crew.kickoff()
             
             # Parse and structure the collaborative result
