@@ -1155,7 +1155,7 @@ class CollaborativeSupportCrew:
         # First, try to extract any partial JSON elements from the response
         if '"intent"' in response_text or '"severity"' in response_text:
             # Handle cases like '\n    "intent"' by providing safe defaults
-            print(f"⚠️  Detected partial JSON response, using safe defaults")
+            print("⚠️  Detected partial JSON response, using safe defaults")
             return {
                 "intent": "general_inquiry",
                 "severity": "medium", 
