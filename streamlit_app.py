@@ -35,6 +35,38 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+def add_health_check():
+    """Add a simple health check endpoint for deployment."""
+    # Check if this is a health check request
+    try:
+        # Get query parameters (using new API)
+        query_params = st.query_params
+        if 'health' in query_params or st.sidebar.button("Health Check", key="health_btn", help="Check app health"):
+            st.success("✅ Application is healthy and running!")
+            st.json({
+                "status": "healthy",
+                "service": "support-ticket-summarizer",
+                "timestamp": datetime.now().isoformat(),
+                "message": "Streamlit app is running successfully"
+            })
+            return True
+    except Exception as e:
+        # Fallback for older Streamlit versions
+        try:
+            query_params = st.experimental_get_query_params()
+            if 'health' in query_params:
+                st.success("✅ Application is healthy and running!")
+                st.json({
+                    "status": "healthy",
+                    "service": "support-ticket-summarizer", 
+                    "timestamp": datetime.now().isoformat(),
+                    "message": "Streamlit app is running successfully"
+                })
+                return True
+        except:
+            pass
+    return False
+
 def initialize_session_state():
     """Initialize session state variables."""
     if 'agents' not in st.session_state:
@@ -629,6 +661,10 @@ def display_result(result):
 
 def main():
     """Main Streamlit application."""
+    # Check for health endpoint first (for deployment)
+    if add_health_check():
+        return
+    
     initialize_session_state()
     
     # Header
