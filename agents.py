@@ -483,12 +483,15 @@ class CollaborativeSupportCrew:
             description=f"""
             Based on the initial classification, perform detailed analysis of ticket {ticket_id}:
             
+            Original Ticket Content: {ticket_content}
+            
             1. Create a comprehensive summary of the customer's issue
             2. Identify any technical details, customer sentiment, or underlying problems
             3. Review the triage classification and provide feedback if you disagree
             4. Highlight any aspects that might affect severity or intent classification
             
             Consider the triage specialist's work and build upon it or suggest refinements.
+            You have full access to the original ticket content above.
             """,
             agent=self.ticket_analyst,
             expected_output="Detailed summary and analysis with feedback on classification if needed"
@@ -499,6 +502,8 @@ class CollaborativeSupportCrew:
             description=f"""
             Develop a comprehensive action plan for ticket {ticket_id} based on the classification and analysis:
             
+            Original Ticket Content: {ticket_content}
+            
             1. Recommend primary and secondary actions
             2. Set priority level and estimated resolution time
             3. Ensure consistency between severity and recommended actions
@@ -506,6 +511,7 @@ class CollaborativeSupportCrew:
             5. Provide strategic notes for the support team
             
             If you see conflicts between classification and analysis, raise them for discussion.
+            You have full access to the original ticket content above.
             """,
             agent=self.support_strategist,
             expected_output="Strategic action plan with primary/secondary actions, priority, timeline, and consistency checks"
@@ -516,6 +522,8 @@ class CollaborativeSupportCrew:
             description=f"""
             Perform final quality review and ensure consensus for ticket {ticket_id}:
             
+            Original Ticket Content: {ticket_content}
+            
             1. Review all previous agent outputs for consistency
             2. Identify any conflicts between classification, analysis, and action plan
             3. Facilitate resolution of any disagreements
@@ -523,6 +531,7 @@ class CollaborativeSupportCrew:
             5. Calculate agreement scores between agents
             
             Your goal is to ensure the final output is coherent, consistent, and actionable.
+            You have full access to the original ticket content above.
             """,
             agent=self.qa_reviewer,
             expected_output="Final consensus report with validated classification, summary, action plan, and agreement metrics"
