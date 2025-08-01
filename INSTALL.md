@@ -1,41 +1,45 @@
-# Installation Guide
+# Installation Guide - Support Ticket Summarizer v2.0
 
-This guide covers different ways to install and run the Support Ticket Summarizer.
+This guide covers different ways to install and run the **collaborative multi-agent Support Ticket Summarizer** with advanced AI integration and real-time monitoring capabilities.
 
 ## Quick Start (Recommended)
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/support-ticket-summarizer.git
+git clone https://github.com/tannerchung/support-ticket-summarizer.git
 cd support-ticket-summarizer
 ```
 
 ### 2. Set Up Environment
 ```bash
-# Create virtual environment
+# Create virtual environment (Python 3.11+ required)
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
-pip install -r pyproject.toml  # or use the dependencies listed in README.md
+# Install dependencies using uv (recommended) or pip
+uv add crewai langsmith langchain-openai langchain-anthropic langchain-cohere pandas python-dotenv tqdm kagglehub streamlit plotly psycopg2-binary sqlalchemy deepeval
+
+# Alternative: using pip
+pip install crewai langsmith langchain-openai langchain-anthropic langchain-cohere pandas python-dotenv tqdm kagglehub streamlit plotly psycopg2-binary sqlalchemy deepeval
 ```
 
 ### 3. Configure Environment Variables
 Create a `.env` file in the project root:
 ```bash
-# AI Provider API Keys
+# AI Provider API Keys (OpenAI required, others optional)
 OPENAI_API_KEY=your_openai_api_key
-ANTHROPIC_API_KEY=your_anthropic_api_key
-COHERE_API_KEY=your_cohere_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key  # Optional for Claude models
+COHERE_API_KEY=your_cohere_api_key        # Optional for Cohere models
 
-# Monitoring
+# LangSmith Tracing (recommended for monitoring)
 LANGSMITH_API_KEY=your_langsmith_api_key
-LANGSMITH_PROJECT=ticket-sum
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_PROJECT=default
 
-# Database
+# Database (PostgreSQL required)
 DATABASE_URL=postgresql://user:password@localhost:5432/ticket_db
 
-# Data Sources
+# Data Sources (optional for Kaggle datasets)
 KAGGLE_USERNAME=your_kaggle_username  
 KAGGLE_KEY=your_kaggle_api_key
 ```
@@ -50,11 +54,14 @@ createdb ticket_db
 
 ### 5. Run the Application
 ```bash
-# Web Interface
-streamlit run streamlit_app.py --server.port 8501
+# Web Interface (recommended for full experience)
+streamlit run streamlit_app.py --server.port 5000 --server.address 0.0.0.0
 
-# Command Line
+# Command Line Processing
 python main.py
+
+# Demo with Kaggle dataset
+python demo_kaggle.py
 ```
 
 ## Alternative Installation Methods

@@ -71,6 +71,11 @@ The system uses CrewAI to orchestrate three specialized agents that work in sequ
 
 ## Recent Changes (August 1, 2025)
 
+### Documentation Updates (Latest)
+- **README.md v2.0 Update**: Comprehensive revision reflecting major version changes including collaborative multi-agent architecture, authentic metrics, custom faithfulness evaluation, and multi-provider AI support
+- **INSTALL.md Corrections**: Fixed repository name from placeholder to actual GitHub repository (tannerchung/support-ticket-summarizer) and updated installation instructions for v2.0 features
+- **Version Documentation**: Updated both files to reflect the sophisticated v2.0 capabilities including LangSmith integration, real-time collaboration tracking, and enhanced observability features
+
 ### Custom Faithfulness Evaluation Implementation (Latest)
 - **Authentic Faithfulness Scoring**: Implemented custom faithfulness evaluation that directly compares agent outputs to original ticket content
 - **GPT-4o Based Analysis**: Uses OpenAI's GPT-4o to evaluate how well agents stick to facts in the original message

@@ -1,45 +1,64 @@
-# Support Ticket Summarizer
+# Support Ticket Summarizer v2.0
 
-A sophisticated Python-powered multi-agent AI system for intelligent customer support ticket processing, featuring enhanced automation, resilient service integration, and user-centric design.
+A sophisticated Python-powered multi-agent AI system for intelligent customer support ticket processing, leveraging advanced collaborative intelligence and real-time analytics.
 
 ## Overview
 
-This application implements a multi-agent GenAI system for customer support automation using CrewAI. The system processes customer support tickets through four specialized AI agents that work in sequence to classify, summarize, and recommend actions for each ticket.
+This application implements a **collaborative multi-agent GenAI system** for customer support automation using CrewAI. The system features four specialized AI agents (Triage Specialist, Ticket Analyst, Support Strategist, QA Reviewer) that work collaboratively with **authentic consensus building**, **custom faithfulness evaluation**, and **comprehensive monitoring** through LangSmith tracing integration.
 
-## Key Features
+## Key Features ✨
 
-### Multi-Agent Architecture
-- **Triage Specialist**: Analyzes tickets to determine intent and severity levels
-- **Ticket Analyst**: Generates detailed summaries of ticket content and key problems
-- **Support Strategist**: Recommends next steps like escalation or template responses
-- **QA Reviewer**: Reviews and validates the work of other agents
+### 🤖 Advanced Multi-Agent Architecture
+- **Triage Specialist**: Fast, accurate ticket classification with intent and severity analysis
+- **Ticket Analyst**: Deep content analysis and comprehensive summarization
+- **Support Strategist**: Strategic response planning and escalation decisions
+- **QA Reviewer**: Quality validation and consensus building across all agents
 
-### Multi-Provider AI Support
-- **OpenAI Models**: GPT-4o, GPT-4o-mini, GPT-3.5-turbo
-- **Anthropic Models**: Claude 3.5 Sonnet, Claude 3.5 Haiku, Claude 3 Opus
-- **Cohere Models**: Command R, Command R+, Command (with compatibility fallback)
+### 🔀 Multi-Provider AI Support
+- **OpenAI Models**: GPT-4o, GPT-4o-mini, GPT-3.5-turbo for reliable performance
+- **Anthropic Models**: Claude 3.5 Sonnet, Claude 3.5 Haiku, Claude 3 Opus for thoughtful reasoning
+- **Cohere Models**: Command R, Command R+, Command for business-focused analysis
+- **Dynamic Model Assignment**: Each agent can use different models optimized for their specific tasks
 
-### Interactive Web Interface
-- **Streamlit Dashboard**: Real-time monitoring and testing interface
-- **Model Management**: Dynamic model swapping per agent without restart
-- **Performance Analytics**: Compare different AI models across test tickets
-- **Database Analytics**: Historical analysis with interactive charts
+### 🎯 Authentic Collaboration Features
+- **Real Consensus Building**: Genuine agent disagreement detection and resolution
+- **Custom Faithfulness Scoring**: GPT-4o-based evaluation comparing outputs to source content
+- **Dynamic Conflict Resolution**: Tracks actual conflicts between agents and resolution methods
+- **Collaboration Metrics**: Authentic measurement of agent agreement and consensus strength
 
-### Comprehensive Monitoring
-- **LangSmith Integration**: Detailed tracing and logging for all LLM interactions
-- **DeepEval Quality Assessment**: Hallucination, relevancy, faithfulness, and accuracy scoring
-- **PostgreSQL Database**: Persistent storage for tickets, logs, and evaluations
-- **Real-time Progress Tracking**: Live updates during ticket processing
+### 🌐 Interactive Web Interface
+- **Real-time Dashboard**: Live agent status monitoring with processing indicators
+- **Model Management Hub**: Dynamic model swapping per agent without system restart
+- **Performance Analytics**: Comparative analysis of different AI models across test tickets
+- **Database Analytics**: Historical insights with interactive Plotly charts and trend analysis
 
-## Technology Stack
+### 📊 Comprehensive Monitoring & Observability
+- **LangSmith Integration**: Complete tracing of all agent interactions, memory operations, and LLM calls
+- **Custom Quality Assessment**: Authentic faithfulness evaluation using GPT-4o for fact-checking
+- **DeepEval Integration**: Hallucination detection, relevancy scoring, and accuracy assessment
+- **PostgreSQL Analytics**: Persistent storage with performance metrics, collaboration tracking, and historical analysis
+- **Real-time Collaboration Tracking**: Live monitoring of agent consensus building and conflict resolution
 
-- **Framework**: CrewAI for multi-agent orchestration
-- **AI Providers**: OpenAI, Anthropic, Cohere
-- **Database**: PostgreSQL with SQLAlchemy
-- **Web Interface**: Streamlit
-- **Monitoring**: LangSmith, DeepEval
-- **Data Processing**: pandas, kagglehub
-- **Visualization**: Plotly
+## Technology Stack 🛠️
+
+- **Multi-Agent Framework**: CrewAI with collaborative task orchestration
+- **AI Providers**: OpenAI (GPT-4o), Anthropic (Claude 3.5), Cohere (Command R) with fallback support
+- **Database**: PostgreSQL with SQLAlchemy for persistent analytics and collaboration metrics
+- **Web Interface**: Streamlit with real-time updates and interactive dashboards
+- **Observability**: LangSmith for comprehensive tracing, custom faithfulness evaluation
+- **Quality Assessment**: DeepEval integration with authentic metrics calculation
+- **Data Processing**: pandas, kagglehub for dataset management
+- **Visualization**: Plotly for interactive charts and performance analytics
+
+## Latest Version Updates (v2.0) 🚀
+
+### Major Enhancements
+- ✅ **Authentic Collaboration Metrics**: Real agent disagreement detection and consensus building
+- ✅ **Custom Faithfulness Evaluation**: GPT-4o-based fact-checking against source content
+- ✅ **Multi-Provider Model Support**: OpenAI, Anthropic, and Cohere integration with dynamic assignment
+- ✅ **Enhanced Observability**: Complete LangSmith tracing with memory operations and agent interactions
+- ✅ **Robust Error Handling**: JSON serialization fixes and database constraint validation
+- ✅ **Performance Analytics**: Comprehensive model comparison and agent performance tracking
 
 ## Quick Start
 
