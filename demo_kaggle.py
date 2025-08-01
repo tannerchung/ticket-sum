@@ -5,10 +5,11 @@ Use this to test the system with different numbers of tickets.
 """
 
 import sys
+from typing import Optional
 from main import main
 from config import DEFAULT_TICKET_LIMIT
 
-def run_kaggle_demo(ticket_limit: int = None):
+def run_kaggle_demo(ticket_limit: Optional[int] = None):
     """
     Run the Kaggle ticket processing demo with a specific ticket limit.
     
@@ -46,7 +47,7 @@ if __name__ == "__main__":
     else:
         # Show usage and run with default
         print("Usage: python demo_kaggle.py [number_of_tickets]")
-        print(f"Example: python demo_kaggle.py 10  # Process 10 tickets")
+        print("Example: python demo_kaggle.py 10  # Process 10 tickets")
         print(f"         python demo_kaggle.py     # Process {DEFAULT_TICKET_LIMIT} tickets (default)")
         print()
         run_kaggle_demo()
