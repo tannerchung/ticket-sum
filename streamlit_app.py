@@ -416,38 +416,55 @@ def evaluate_with_deepeval(result, original_message):
         print(f"🎯 Custom faithfulness score: {faithfulness_score:.3f} for ticket {result.get('ticket_id', 'unknown')}")
         
         # Extract scores safely from evaluation result
-        hallucination_score = 0.8
-        relevancy_score = 0.8
+        hallucination_score = 0.8  # Default fallback
+        relevancy_score = 0.8       # Default fallback
         
-        # Handle DeepEval results more safely
+        # Handle DeepEval results - fix hardcoded values
         try:
-            # DeepEval evaluate() returns test case results, not direct metrics
-            # We need to access the metric results from the test cases
-            if evaluation_result:
+            if evaluation_result and hasattr(evaluation_result, 'test_results'):
+                # DeepEval returns EvaluationResult with test_results attribute
                 print(f"Evaluation result type: {type(evaluation_result)}")
-                print(f"Evaluation result: {evaluation_result}")
                 
-                # The evaluation_result should be from evaluate() which returns test case results
-                # Try to access the actual metric scores if available
-                if hasattr(evaluation_result, '__iter__'):
-                    # Handle the case where we get test results back
-                    for test_case in evaluation_result:
-                        if hasattr(test_case, 'metrics_data'):
-                            # Use metrics_data instead of metrics_metadata
-                            for metric_data in test_case.metrics_data:
-                                if 'hallucination' in metric_data.name.lower():
-                                    hallucination_score = 1.0 - metric_data.score if metric_data.score else 0.8
-                                elif 'relevancy' in metric_data.name.lower():
-                                    relevancy_score = metric_data.score if metric_data.score else 0.8
-                            break
-                        elif hasattr(test_case, 'success'):
-                            # Fallback: use success indicators
-                            print(f"Test case success status available")
-                            break
+                for test_result in evaluation_result.test_results:
+                    if hasattr(test_result, 'metrics_data'):
+                        print(f"Processing {len(test_result.metrics_data)} metrics")
+                        
+                        for metric_data in test_result.metrics_data:
+                            metric_name = metric_data.name.lower()
+                            metric_score = metric_data.score
+                            
+                            print(f"Processing metric: {metric_name} = {metric_score}")
+                            
+                            if 'hallucination' in metric_name:
+                                # Hallucination: 0 = good (no hallucination), so invert for our display
+                                hallucination_score = 1.0 - metric_score if metric_score is not None else 0.8
+                            elif 'relevancy' in metric_name or 'answer' in metric_name:
+                                # Relevancy: 1.0 = fully relevant
+                                relevancy_score = metric_score if metric_score is not None else 0.8
+                        break  # Process first test result
+                    
+            elif evaluation_result and hasattr(evaluation_result, '__iter__'):
+                # Handle direct list of test results
+                for test_case in evaluation_result:
+                    if hasattr(test_case, 'metrics_data'):
+                        print(f"Processing {len(test_case.metrics_data)} metrics from test case")
+                        
+                        for metric_data in test_case.metrics_data:
+                            metric_name = metric_data.name.lower()
+                            metric_score = metric_data.score
+                            
+                            print(f"Extracting metric: {metric_name} = {metric_score}")
+                            
+                            if 'hallucination' in metric_name:
+                                hallucination_score = 1.0 - metric_score if metric_score is not None else 0.8
+                            elif 'relevancy' in metric_name or 'answer' in metric_name:
+                                relevancy_score = metric_score if metric_score is not None else 0.8
+                        break
                             
         except Exception as e:
-            print(f"Note: Using default evaluation scores due to DeepEval API changes: {e}")
-            # Use default values when DeepEval structure changes
+            print(f"Error extracting DeepEval scores: {e}")
+            print("Using fallback scores - check DeepEval integration")
+            # Keep the fallback values already set
         
         scores = {
             'hallucination': hallucination_score,
@@ -549,6 +566,15 @@ def setup_agents():
         
         crew = CollaborativeSupportCrew()
         print("✅ Multi-agent crew initialized successfully")
+        
+        # Display session information in sidebar
+        try:
+            from telemetry import get_langfuse_manager
+            manager = get_langfuse_manager()
+            st.sidebar.info(f"🔗 Session: `{manager.get_session_id()[:8]}...`")
+        except Exception:
+            pass  # Silently handle if telemetry is not available
+        
         return crew
     except Exception as e:
         st.error(f"Error initializing collaborative crew: {str(e)}")

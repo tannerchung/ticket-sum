@@ -10,6 +10,7 @@ This module replaces the LangSmith integration with Langfuse Cloud telemetry.
 import os
 import time
 import base64
+import uuid
 from typing import Any, Dict, List, Optional
 from contextlib import contextmanager
 
@@ -35,6 +36,7 @@ class LangfuseManager:
         self.agent_activities: List[Dict[str, Any]] = []
         self.run_times: Dict[str, float] = {}
         self.agent_durations: Dict[str, float] = {}
+        self.session_id: str = str(uuid.uuid4())  # Generate unique session ID
         
     def initialize(self) -> bool:
         """
@@ -84,9 +86,10 @@ class LangfuseManager:
             credentials = f"{public_key}:{secret_key}"
             encoded_credentials = base64.b64encode(credentials.encode()).decode()
             
-            # Set OTLP environment variables
+            # Set OTLP environment variables with session support
             os.environ['OTEL_EXPORTER_OTLP_ENDPOINT'] = f"{host}/api/public/otel"
             os.environ['OTEL_EXPORTER_OTLP_HEADERS'] = f"Authorization=Basic {encoded_credentials}"
+            os.environ['OTEL_RESOURCE_ATTRIBUTES'] = f"service.name=support-ticket-summarizer,session.id={self.session_id}"
             
             print("✅ OTLP exporter configured for Langfuse Cloud")
     
@@ -109,6 +112,7 @@ class LangfuseManager:
         trace_context = {
             "trace_name": trace_name,
             "ticket_id": ticket_id,
+            "session_id": self.session_id,
             "system": "support-ticket-summarizer",
             "agent_count": 4,
             **(metadata or {})
@@ -119,6 +123,7 @@ class LangfuseManager:
             # Track processing start
             self.run_times[ticket_id] = start_time
             print(f"🔍 Starting trace context: {trace_name}")
+            print(f"📊 Session ID: {self.session_id}")
             print("📡 OpenInference instrumentation will capture all LLM calls")
             
             yield trace_context
@@ -151,6 +156,19 @@ class LangfuseManager:
     def get_agent_activities(self) -> List[Dict[str, Any]]:
         """Get recorded agent activities for session state."""
         return self.agent_activities.copy()
+    
+    def get_session_id(self) -> str:
+        """Get the current session ID."""
+        return self.session_id
+    
+    def new_session(self) -> str:
+        """Start a new session and return the new session ID."""
+        self.session_id = str(uuid.uuid4())
+        # Update OTEL resource attributes with new session ID
+        if self.client:
+            os.environ['OTEL_RESOURCE_ATTRIBUTES'] = f"service.name=support-ticket-summarizer,session.id={self.session_id}"
+        print(f"🔄 New session started: {self.session_id}")
+        return self.session_id
     
     def log_agent_activity(self, agent_name: str, input_data: Any, output_data: Any, 
                           metadata: Optional[Dict] = None):
