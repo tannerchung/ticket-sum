@@ -553,7 +553,6 @@ class CollaborativeSupportCrew:
                 
                 try:
                     parsed = json.loads(json_content)
-                    return self._structure_collaborative_result(parsed, ticket_id, ticket_content, crew_text)
                     result = self._structure_collaborative_result(parsed, ticket_id, ticket_content, crew_text)
                     result["collaboration_metrics"] = collaboration_metrics
                     return result
@@ -561,7 +560,6 @@ class CollaborativeSupportCrew:
                     pass
             
             # Fallback: Parse text-based result
-            return self._parse_text_result(crew_text, ticket_id, ticket_content)
             result = self._parse_text_result(crew_text, ticket_id, ticket_content)
             result["collaboration_metrics"] = collaboration_metrics
             return result
@@ -639,9 +637,11 @@ class CollaborativeSupportCrew:
                     # Try to extract value after colon or similar patterns
                     parts = line.split(':')
                     if len(parts) > 1:
-                        value = parts[1].strip().split()[0]
-                        if value:
-                            return value
+                        value_parts = parts[1].strip().split()
+                        if value_parts:  # Check if split result is not empty
+                            value = value_parts[0]
+                            if value:
+                                return value
         return default
     
     def _extract_summary(self, text: str) -> str:
