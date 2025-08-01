@@ -31,31 +31,31 @@ class DatabaseService:
             existing_ticket = session.query(SupportTicket).filter_by(ticket_id=ticket_id).first()
             
             # Ensure required fields have default values to prevent null violations
-            original_message = (result.get('original_message') or 
-                              result.get('original_content') or 
-                              'No content available')
+            original_message = str(result.get('original_message') or 
+                                  result.get('original_content') or 
+                                  'No content available')
             
             if existing_ticket:
                 # Update existing ticket
                 existing_ticket.original_message = original_message
-                existing_ticket.intent = result.get('classification', {}).get('intent') or 'general_inquiry'
-                existing_ticket.severity = result.get('classification', {}).get('severity') or 'medium'
-                existing_ticket.classification_confidence = result.get('classification', {}).get('confidence') or 0.5
-                existing_ticket.summary = result.get('summary') or 'Summary not available'
+                existing_ticket.intent = str(result.get('classification', {}).get('intent') or 'general_inquiry')
+                existing_ticket.severity = str(result.get('classification', {}).get('severity') or 'medium')
+                existing_ticket.classification_confidence = float(result.get('classification', {}).get('confidence') or 0.5)
+                existing_ticket.summary = str(result.get('summary') or 'Summary not available')
                 existing_ticket.action_recommendation = result.get('action_recommendation') or {}
-                existing_ticket.processing_status = result.get('processing_status', 'completed')
+                existing_ticket.processing_status = str(result.get('processing_status', 'completed'))
                 existing_ticket.processed_at = datetime.utcnow()
             else:
                 # Create new ticket
                 existing_ticket = SupportTicket(
-                    ticket_id=ticket_id,
+                    ticket_id=str(ticket_id),
                     original_message=original_message,
-                    intent=result.get('classification', {}).get('intent') or 'general_inquiry',
-                    severity=result.get('classification', {}).get('severity') or 'medium',
-                    classification_confidence=result.get('classification', {}).get('confidence') or 0.5,
-                    summary=result.get('summary') or 'Summary not available',
+                    intent=str(result.get('classification', {}).get('intent') or 'general_inquiry'),
+                    severity=str(result.get('classification', {}).get('severity') or 'medium'),
+                    classification_confidence=float(result.get('classification', {}).get('confidence') or 0.5),
+                    summary=str(result.get('summary') or 'Summary not available'),
                     action_recommendation=result.get('action_recommendation') or {},
-                    processing_status=result.get('processing_status', 'completed'),
+                    processing_status=str(result.get('processing_status', 'completed')),
                     processed_at=datetime.utcnow(),
                     source='manual'
                 )
@@ -75,9 +75,9 @@ class DatabaseService:
                           input_data: Dict, output_data: Dict, 
                           metadata: Dict, status: str = 'success',
                           processing_time: float = 0.0, 
-                          error_message: str = None,
-                          trace_id: str = None,
-                          langsmith_run_id: str = None) -> bool:
+                          error_message: Optional[str] = None,
+                          trace_id: Optional[str] = None,
+                          langsmith_run_id: Optional[str] = None) -> bool:
         """Save a processing log entry."""
         session = get_db_session()
         try:
@@ -146,7 +146,7 @@ class DatabaseService:
     
     def update_agent_status(self, agent_name: str, status: str, 
                            is_processing: bool = False, 
-                           current_ticket_id: str = None) -> bool:
+                           current_ticket_id: Optional[str] = None) -> bool:
         """Update agent status in the database."""
         session = get_db_session()
         try:
@@ -286,7 +286,7 @@ class DatabaseService:
         finally:
             session.close()
     
-    def get_processing_logs(self, ticket_id: str = None, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_processing_logs(self, ticket_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
         """Get processing logs, optionally filtered by ticket ID."""
         session = get_db_session()
         try:
