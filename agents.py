@@ -227,6 +227,7 @@ class CollaborativeSupportCrew:
                         api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                         temperature=model_config["temperature"]
                     )
+                    # Note: Callbacks will be set during execution for proper LangSmith integration
                 elif provider == "cohere" and COHERE_AVAILABLE and ChatCohere:
                     try:
                         self.llm_instances[agent_name] = ChatCohere(
@@ -288,8 +289,11 @@ class CollaborativeSupportCrew:
                 self.qa_reviewer
             ],
             verbose=True,
-            memory=True  # Enable memory for agent collaboration
+            memory=True,  # Enable memory for agent collaboration
+            # Note: Callbacks will be set during execution for proper LangSmith integration
         )
+    
+
     
     def _create_triage_specialist(self) -> Agent:
         """Create the triage specialist for initial classification and severity assessment."""
@@ -618,7 +622,7 @@ class CollaborativeSupportCrew:
         
         return summary
     
-    def process_ticket_collaboratively(self, ticket_id: str, ticket_content: str, batch_session_id: Optional[str] = None) -> Dict[str, Any]:
+    def process_ticket_collaboratively(self, ticket_id: str, ticket_content: str) -> Dict[str, Any]:
         """
         Process a ticket using collaborative CrewAI workflow.
         
@@ -642,18 +646,15 @@ class CollaborativeSupportCrew:
             print("🔄 Executing collaborative crew workflow...")
             
             # Import the new Langfuse telemetry integration
-            from telemetry import (
-                create_trace_context,
-                get_langfuse_manager
-            )
+            from telemetry import get_langfuse_manager
             
             # Initialize consensus timing variables
             consensus_start_time = None
             consensus_end_time = None
             
-            # Execute with proper Langfuse context and tracing integration plus timing
-            with create_trace_context(ticket_id, {"system": "collaborative_crew"}, batch_session_id=batch_session_id):
-                # OpenInference instrumentation handles callbacks automatically
+            # Execute with proper Langfuse context and tracing integration
+            langfuse_manager = get_langfuse_manager()
+            with langfuse_manager.trace_ticket_processing(ticket_id, {"system": "collaborative_crew"}):
                 
                 # Create timing tracker for manual timing estimation
                 timing_tracker = AgentTimingTracker()
@@ -668,7 +669,9 @@ class CollaborativeSupportCrew:
                 crew_start_time = time.time()
                 consensus_start_time = time.time()  # Track consensus building start
                 
+                # Execute crew with OpenInference automatic instrumentation
                 result = self.crew.kickoff()
+                print("✅ Executed crew with Langfuse tracing")
                 
                 consensus_end_time = time.time()  # Track consensus building end
                 crew_end_time = time.time()
@@ -676,7 +679,7 @@ class CollaborativeSupportCrew:
                 print(f"⏱️ Total crew execution time: {total_execution_time:.2f}s")
                 print(f"🤝 Consensus building time: {consensus_end_time - consensus_start_time:.2f}s")
                 
-                # Get run information from Langfuse manager (includes actual LLM timing)
+                # Get activities from langfuse manager
                 langfuse_manager = get_langfuse_manager()
                 langfuse_activities = langfuse_manager.get_agent_activities()
                 
