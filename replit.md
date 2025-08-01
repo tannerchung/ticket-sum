@@ -65,10 +65,12 @@ Use Replit's persistent storage for output files and cached data.
 ## Recent Changes
 
 ### Session Management Enhancement (January 31, 2025)
-- **Per-Run Session IDs**: Modified telemetry to create unique session IDs for each ticket processing batch instead of per application session
-- **Benefits**: Better organization in Langfuse dashboard, easier performance analysis per processing run
-- **Implementation**: `trace_ticket_processing()` now generates fresh session ID and updates OTEL resource attributes
-- **UI Updates**: Streamlit sidebar shows both application session and current run session
+- **Option B Batch Sessions**: Implemented intelligent session ID management:
+  - Individual tickets: Each gets unique session ID for granular tracking
+  - Batch processing (Kaggle/CSV): All tickets in batch share one session ID
+- **Benefits**: Better organization in Langfuse dashboard with logical grouping by processing type
+- **Implementation**: `trace_ticket_processing()` accepts optional `batch_session_id` parameter
+- **UI Updates**: Streamlit shows batch session ID when processing batches, individual sessions otherwise
 
 ### Database Reset (January 31, 2025)
 - **Complete Clean**: All tables dropped and recreated with fresh schema

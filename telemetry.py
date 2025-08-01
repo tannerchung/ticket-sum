@@ -94,19 +94,27 @@ class LangfuseManager:
             print("✅ OTLP exporter configured for Langfuse Cloud")
     
     @contextmanager
-    def trace_ticket_processing(self, ticket_id: str, metadata: Optional[Dict] = None):
+    def trace_ticket_processing(self, ticket_id: str, metadata: Optional[Dict] = None, batch_session_id: Optional[str] = None):
         """
         Context manager for tracing ticket processing workflows.
         
-        Creates a new session ID for each ticket processing run to enable
-        better organization and analysis in Langfuse dashboard.
+        Creates session IDs based on processing type:
+        - Individual tickets: New session ID per ticket
+        - Batch processing: Shared session ID for entire batch
         
         Args:
             ticket_id: Unique identifier for the ticket
             metadata: Additional metadata to include in the trace
+            batch_session_id: If provided, use this session ID (for batch processing)
         """
-        # Create new session ID for this processing run
-        run_session_id = str(uuid.uuid4())
+        # Use provided batch session ID or create new one for individual processing
+        if batch_session_id:
+            run_session_id = batch_session_id
+            processing_type = "batch"
+        else:
+            run_session_id = str(uuid.uuid4())
+            processing_type = "individual"
+            
         trace_name = f"ticket-crew-execution-{ticket_id}"
         start_time = time.time()
         
@@ -118,7 +126,8 @@ class LangfuseManager:
         trace_context = {
             "trace_name": trace_name,
             "ticket_id": ticket_id,
-            "session_id": run_session_id,  # Per-run session ID
+            "session_id": run_session_id,
+            "processing_type": processing_type,
             "system": "support-ticket-summarizer",
             "agent_count": 4,
             **(metadata or {})
@@ -129,7 +138,7 @@ class LangfuseManager:
             # Track processing start
             self.run_times[ticket_id] = start_time
             print(f"🔍 Starting trace context: {trace_name}")
-            print(f"📊 Run Session ID: {run_session_id}")
+            print(f"📊 {processing_type.title()} Session ID: {run_session_id}")
             print("📡 OpenInference instrumentation will capture all LLM calls")
             
             yield trace_context
@@ -137,7 +146,8 @@ class LangfuseManager:
             # Track successful completion
             duration = time.time() - start_time
             print(f"✅ Completed trace {trace_name} in {duration:.2f}s")
-            print(f"📊 Session {run_session_id[:8]}... completed")
+            if processing_type == "individual":
+                print(f"📊 Session {run_session_id[:8]}... completed")
             
         except Exception as e:
             # Track errors
@@ -179,6 +189,12 @@ class LangfuseManager:
         if hasattr(self, 'current_trace') and self.current_trace:
             return self.current_trace.get('session_id')
         return None
+    
+    def create_batch_session(self) -> str:
+        """Create a new batch session ID for batch processing."""
+        batch_session_id = str(uuid.uuid4())
+        print(f"🔄 New batch session created: {batch_session_id}")
+        return batch_session_id
     
     def log_agent_activity(self, agent_name: str, input_data: Any, output_data: Any, 
                           metadata: Optional[Dict] = None):
@@ -255,7 +271,7 @@ def get_langfuse_manager() -> LangfuseManager:
     return _langfuse_manager
 
 
-def create_trace_context(ticket_id: str, metadata: Optional[Dict] = None):
+def create_trace_context(ticket_id: str, metadata: Optional[Dict] = None, batch_session_id: Optional[str] = None):
     """
     Create a trace context for ticket processing.
     
@@ -267,8 +283,9 @@ def create_trace_context(ticket_id: str, metadata: Optional[Dict] = None):
     Args:
         ticket_id: Unique identifier for the ticket
         metadata: Additional metadata to include in the trace
+        batch_session_id: If provided, use this session ID for batch processing
     """
-    return _langfuse_manager.trace_ticket_processing(ticket_id, metadata)
+    return _langfuse_manager.trace_ticket_processing(ticket_id, metadata, batch_session_id)
 
 
 def log_activity(agent_name: str, input_data: Any, output_data: Any, 

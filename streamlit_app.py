@@ -586,7 +586,7 @@ def setup_agents():
         print(f"❌ Agent initialization failed: {e}")
         return None
 
-def process_ticket(crew, ticket_id, ticket_content):
+def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
     """Process a single ticket through the collaborative CrewAI workflow with enhanced monitoring."""
     if not crew:
         return None
@@ -599,7 +599,7 @@ def process_ticket(crew, ticket_id, ticket_content):
         
         # Process ticket through collaborative workflow
         collaborative_input = {'ticket_id': ticket_id, 'content': ticket_content}
-        result = crew.process_ticket_collaboratively(ticket_id, ticket_content)
+        result = crew.process_ticket_collaboratively(ticket_id, ticket_content, batch_session_id)
         
         # Log collaborative activity
         log_langfuse_activity(
@@ -871,6 +871,13 @@ def main():
             st.dataframe(df.head())
             
             if st.button("Process All Tickets"):
+                # Create batch session ID for CSV upload batch
+                from telemetry import get_langfuse_manager
+                manager = get_langfuse_manager()
+                batch_session_id = manager.create_batch_session()
+                
+                st.info(f"📊 Batch Session: `{batch_session_id[:8]}...` - All CSV tickets will be grouped under this session in Langfuse")
+                
                 progress_bar = st.progress(0)
                 results = []
                 
@@ -879,7 +886,7 @@ def main():
                     message = str(row.get('message', ''))
                     
                     if message.strip():
-                        result = process_ticket(st.session_state.agents, ticket_id, message)
+                        result = process_ticket(st.session_state.agents, ticket_id, message, batch_session_id)
                         if result:
                             results.append(result)
                     
@@ -933,6 +940,13 @@ def main():
             
             if st.button(f"🚀 Process First {num_tickets} Tickets", type="primary", key="process_kaggle"):
                 if st.session_state.agents:
+                    # Create batch session ID for this Kaggle batch
+                    from telemetry import get_langfuse_manager
+                    manager = get_langfuse_manager()
+                    batch_session_id = manager.create_batch_session()
+                    
+                    st.info(f"📊 Batch Session: `{batch_session_id[:8]}...` - All {num_tickets} tickets will be grouped under this session in Langfuse")
+                    
                     progress_bar = st.progress(0)
                     results = []
                     
@@ -941,7 +955,7 @@ def main():
                         ticket_id = str(row['ticket_id'])
                         message = str(row['message'])
                         
-                        result = process_ticket(st.session_state.agents, ticket_id, message)
+                        result = process_ticket(st.session_state.agents, ticket_id, message, batch_session_id)
                         if result:
                             results.append(result)
                         

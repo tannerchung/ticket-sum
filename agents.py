@@ -618,7 +618,7 @@ class CollaborativeSupportCrew:
         
         return summary
     
-    def process_ticket_collaboratively(self, ticket_id: str, ticket_content: str) -> Dict[str, Any]:
+    def process_ticket_collaboratively(self, ticket_id: str, ticket_content: str, batch_session_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Process a ticket using collaborative CrewAI workflow.
         
@@ -652,7 +652,7 @@ class CollaborativeSupportCrew:
             consensus_end_time = None
             
             # Execute with proper Langfuse context and tracing integration plus timing
-            with create_trace_context(ticket_id, {"system": "collaborative_crew"}):
+            with create_trace_context(ticket_id, {"system": "collaborative_crew"}, batch_session_id=batch_session_id):
                 # OpenInference instrumentation handles callbacks automatically
                 
                 # Create timing tracker for manual timing estimation
