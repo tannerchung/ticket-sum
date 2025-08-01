@@ -44,7 +44,7 @@ class ProcessingLog(Base):
     
     id = Column(Integer, primary_key=True)
     ticket_id = Column(String(100), nullable=False)
-    agent_name = Column(String(100), nullable=False)  # 'classifier', 'summarizer', 'action_recommender'
+    agent_name = Column(String(100), nullable=False)  # 'triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer'
     
     # Processing details
     input_data = Column(JSON)
@@ -177,7 +177,7 @@ def init_database():
     # Initialize default agent statuses
     session = get_db_session()
     try:
-        agents = ['classifier', 'summarizer', 'action_recommender']
+        agents = ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer']
         for agent_name in agents:
             existing = session.query(AgentStatus).filter_by(agent_name=agent_name).first()
             if not existing:

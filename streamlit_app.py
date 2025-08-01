@@ -1033,7 +1033,7 @@ def display_database_analytics():
         # Agent performance
         st.markdown("**Agent Performance**")
         agent_stats = {}
-        for agent in ['classifier', 'summarizer', 'action_recommender']:
+        for agent in ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer']:
             stats = db_service.get_agent_statistics(agent)
             if stats:
                 agent_stats[agent] = stats
