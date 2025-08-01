@@ -3,7 +3,7 @@ Database service layer for the Support Ticket Summarizer system.
 Handles all database operations and integrations.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional, Any
 from models import (
     SupportTicket, ProcessingLog, QualityEvaluation, AgentStatus, CollaborationMetrics,
@@ -43,7 +43,7 @@ class DatabaseService:
                 existing_ticket.summary = str(result.get('summary') or 'Summary not available')  # type: ignore
                 existing_ticket.action_recommendation = result.get('action_recommendation') or {}  # type: ignore
                 existing_ticket.processing_status = str(result.get('processing_status', 'completed'))  # type: ignore
-                existing_ticket.processed_at = datetime.utcnow()  # type: ignore
+                existing_ticket.processed_at = datetime.now(timezone.utc)  # type: ignore
             else:
                 # Create new ticket
                 existing_ticket = SupportTicket(
@@ -55,7 +55,7 @@ class DatabaseService:
                     summary=str(result.get('summary') or 'Summary not available'),
                     action_recommendation=result.get('action_recommendation') or {},
                     processing_status=str(result.get('processing_status', 'completed')),
-                    processed_at=datetime.utcnow(),
+                    processed_at=datetime.now(timezone.utc),
                     source='manual'
                 )
                 session.add(existing_ticket)
@@ -154,8 +154,8 @@ class DatabaseService:
                 agent.status = status  # type: ignore
                 agent.is_processing = is_processing  # type: ignore
                 agent.current_ticket_id = current_ticket_id  # type: ignore
-                agent.last_activity = datetime.utcnow()  # type: ignore
-                agent.updated_at = datetime.utcnow()  # type: ignore
+                agent.last_activity = datetime.now(timezone.utc)  # type: ignore
+                agent.updated_at = datetime.now(timezone.utc)  # type: ignore
             else:
                 agent = AgentStatus(
                     agent_name=agent_name,
@@ -234,7 +234,7 @@ class DatabaseService:
             from sqlalchemy import func, and_
             from datetime import timedelta
             
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
             
             # Basic counts
             total_tickets = session.query(SupportTicket).filter(
@@ -327,8 +327,8 @@ class DatabaseService:
                 conflicts_identified=metrics.get('conflicts_identified', []),
                 conflict_resolution_methods=metrics.get('conflict_resolution_methods', []),
                 resolution_iterations=metrics.get('resolution_iterations', 0),
-                consensus_start_time=datetime.utcnow(),
-                consensus_end_time=datetime.utcnow(),
+                consensus_start_time=datetime.now(timezone.utc),
+                consensus_end_time=datetime.now(timezone.utc),
                 consensus_building_duration=metrics.get('consensus_building_duration', 0.0),
                 final_agreement_scores=metrics.get('final_agreement_scores', {}),
                 overall_agreement_strength=metrics.get('overall_agreement_strength', 0.0),
