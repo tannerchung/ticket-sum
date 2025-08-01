@@ -76,7 +76,8 @@ class DatabaseService:
                           metadata: Dict, status: str = 'success',
                           processing_time: float = 0.0, 
                           error_message: str = None,
-                          trace_id: str = None) -> bool:
+                          trace_id: str = None,
+                          langsmith_run_id: str = None) -> bool:
         """Save a processing log entry."""
         session = get_db_session()
         try:
@@ -104,7 +105,8 @@ class DatabaseService:
                 processing_time=processing_time,
                 status=status,
                 error_message=error_message,
-                trace_id=trace_id
+                trace_id=trace_id,
+                langsmith_run_id=langsmith_run_id
             )
             
             session.add(log)

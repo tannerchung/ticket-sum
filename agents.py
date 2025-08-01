@@ -467,19 +467,49 @@ class CollaborativeSupportCrew:
             # Execute collaborative workflow with LangSmith tracing
             print(f"🔄 Executing collaborative crew workflow...")
             
-            # Add LangSmith tracing context
+            # Add LangSmith tracing context and capture run IDs
             import os
+            from langsmith import Client
+            
+            langsmith_run_ids = []
             if os.environ.get("LANGCHAIN_TRACING_V2") == "true":
                 # Ensure CrewAI uses LangSmith tracing
                 print(f"🔗 LangSmith tracing active for project: {os.environ.get('LANGCHAIN_PROJECT', 'default')}")
-                result = self.crew.kickoff()
-                print(f"📡 Crew execution traced to LangSmith project: {os.environ.get('LANGCHAIN_PROJECT', 'default')}")
+                
+                try:
+                    # Set up tracing callback to capture run IDs
+                    import uuid
+                    session_id = str(uuid.uuid4())
+                    
+                    # Execute crew with enhanced tracing
+                    result = self.crew.kickoff()
+                    
+                    # Try to extract run IDs from LangSmith context
+                    try:
+                        client = Client()
+                        # Get recent runs for this session/ticket
+                        runs = list(client.list_runs(limit=10))
+                        for run in runs:
+                            if hasattr(run, 'id') and run.id:
+                                langsmith_run_ids.append(str(run.id))
+                                if len(langsmith_run_ids) >= 4:  # One per agent
+                                    break
+                    except Exception as e:
+                        print(f"Warning: Could not extract LangSmith run IDs: {e}")
+                    
+                    print(f"📡 Crew execution traced to LangSmith project: {os.environ.get('LANGCHAIN_PROJECT', 'default')}")
+                    if langsmith_run_ids:
+                        print(f"🔗 Captured {len(langsmith_run_ids)} LangSmith run IDs")
+                    
+                except Exception as e:
+                    print(f"Warning: LangSmith tracing setup failed: {e}")
+                    result = self.crew.kickoff()
             else:
                 print("⚠️ LangSmith tracing not enabled")
                 result = self.crew.kickoff()
             
             # Extract individual agent activities for detailed logging
-            self.individual_agent_logs = self._extract_individual_agent_activities(result, ticket_id, ticket_content)
+            self.individual_agent_logs = self._extract_individual_agent_activities(result, ticket_id, ticket_content, langsmith_run_ids)
             
             # Parse and structure the collaborative result
             final_result = self._parse_collaborative_result(result, ticket_id, ticket_content)
@@ -707,7 +737,7 @@ class CollaborativeSupportCrew:
         
         return ' '.join(summary_lines) if summary_lines else "Collaborative analysis summary"
     
-    def _extract_individual_agent_activities(self, crew_result, ticket_id: str, ticket_content: str) -> List[Dict[str, Any]]:
+    def _extract_individual_agent_activities(self, crew_result, ticket_id: str, ticket_content: str, langsmith_run_ids: List[str] = None) -> List[Dict[str, Any]]:
         """Extract individual agent activities from CrewAI execution for detailed logging."""
         individual_logs = []
         
@@ -751,6 +781,11 @@ class CollaborativeSupportCrew:
                             'task_type': self._determine_task_type(i)
                         }
                         
+                        # Assign LangSmith run ID if available
+                        langsmith_run_id = None
+                        if langsmith_run_ids and i < len(langsmith_run_ids):
+                            langsmith_run_id = langsmith_run_ids[i]
+                        
                         individual_logs.append({
                             'agent_name': agent_name,
                             'input_data': agent_input,
@@ -758,7 +793,8 @@ class CollaborativeSupportCrew:
                             'metadata': agent_metadata,
                             'processing_time': 0.0,  # CrewAI doesn't expose individual timing
                             'status': 'success',
-                            'trace_id': f"{ticket_id}_{agent_name}_{int(time.time())}"
+                            'trace_id': f"{ticket_id}_{agent_name}_{int(time.time())}",
+                            'langsmith_run_id': langsmith_run_id
                         })
                         
         except Exception as e:

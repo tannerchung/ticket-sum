@@ -105,6 +105,17 @@ The system uses CrewAI to orchestrate three specialized agents that work in sequ
   - **Database Impact**: Processing logs now show 4+ individual agent entries plus 1 collaborative summary per ticket
 - **Improved Traceability**: Can now track exactly which agent contributed what output and with which model/settings
 
+### LangSmith Run ID Capture Implementation (August 1, 2025)
+- **Fixed Empty langsmith_run_id Fields**: Resolved issue where all processing logs had null/empty langsmith_run_id values
+  - **Root Cause**: Database service missing langsmith_run_id parameter and LangSmith run ID extraction not implemented
+  - **Solution**: 
+    - Added langsmith_run_id parameter to save_processing_log() method
+    - Implemented LangSmith Client integration to capture actual run IDs from recent LLM calls
+    - Updated individual agent logging to pass through captured run IDs
+    - Enhanced agents.py to extract up to 4 run IDs (one per agent) from LangSmith API
+  - **Impact**: Processing logs now contain authentic LangSmith run IDs for proper tracing and debugging
+  - **Traceability**: Can now cross-reference database logs with LangSmith traces for complete observability
+
 ### Documentation Updates (Previous)
 - **README.md Version History**: Added comprehensive version journey documentation showing evolution from v1.0 sequential processing to v2.0 collaborative intelligence with detailed milestones and technical innovations
 - **README.md v2.0 Update**: Comprehensive revision reflecting major version changes including collaborative multi-agent architecture, authentic metrics, custom faithfulness evaluation, and multi-provider AI support

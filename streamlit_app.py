@@ -614,7 +614,8 @@ def process_ticket(crew, ticket_id, ticket_content):
                         metadata=agent_log['metadata'],
                         status=agent_log['status'],
                         processing_time=agent_log['processing_time'],
-                        trace_id=agent_log['trace_id']
+                        trace_id=agent_log['trace_id'],
+                        langsmith_run_id=agent_log.get('langsmith_run_id')
                     )
             
             # Also log overall collaborative summary
