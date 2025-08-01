@@ -9,6 +9,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 # Try to import Cohere support with better error handling
 COHERE_AVAILABLE = False
@@ -70,14 +71,14 @@ class CollaborativeSupportCrew:
                 if provider == "openai":
                     self.llm_instances[agent_name] = ChatOpenAI(
                         model=model_name,
-                        api_key=OPENAI_API_KEY,
+                        api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                         temperature=model_config["temperature"]
                     )
                 elif provider == "cohere" and COHERE_AVAILABLE and ChatCohere:
                     try:
                         self.llm_instances[agent_name] = ChatCohere(
                             model=model_name,
-                            cohere_api_key=COHERE_API_KEY,
+                            cohere_api_key=SecretStr(COHERE_API_KEY) if COHERE_API_KEY else None,
                             temperature=model_config["temperature"]
                         )
                     except Exception as e:
@@ -91,7 +92,7 @@ class CollaborativeSupportCrew:
                     try:
                         self.llm_instances[agent_name] = ChatAnthropic(
                             model_name=model_name,
-                            api_key=ANTHROPIC_API_KEY,
+                            api_key=SecretStr(ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None,
                             temperature=model_config["temperature"],
                             timeout=60,
                             stop=None
@@ -100,7 +101,7 @@ class CollaborativeSupportCrew:
                         print(f"⚠️ Failed to initialize Anthropic for {agent_name}: {e}")
                         self.llm_instances[agent_name] = ChatOpenAI(
                             model="gpt-4o",
-                            api_key=OPENAI_API_KEY,
+                            api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                             temperature=0.1
                         )
                 else:
@@ -108,14 +109,14 @@ class CollaborativeSupportCrew:
                     print(f"⚠️ {provider.title()} not available, using GPT-4o for {agent_name}")
                     self.llm_instances[agent_name] = ChatOpenAI(
                         model="gpt-4o",
-                        api_key=OPENAI_API_KEY,
+                        api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                         temperature=0.1
                     )
             else:
                 # Fallback to default model
                 self.llm_instances[agent_name] = ChatOpenAI(
                     model=LLM_MODEL,
-                    api_key=OPENAI_API_KEY,
+                    api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                     temperature=0.1
                 )
         
@@ -258,28 +259,28 @@ class CollaborativeSupportCrew:
         if provider == "openai":
             self.llm_instances[agent_name] = ChatOpenAI(
                 model=model_name,
-                api_key=OPENAI_API_KEY,
+                api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                 temperature=model_config["temperature"]
             )
         elif provider == "cohere" and COHERE_AVAILABLE and ChatCohere:
             try:
                 self.llm_instances[agent_name] = ChatCohere(
                     model=model_name,
-                    cohere_api_key=COHERE_API_KEY,
+                    cohere_api_key=SecretStr(COHERE_API_KEY) if COHERE_API_KEY else None,
                     temperature=model_config["temperature"]
                 )
             except Exception as e:
                 print(f"⚠️ Failed to initialize Cohere for {agent_name}: {e}")
                 self.llm_instances[agent_name] = ChatOpenAI(
                     model="gpt-4o", 
-                    api_key=OPENAI_API_KEY,
+                    api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                     temperature=0.1
                 )
         elif provider == "anthropic" and ANTHROPIC_AVAILABLE and ChatAnthropic:
             try:
                 self.llm_instances[agent_name] = ChatAnthropic(
                     model_name=model_name,
-                    api_key=ANTHROPIC_API_KEY,
+                    api_key=SecretStr(ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None,
                     temperature=model_config["temperature"],
                     timeout=60,
                     stop=None
@@ -288,7 +289,7 @@ class CollaborativeSupportCrew:
                 print(f"⚠️ Failed to initialize Anthropic for {agent_name}: {e}")
                 self.llm_instances[agent_name] = ChatOpenAI(
                     model="gpt-4o",
-                    api_key=OPENAI_API_KEY,
+                    api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                     temperature=0.1
                 )
         else:
@@ -296,7 +297,7 @@ class CollaborativeSupportCrew:
             print(f"⚠️ {provider.title()} not available, using GPT-4o for {agent_name}")
             self.llm_instances[agent_name] = ChatOpenAI(
                 model="gpt-4o",
-                api_key=OPENAI_API_KEY,
+                api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                 temperature=0.1
             )
         
