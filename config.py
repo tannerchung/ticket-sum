@@ -24,6 +24,7 @@ KAGGLE_KEY = os.getenv("KAGGLE_KEY")
 
 # Dataset Configuration
 KAGGLE_DATASET = "suraj520/customer-support-ticket-dataset"
+DEFAULT_TICKET_LIMIT = 5  # Default number of tickets to process
 
 # Model Configuration
 # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.

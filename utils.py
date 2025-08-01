@@ -9,9 +9,12 @@ import kagglehub
 from typing import Dict, Any, List
 from tqdm import tqdm
 
-def load_ticket_data() -> pd.DataFrame:
+def load_ticket_data(max_tickets: int = None) -> pd.DataFrame:
     """
     Load customer support ticket data from Kaggle dataset.
+    
+    Args:
+        max_tickets: Maximum number of tickets to load. If None, loads all tickets.
     
     Returns:
         pd.DataFrame: DataFrame containing ticket data
@@ -80,6 +83,11 @@ def load_ticket_data() -> pd.DataFrame:
         
         if initial_count != final_count:
             print(f"🧹 Removed {initial_count - final_count} rows with empty messages")
+        
+        # Limit tickets if max_tickets is specified
+        if max_tickets is not None and len(df) > max_tickets:
+            df = df.head(max_tickets)
+            print(f"📊 Limited dataset to {max_tickets} tickets (was {final_count})")
         
         return df
         

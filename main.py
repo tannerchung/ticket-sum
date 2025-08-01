@@ -8,7 +8,7 @@ import sys
 from typing import List, Dict, Any
 from datetime import datetime
 
-from config import setup_langsmith, setup_kaggle
+from config import setup_langsmith, setup_kaggle, DEFAULT_TICKET_LIMIT
 from utils import (
     load_ticket_data, save_results, print_ticket_summary, 
     create_progress_bar, validate_environment
@@ -149,20 +149,16 @@ def main():
     setup_kaggle()
     
     try:
-        # Load ticket data
-        print("\n📊 Loading ticket data...")
-        df = load_ticket_data()
+        # Load ticket data with configurable limit
+        print(f"\n📊 Loading ticket data (limit: {DEFAULT_TICKET_LIMIT})...")
+        df = load_ticket_data(max_tickets=DEFAULT_TICKET_LIMIT)
         
         if df.empty:
             print("❌ No ticket data available. Exiting.")
             sys.exit(1)
         
         print(f"✅ Loaded {len(df)} tickets for processing")
-        
-        # For demo purposes, limit to first 5 tickets to avoid API rate limits
-        demo_size = min(5, len(df))
-        df_demo = df.head(demo_size)
-        print(f"🎯 Demo mode: Processing first {demo_size} tickets to demonstrate functionality")
+        df_demo = df  # Use all loaded tickets since we already limited them
         
         # Initialize collaborative crew
         print("\n🤖 Initializing CrewAI Collaborative Support Crew...")
