@@ -46,7 +46,6 @@ This application implements a multi-agent GenAI system for customer support auto
 ### Prerequisites
 - Python 3.11+
 - PostgreSQL database
-<<<<<<< HEAD
 - OpenAI API key
 - LangSmith API key (optional, for tracing)
 - Kaggle API credentials (optional, for datasets)
@@ -134,7 +133,6 @@ This is a demonstration project showcasing multi-agent AI collaboration for cust
 ## 📝 License
 
 This project is for educational and demonstration purposes, showcasing advanced AI agent collaboration techniques.
-=======
 - API keys for AI providers (OpenAI, Anthropic, optionally Cohere)
 
 ### Environment Setup
@@ -228,4 +226,3 @@ This project demonstrates advanced multi-agent AI orchestration with practical c
 ## License
 
 This project is available under standard open source licensing terms.
->>>>>>> 991d069 (Initial commit)
