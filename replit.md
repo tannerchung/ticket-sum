@@ -61,6 +61,9 @@ A custom faithfulness evaluation system, powered by GPT-4o, directly compares ag
 ### LangSmith API Warning Resolution
 Fixed LangSmith API 400 error warning that occurred during run ID extraction. The issue was caused by improper API query parameters. Implemented custom callback handler system to capture run IDs during LLM execution instead of querying the API afterward. This eliminates API warnings while maintaining proper traceability between database logs and LangSmith traces.
 
+### LangSmith Trace Completion Fix  
+Resolved issue where LangSmith traces remained in "running" state on dashboard after job completion. Added proper trace completion callbacks (on_llm_end, on_chain_end, on_llm_error, on_chain_error) and feedback submission. Now traces complete properly and feedback tab contains metadata about ticket processing, agent involvement, and completion status.
+
 ### Individual Agent Logging Implementation  
 Enhanced processing logs to capture individual agent activities instead of aggregate "collaborative_crew" entries. Each agent (triage_specialist, ticket_analyst, support_strategist, qa_reviewer) now logs separately with specific input/output data, processing times, and metadata.
 

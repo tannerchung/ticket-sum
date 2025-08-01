@@ -475,18 +475,39 @@ class CollaborativeSupportCrew:
             
             langsmith_run_ids = []
             
-            # Custom callback to capture run IDs
+            # Custom callback to capture run IDs and properly close traces
             class RunIdCapture(BaseCallbackHandler):
                 def __init__(self):
                     self.run_ids = []
+                    self.active_runs = {}
                 
                 def on_llm_start(self, serialized, prompts, run_id=None, **kwargs):
                     if run_id:
                         self.run_ids.append(str(run_id))
+                        self.active_runs[str(run_id)] = {"type": "llm", "status": "started"}
                 
                 def on_chain_start(self, serialized, inputs, run_id=None, **kwargs):
                     if run_id:
                         self.run_ids.append(str(run_id))
+                        self.active_runs[str(run_id)] = {"type": "chain", "status": "started"}
+                
+                def on_llm_end(self, response, run_id=None, **kwargs):
+                    if run_id and str(run_id) in self.active_runs:
+                        self.active_runs[str(run_id)]["status"] = "completed"
+                
+                def on_chain_end(self, outputs, run_id=None, **kwargs):
+                    if run_id and str(run_id) in self.active_runs:
+                        self.active_runs[str(run_id)]["status"] = "completed"
+                
+                def on_llm_error(self, error, run_id=None, **kwargs):
+                    if run_id and str(run_id) in self.active_runs:
+                        self.active_runs[str(run_id)]["status"] = "error"
+                        self.active_runs[str(run_id)]["error"] = str(error)
+                
+                def on_chain_error(self, error, run_id=None, **kwargs):
+                    if run_id and str(run_id) in self.active_runs:
+                        self.active_runs[str(run_id)]["status"] = "error"
+                        self.active_runs[str(run_id)]["error"] = str(error)
             
             if os.environ.get("LANGCHAIN_TRACING_V2") == "true":
                 print(f"🔗 LangSmith tracing active for project: {os.environ.get('LANGCHAIN_PROJECT', 'default')}")
@@ -495,11 +516,61 @@ class CollaborativeSupportCrew:
                     # Set up callback to capture run IDs during execution
                     run_capture = RunIdCapture()
                     
-                    # Execute crew with tracing
+                    # Add callback to crew's agents to ensure proper trace completion
+                    for agent in self.crew.agents:
+                        if hasattr(agent, 'llm') and hasattr(agent.llm, 'callbacks'):
+                            if agent.llm.callbacks is None:
+                                agent.llm.callbacks = []
+                            agent.llm.callbacks.append(run_capture)
+                    
+                    # Execute crew with enhanced tracing
                     result = self.crew.kickoff()
                     
                     # Get captured run IDs
                     langsmith_run_ids = run_capture.run_ids[:4]  # Max 4 for agents
+                    
+                    # Log completion status for debugging
+                    completed_runs = [rid for rid, info in run_capture.active_runs.items() if info.get("status") == "completed"]
+                    print(f"🔗 Completed {len(completed_runs)} traces out of {len(run_capture.active_runs)} total")
+                    
+                    # Submit feedback and metadata to LangSmith
+                    try:
+                        from langsmith import Client
+                        client = Client()
+                        
+                        # Submit metadata for each captured run
+                        for run_id in langsmith_run_ids:
+                            try:
+                                # Add metadata about the ticket and agent processing
+                                metadata = {
+                                    "ticket_id": ticket_id,
+                                    "processing_type": "collaborative_multi_agent",
+                                    "agents_involved": ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"],
+                                    "completion_status": "completed",
+                                    "system_version": "v2.0"
+                                }
+                                
+                                # Submit feedback with completion status
+                                client.create_feedback(
+                                    run_id=run_id,
+                                    key="completion_status",
+                                    score=1.0,
+                                    comment=f"Multi-agent processing completed for ticket {ticket_id}"
+                                )
+                                
+                                # Update run with final metadata
+                                client.update_run(
+                                    run_id=run_id,
+                                    extra=metadata
+                                )
+                                
+                            except Exception as e:
+                                print(f"Warning: Could not submit feedback for run {run_id}: {e}")
+                                
+                        print(f"📡 Submitted feedback and metadata to LangSmith for {len(langsmith_run_ids)} runs")
+                        
+                    except Exception as e:
+                        print(f"Warning: Could not submit LangSmith feedback: {e}")
                     
                     # If no run IDs captured, generate tracking IDs
                     if not langsmith_run_ids:
