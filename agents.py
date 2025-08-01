@@ -1019,7 +1019,7 @@ class CollaborativeSupportCrew:
         
         return metrics
     
-    def _extract_classification_field(self, text: str, field: str) -> str:
+    def _extract_classification_field(self, text: str, field: str) -> Optional[str]:
         """Extract classification field from agent output text."""
         field_patterns = {
             'intent': ['intent:', 'category:', 'type:', 'classification:'],
