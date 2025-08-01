@@ -558,36 +558,42 @@ class CollaborativeSupportCrew:
                         from langsmith import Client
                         client = Client()
                         
-                        # Submit metadata for each captured run
-                        for run_id in langsmith_run_ids:
-                            try:
-                                # Add metadata about the ticket and agent processing
-                                metadata = {
-                                    "ticket_id": ticket_id,
-                                    "processing_type": "collaborative_multi_agent",
-                                    "agents_involved": ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"],
-                                    "completion_status": "completed",
-                                    "system_version": "v2.0"
-                                }
-                                
-                                # Submit feedback with completion status
-                                client.create_feedback(
-                                    run_id=run_id,
-                                    key="completion_status",
-                                    score=1.0,
-                                    comment=f"Multi-agent processing completed for ticket {ticket_id}"
-                                )
-                                
-                                # Update run with final metadata
-                                client.update_run(
-                                    run_id=run_id,
-                                    extra=metadata
-                                )
-                                
-                            except Exception as e:
-                                print(f"Warning: Could not submit feedback for run {run_id}: {e}")
-                                
-                        print(f"📡 Submitted feedback and metadata to LangSmith for {len(langsmith_run_ids)} runs")
+                        try:
+                            # Submit metadata for each captured run
+                            for run_id in langsmith_run_ids:
+                                try:
+                                    # Add metadata about the ticket and agent processing
+                                    metadata = {
+                                        "ticket_id": ticket_id,
+                                        "processing_type": "collaborative_multi_agent",
+                                        "agents_involved": ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"],
+                                        "completion_status": "completed",
+                                        "system_version": "v2.0"
+                                    }
+                                    
+                                    # Submit feedback with completion status
+                                    client.create_feedback(
+                                        run_id=run_id,
+                                        key="completion_status",
+                                        score=1.0,
+                                        comment=f"Multi-agent processing completed for ticket {ticket_id}"
+                                    )
+                                    
+                                    # Update run with final metadata
+                                    client.update_run(
+                                        run_id=run_id,
+                                        extra=metadata
+                                    )
+                                    
+                                except Exception as e:
+                                    print(f"Warning: Could not submit feedback for run {run_id}: {e}")
+                            
+                            print(f"📡 Submitted feedback and metadata to LangSmith for {len(langsmith_run_ids)} runs")
+                            
+                        finally:
+                            # Ensure client connections are properly closed
+                            if hasattr(client, 'close'):
+                                client.close()
                         
                     except Exception as e:
                         print(f"Warning: Could not submit LangSmith feedback: {e}")
@@ -784,7 +790,8 @@ class CollaborativeSupportCrew:
         
         # Look for severity values
         severity_patterns = [
-            r'severity[:\s]*(\w+)',
+            r'severity[:\s]*(\w+)(?:\s*\([^)]*\))?',  # Match "High (adjusted from Medium)"
+            r'(critical|high|medium|low)[\s]*\([^)]*\)',  # Match "High (adjusted from Medium)"
             r'(critical|high|medium|low)[\s]*severity',
             r'priority[:\s]*(\w+)'
         ]
@@ -854,39 +861,39 @@ class CollaborativeSupportCrew:
         
         # Look for primary action
         action_patterns = [
-            r'primary action[:\s]*[-\s]*([^*\n]+)',
-            r'recommend.*action[:\s]*([^*\n]+)',
-            r'assign.*technical.*specialist',
-            r'escalate.*ticket'
+            r'primary action[:\s]*[-\s]*([^*\n]+?)(?:\n|$|\*\*)',  # More precise extraction
+            r'recommend.*action[:\s]*([^*\n]+?)(?:\n|$|\*\*)',
+            r'escalate.*ticket.*to.*([^*\n]+?)(?:\n|$|\*\*)',
+            r'escalate.*to.*([^*\n]+?)(?:\n|$|\*\*)'
         ]
         
         for pattern in action_patterns:
-            match = re.search(pattern, text.lower())
-            if match:
-                if 'technical' in match.group(0) or 'specialist' in match.group(0):
-                    action_plan["primary_action"] = "escalate_to_technical"
+            match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+            if match and len(match.groups()) > 0:
+                action_text = match.group(1).strip()
+                # Clean up the extracted text
+                action_text = re.sub(r'\*\*', '', action_text)
+                action_text = re.sub(r'^\s*-\s*', '', action_text)
+                action_text = action_text.strip('.')
+                
+                if action_text and len(action_text) > 10 and not action_text.startswith('**'):
+                    action_plan["primary_action"] = action_text[:100]  # Limit length
                     break
-                elif len(match.groups()) > 0:
-                    action_text = match.group(1).strip()
-                    if action_text and not action_text.startswith('**'):
-                        # Convert to action code
-                        if 'escalate' in action_text.lower():
-                            action_plan["primary_action"] = "escalate_to_tier2"
-                        elif 'technical' in action_text.lower():
-                            action_plan["primary_action"] = "route_to_technical"
-                        break
         
         # Extract priority
         priority_patterns = [
+            r'priority level[:\s]*[-\s]*(\w+)[\s]*priority',  # Match "High priority"
+            r'priority[:\s]*[-\s]*(\w+)[\s]*priority',  # Match "High priority"
             r'priority level[:\s]*(\w+)',
-            r'priority[:\s]*(\w+)'
+            r'priority[:\s]*(\w+)',
+            r'(high|medium|low)[\s]*priority'  # Match "High priority"
         ]
         
         for pattern in priority_patterns:
             match = re.search(pattern, text.lower())
             if match and len(match.groups()) > 0:
                 priority_value = match.group(1).strip()
-                if priority_value and priority_value != "**":
+                if priority_value and priority_value != "**" and priority_value in ['high', 'medium', 'low', 'critical']:
                     action_plan["priority"] = priority_value
                     break
         

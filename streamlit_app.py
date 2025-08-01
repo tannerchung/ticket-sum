@@ -259,17 +259,17 @@ def log_langsmith_activity(agent_name, input_data, output_data, metadata=None):
                 api_url=os.environ.get("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
             )
             
-            # Create a run directly through the client
-            run_data = {
-                "name": f"agent_{agent_name}",
-                "inputs": input_data,
-                "outputs": output_data,
-                "run_type": "chain",
-                "project_name": os.environ.get("LANGCHAIN_PROJECT", "ticket-sum"),
-                "tags": [agent_name, "collaborative_crew"]
-            }
-            
             try:
+                # Create a run directly through the client
+                run_data = {
+                    "name": f"agent_{agent_name}",
+                    "inputs": input_data,
+                    "outputs": output_data,
+                    "run_type": "chain",
+                    "project_name": os.environ.get("LANGCHAIN_PROJECT", "ticket-sum"),
+                    "tags": [agent_name, "collaborative_crew"]
+                }
+                
                 client.create_run(**run_data)
                 print(f"📡 Successfully sent trace to LangSmith for {agent_name}")
             except Exception as api_e:
@@ -277,6 +277,10 @@ def log_langsmith_activity(agent_name, input_data, output_data, metadata=None):
                     print(f"⚠️ LangSmith API permissions issue for {agent_name}: Check API key permissions")
                 else:
                     print(f"⚠️ LangSmith API error for {agent_name}: {api_e}")
+            finally:
+                # Ensure client connections are properly closed
+                if hasattr(client, 'close'):
+                    client.close()
             
     except Exception as e:
         print(f"⚠️ Failed to send trace to LangSmith for {agent_name}: {e}")
@@ -448,9 +452,12 @@ def evaluate_with_deepeval(result, original_message):
                 result_item = evaluation_result[0]
                 if hasattr(result_item, 'metrics') and result_item.metrics:
                     if len(result_item.metrics) > 0:
+                        # Hallucination score is already 0-1 (0 = no hallucination, 1 = high hallucination)
+                        # Convert to quality score where higher = better
                         hallucination_score = 1.0 - getattr(result_item.metrics[0], 'score', 0.2)
                     if len(result_item.metrics) > 1:
                         relevancy_score = getattr(result_item.metrics[1], 'score', 0.8)
+                    print(f"Extracted scores - Hallucination: {hallucination_score:.3f}, Relevancy: {relevancy_score:.3f}")
             except (IndexError, AttributeError) as e:
                 print(f"Warning: Could not extract evaluation metrics: {e}")
         
