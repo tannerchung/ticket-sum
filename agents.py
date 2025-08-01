@@ -490,7 +490,6 @@ class CollaborativeSupportCrew:
             # Add LangSmith tracing context and capture run IDs
             import os
             import uuid
-            from langchain.callbacks.manager import CallbackManager
             from langchain.callbacks.base import BaseCallbackHandler
             
             langsmith_run_ids = []
