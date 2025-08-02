@@ -35,6 +35,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Global flag to prevent duplicate initialization across the entire app
+if 'global_agents_initialized' not in st.session_state:
+    st.session_state.global_agents_initialized = False
+
 def add_health_check():
     """Add a simple health check endpoint for deployment."""
     # Check if this is a health check request
@@ -557,28 +561,28 @@ def display_evaluation_dashboard():
 def setup_agents():
     """Initialize the collaborative CrewAI system with Langfuse tracing."""
     try:
-        # Only print initialization message if not already in session state
-        if not st.session_state.get('agents_initialized', False):
-            print("🚀 Initializing Support Ticket Summarizer...")
+        # Prevent any duplicate initialization with global check
+        if st.session_state.get('global_agents_initialized', False):
+            # Return the existing crew from session state
+            return st.session_state.get('agents')
+        
+        print("🚀 Initializing Support Ticket Summarizer...")
         
         if not validate_environment():
             st.error("Environment validation failed. Please check your API keys.")
             return None
         
-        # Set up Langfuse tracing (check if already configured to avoid duplicates)
-        if not st.session_state.get('langfuse_configured', False):
-            print("📡 Configuring Langfuse tracing...")
-            setup_langfuse()
-            st.session_state.langfuse_configured = True
+        # Set up Langfuse tracing
+        print("📡 Configuring Langfuse tracing...")
+        setup_langfuse()
         
-        if not st.session_state.get('kaggle_configured', False):
-            setup_kaggle()
-            st.session_state.kaggle_configured = True
+        setup_kaggle()
         
         crew = CollaborativeSupportCrew()
+        print("✅ Multi-agent crew initialized successfully")
         
-        if not st.session_state.get('agents_initialized', False):
-            print("✅ Multi-agent crew initialized successfully")
+        # Mark as globally initialized to prevent any future calls
+        st.session_state.global_agents_initialized = True
         
         return crew
     except Exception as e:
