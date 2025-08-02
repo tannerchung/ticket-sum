@@ -102,12 +102,17 @@ def initialize_session_state():
     """Initialize session state variables."""
     if 'agents' not in st.session_state:
         st.session_state.agents = None
-        # Auto-initialize agents on app start
+        st.session_state.agents_initialized = False
+        
+    # Only initialize agents once to prevent duplicate console messages
+    if not st.session_state.get('agents_initialized', False) and st.session_state.agents is None:
         try:
             st.session_state.agents = setup_agents()
+            st.session_state.agents_initialized = True
             if st.session_state.agents:
                 st.success("AI agents ready to process tickets!", icon="🤖")
         except Exception as e:
+            st.session_state.agents_initialized = True  # Mark as attempted to prevent retries
             st.warning("AI agents will be initialized when needed. Check your API keys if processing fails.")
     
     if 'sample_tickets' not in st.session_state:
@@ -552,22 +557,28 @@ def display_evaluation_dashboard():
 def setup_agents():
     """Initialize the collaborative CrewAI system with Langfuse tracing."""
     try:
-        print("🚀 Initializing Support Ticket Summarizer...")
+        # Only print initialization message if not already in session state
+        if not st.session_state.get('agents_initialized', False):
+            print("🚀 Initializing Support Ticket Summarizer...")
         
         if not validate_environment():
             st.error("Environment validation failed. Please check your API keys.")
             return None
         
-        # Set up Langfuse tracing
-        print("📡 Configuring Langfuse tracing...")
-        setup_langfuse()
+        # Set up Langfuse tracing (check if already configured to avoid duplicates)
+        if not st.session_state.get('langfuse_configured', False):
+            print("📡 Configuring Langfuse tracing...")
+            setup_langfuse()
+            st.session_state.langfuse_configured = True
         
-        setup_kaggle()
+        if not st.session_state.get('kaggle_configured', False):
+            setup_kaggle()
+            st.session_state.kaggle_configured = True
         
         crew = CollaborativeSupportCrew()
-        print("✅ Multi-agent crew initialized successfully")
         
-        # Note: Session IDs are displayed during ticket processing, not globally
+        if not st.session_state.get('agents_initialized', False):
+            print("✅ Multi-agent crew initialized successfully")
         
         return crew
     except Exception as e:
