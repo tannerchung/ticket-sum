@@ -640,6 +640,11 @@ def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
             individual_logs = result.get('individual_agent_logs', [])
             if individual_logs:
                 for agent_log in individual_logs:
+                    # Extract Langfuse tracing information from agent log
+                    langfuse_trace_id = agent_log.get('langfuse_trace_id')
+                    langfuse_session_id = agent_log.get('langfuse_session_id')
+                    langfuse_observation_id = agent_log.get('langfuse_observation_id')
+                    
                     db_service.save_processing_log_with_agent_stats(
                         ticket_id=ticket_id,
                         agent_name=agent_log['agent_name'],
@@ -649,11 +654,24 @@ def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
                         status=agent_log['status'],
                         processing_time=agent_log['processing_time'],
                         trace_id=agent_log['trace_id'],
-                        # Removed langfuse_trace_id parameter - not needed anymore
+                        langfuse_trace_id=langfuse_trace_id,
+                        langfuse_session_id=langfuse_session_id,
+                        langfuse_observation_id=langfuse_observation_id
                     )
             
-            # Also log overall collaborative summary
+            # Also log overall collaborative summary with Langfuse session tracking
             processing_time = time.time() - start_time
+            
+            # Get Langfuse session information from telemetry manager
+            try:
+                from telemetry import get_langfuse_manager
+                langfuse_manager = get_langfuse_manager()
+                session_id = langfuse_manager.get_session_id()
+                trace_id = f"collaborative_{ticket_id}_{int(time.time())}"
+            except Exception:
+                session_id = None
+                trace_id = f"collaborative_{ticket_id}"
+            
             db_service.save_processing_log_with_agent_stats(
                 ticket_id=ticket_id,
                 agent_name='collaborative_summary',
@@ -666,7 +684,9 @@ def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
                     'individual_agents_logged': len(individual_logs)
                 },
                 status='success',
-                processing_time=processing_time
+                processing_time=processing_time,
+                trace_id=trace_id,
+                langfuse_session_id=session_id
             )
         except Exception as e:
             st.warning(f"Database save failed: {str(e)}")

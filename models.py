@@ -56,9 +56,11 @@ class ProcessingLog(Base):
     status = Column(String(50))  # 'success', 'error', 'timeout'
     error_message = Column(Text)
     
-    # Tracing
+    # Langfuse Tracing
     trace_id = Column(String(100))
-    langsmith_run_id = Column(String(100))
+    langfuse_trace_id = Column(String(100))
+    langfuse_session_id = Column(String(100))
+    langfuse_observation_id = Column(String(100))
     
     created_at = Column(DateTime, default=datetime.utcnow)
     

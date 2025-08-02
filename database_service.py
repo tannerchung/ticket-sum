@@ -76,7 +76,9 @@ class DatabaseService:
                           processing_time: float = 0.0, 
                           error_message: Optional[str] = None,
                           trace_id: Optional[str] = None,
-                          langsmith_run_id: Optional[str] = None) -> bool:
+                          langfuse_trace_id: Optional[str] = None,
+                          langfuse_session_id: Optional[str] = None,
+                          langfuse_observation_id: Optional[str] = None) -> bool:
         """Save a processing log entry."""
         session = get_db_session()
         try:
@@ -94,7 +96,9 @@ class DatabaseService:
                 status=status,
                 error_message=error_message,
                 trace_id=trace_id,
-                langsmith_run_id=langsmith_run_id
+                langfuse_trace_id=langfuse_trace_id,
+                langfuse_session_id=langfuse_session_id,
+                langfuse_observation_id=langfuse_observation_id
             )
             
             session.add(log)
@@ -114,7 +118,9 @@ class DatabaseService:
                                            processing_time: float = 0.0, 
                                            error_message: Optional[str] = None,
                                            trace_id: Optional[str] = None,
-                                           langsmith_run_id: Optional[str] = None) -> bool:
+                                           langfuse_trace_id: Optional[str] = None,
+                                           langfuse_session_id: Optional[str] = None,
+                                           langfuse_observation_id: Optional[str] = None) -> bool:
         """Save processing log AND update agent statistics."""
         session = get_db_session()
         try:
@@ -133,7 +139,9 @@ class DatabaseService:
                 status=status,
                 error_message=error_message,
                 trace_id=trace_id,
-                langsmith_run_id=langsmith_run_id
+                langfuse_trace_id=langfuse_trace_id,
+                langfuse_session_id=langfuse_session_id,
+                langfuse_observation_id=langfuse_observation_id
             )
             session.add(log)
             
