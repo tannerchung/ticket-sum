@@ -260,10 +260,14 @@ class ExperimentManager:
         print(f"🎫 Test tickets: {len(config.test_tickets)}")
         
         # Save experiment configuration to database
+        config_dict = asdict(config)
+        # Convert enum to string for JSON serialization
+        config_dict['experiment_type'] = config.experiment_type.value
+        
         experiment = ExperimentConfiguration(
             experiment_name=config.name,
             experiment_type=config.experiment_type.value,
-            configuration=asdict(config),
+            configuration=config_dict,
             description=config.description,
             status='running',
             started_at=datetime.now(timezone.utc)
