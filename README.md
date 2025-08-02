@@ -106,7 +106,7 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 **Foundation Building: Observability and Quality Assessment**
 
 #### Key Additions
-- 🔍 **Langfuse Integration**: Advanced tracing and logging with OpenInference instrumentation for LLM interactions
+- 🔍 **LangSmith Integration**: Advanced tracing and logging
 - 📊 **PostgreSQL Database**: Persistent storage for tickets, processing logs, and evaluations
 - 🎯 **Quality Metrics**: Basic DeepEval integration for response quality assessment
 - 📈 **Streamlit Interface**: Interactive web dashboard for real-time monitoring
@@ -178,7 +178,7 @@ Create a `.env` file with:
 ```bash
 OPENAI_API_KEY=your_openai_api_key
 DATABASE_URL=your_postgresql_url
-LANGSMITH_API_KEY=your_langsmith_key  # Optional
+LANGFUSE_SECRET_KEY=your_langfuse_secret_key  # Optional
 KAGGLE_USERNAME=your_kaggle_username  # Optional
 KAGGLE_KEY=your_kaggle_key           # Optional
 ```
@@ -248,7 +248,7 @@ for _, row in df.iterrows():
 ### Data Flow
 - Tickets → Multi-agent processing → Database storage → Analytics dashboard
 - Real-time status updates and collaboration monitoring
-- Comprehensive logging with LangSmith integration
+- Comprehensive logging with Langfuse integration
 - Quality assessment with DeepEval metrics
 
 ### Database Schema
