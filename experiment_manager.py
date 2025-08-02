@@ -552,15 +552,15 @@ class ExperimentManager:
         agreement_strengths = [r.get('collaboration_metrics', {}).get('overall_agreement_strength', 0.0) for r in successful_results]
         
         return {
-            'success_rate': successful_count / total_tickets,
-            'avg_processing_time': np.mean(processing_times) if processing_times else 0.0,
-            'total_processing_time': sum(processing_times),
+            'success_rate': float(successful_count / total_tickets),
+            'avg_processing_time': float(np.mean(processing_times)) if processing_times else 0.0,
+            'total_processing_time': float(sum(processing_times)),
             'avg_accuracy': 0.8,  # Placeholder - would need actual evaluation integration
             'avg_relevancy': 0.8,  # Placeholder
             'avg_faithfulness': 0.7,  # Placeholder
             'avg_hallucination': 0.2,  # Placeholder
-            'avg_consensus_time': np.mean(consensus_times) if consensus_times else 0.0,
-            'avg_agreement_strength': np.mean(agreement_strengths) if agreement_strengths else 0.0
+            'avg_consensus_time': float(np.mean(consensus_times)) if consensus_times else 0.0,
+            'avg_agreement_strength': float(np.mean(agreement_strengths)) if agreement_strengths else 0.0
         }
     
     def _calculate_experiment_summary(self, experiment_id: int) -> Dict[str, int]:

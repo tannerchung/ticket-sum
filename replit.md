@@ -88,6 +88,12 @@ Use Replit's persistent storage for output files and cached data.
 - **Solution**: Removed explicit trace creation, relying entirely on OpenInference automatic instrumentation
 - **Result**: Clean trace processing without AttributeError warnings
 
+#### Numpy PostgreSQL Serialization Fix - COMPLETED ✅
+- **Problem Fixed**: Experiment database updates failing with "schema 'np' does not exist" error
+- **Root Cause**: Numpy float64 values being passed directly to PostgreSQL without type conversion
+- **Solution**: Added explicit float() conversion for all numpy values in experiment results
+- **Result**: Experiment runs now complete successfully with proper database storage
+
 #### Trace Naming Improvements
 - **Issue Fixed**: Generic "completion" and "ToolUsage._use" trace names from OpenInference instrumentation
 - **Enhancement**: Better span naming and resource attributes for clearer Langfuse visibility
