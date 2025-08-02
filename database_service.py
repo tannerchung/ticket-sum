@@ -5,6 +5,8 @@ Handles all database operations and integrations.
 
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Any
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from models import (
     SupportTicket, ProcessingLog, QualityEvaluation, AgentStatus, CollaborationMetrics,
     get_db_session, init_database
@@ -14,11 +16,15 @@ class DatabaseService:
     """Service class for database operations."""
     
     def __init__(self):
-        """Initialize database service."""
+        """Initialize database service with connection pooling support."""
         try:
             init_database()
         except Exception as e:
             print(f"Warning: Database initialization failed: {e}")
+        
+        # Thread lock for safe concurrent operations
+        self._lock = threading.Lock()
+        self._thread_pool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="db_worker")
     
     def save_ticket_result(self, result: Dict[str, Any]) -> bool:
         """Save a processed ticket result to the database."""
@@ -69,6 +75,135 @@ class DatabaseService:
             return False
         finally:
             session.close()
+    
+    def save_ticket_results_bulk(self, results: List[Dict[str, Any]]) -> int:
+        """
+        Save multiple ticket results in a single transaction for better performance.
+        
+        Args:
+            results: List of ticket result dictionaries
+            
+        Returns:
+            Number of successfully saved tickets
+        """
+        if not results:
+            return 0
+        
+        session = get_db_session()
+        saved_count = 0
+        
+        try:
+            with self._lock:  # Ensure thread safety
+                for result in results:
+                    if result.get('processing_status') == 'error':
+                        continue  # Skip error results
+                    
+                    try:
+                        ticket_id = result.get('ticket_id')
+                        
+                        # Check if ticket already exists
+                        existing_ticket = session.query(SupportTicket).filter_by(ticket_id=ticket_id).first()
+                        
+                        # Ensure required fields have default values
+                        original_message = str(result.get('original_message') or 
+                                              result.get('original_content') or 
+                                              'No content available')
+                        
+                        if existing_ticket:
+                            # Update existing ticket
+                            existing_ticket.original_message = original_message  # type: ignore
+                            existing_ticket.intent = str(result.get('classification', {}).get('intent') or 'general_inquiry')  # type: ignore
+                            existing_ticket.severity = str(result.get('classification', {}).get('severity') or 'medium')  # type: ignore
+                            existing_ticket.classification_confidence = float(result.get('classification', {}).get('confidence') or 0.5)  # type: ignore
+                            existing_ticket.summary = str(result.get('summary') or 'Summary not available')  # type: ignore
+                            existing_ticket.action_recommendation = result.get('action_recommendation') or {}  # type: ignore
+                            existing_ticket.processing_status = str(result.get('processing_status', 'completed'))  # type: ignore
+                            existing_ticket.processed_at = datetime.now(timezone.utc)  # type: ignore
+                        else:
+                            # Create new ticket
+                            new_ticket = SupportTicket(
+                                ticket_id=str(ticket_id),
+                                original_message=original_message,
+                                intent=str(result.get('classification', {}).get('intent') or 'general_inquiry'),
+                                severity=str(result.get('classification', {}).get('severity') or 'medium'),
+                                classification_confidence=float(result.get('classification', {}).get('confidence') or 0.5),
+                                summary=str(result.get('summary') or 'Summary not available'),
+                                action_recommendation=result.get('action_recommendation') or {},
+                                processing_status=str(result.get('processing_status', 'completed')),
+                                processed_at=datetime.now(timezone.utc),
+                                source='batch'
+                            )
+                            session.add(new_ticket)
+                        
+                        saved_count += 1
+                        
+                    except Exception as e:
+                        print(f"Error saving ticket {result.get('ticket_id', 'unknown')} in bulk: {e}")
+                        continue
+                
+                # Commit all changes at once
+                session.commit()
+                print(f"✅ Bulk saved {saved_count} tickets to database")
+                
+        except Exception as e:
+            session.rollback()
+            print(f"Error in bulk ticket save: {e}")
+            saved_count = 0
+        finally:
+            session.close()
+        
+        return saved_count
+    
+    def save_evaluation_results_bulk(self, ticket_evaluations: List[Dict[str, Any]]) -> int:
+        """
+        Save multiple evaluation results in bulk for better performance.
+        
+        Args:
+            ticket_evaluations: List of dicts with 'ticket_id' and 'evaluation_scores'
+            
+        Returns:
+            Number of successfully saved evaluations
+        """
+        if not ticket_evaluations:
+            return 0
+        
+        session = get_db_session()
+        saved_count = 0
+        
+        try:
+            with self._lock:
+                evaluation_objects = []
+                
+                for item in ticket_evaluations:
+                    ticket_id = item.get('ticket_id')
+                    evaluation_scores = item.get('evaluation_scores', {})
+                    
+                    if not ticket_id or not evaluation_scores:
+                        continue
+                    
+                    evaluation = QualityEvaluation(
+                        ticket_id=ticket_id,
+                        evaluation_scores=evaluation_scores,
+                        evaluation_timestamp=datetime.now(timezone.utc),
+                        evaluator_type='deepeval_parallel'
+                    )
+                    evaluation_objects.append(evaluation)
+                    saved_count += 1
+                
+                # Bulk insert all evaluations
+                if evaluation_objects:
+                    session.add_all(evaluation_objects)
+                    session.commit()
+                    print(f"✅ Bulk saved {saved_count} evaluations to database")
+                
+        except Exception as e:
+            session.rollback()
+            print(f"Error in bulk evaluation save: {e}")
+            saved_count = 0
+        finally:
+            session.close()
+        
+        return saved_count
     
     def save_processing_log(self, ticket_id: str, agent_name: str, 
                           input_data: Dict, output_data: Dict, 

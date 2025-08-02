@@ -6,6 +6,8 @@ Implements a multi-agent system where agents collaborate and refine each other's
 import json
 import re
 import time
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from typing import Dict, Any, List, Optional
 from crewai import Agent, Task, Crew
@@ -630,6 +632,72 @@ class CollaborativeSupportCrew:
             summary["recommended_model"] = performance_scores[0]["model"]
         
         return summary
+    
+    async def process_tickets_parallel(self, tickets: List[Dict[str, str]], max_concurrent: int = 5) -> List[Dict[str, Any]]:
+        """
+        Process multiple tickets in parallel using asyncio and thread pools.
+        
+        Args:
+            tickets: List of ticket dictionaries with 'id' and 'content' keys
+            max_concurrent: Maximum number of concurrent ticket processing operations
+            
+        Returns:
+            List of processing results in the same order as input tickets
+        """
+        print(f"\n🚀 Starting parallel processing of {len(tickets)} tickets (max concurrent: {max_concurrent})...")
+        
+        # Create semaphore to limit concurrent processing
+        semaphore = asyncio.Semaphore(max_concurrent)
+        
+        async def process_single_ticket_async(ticket: Dict[str, str]) -> Dict[str, Any]:
+            """Process a single ticket with semaphore control."""
+            async with semaphore:
+                ticket_id = ticket.get('id', 'unknown')
+                ticket_content = ticket.get('content', '')
+                
+                # Run the synchronous process_ticket_collaboratively in a thread pool
+                loop = asyncio.get_event_loop()
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    result = await loop.run_in_executor(
+                        executor, 
+                        self.process_ticket_collaboratively, 
+                        ticket_id, 
+                        ticket_content
+                    )
+                return result
+        
+        # Create tasks for all tickets
+        tasks = [process_single_ticket_async(ticket) for ticket in tickets]
+        
+        # Process all tickets concurrently and collect results
+        start_time = time.time()
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        total_time = time.time() - start_time
+        
+        # Handle any exceptions and filter successful results
+        successful_results = []
+        error_count = 0
+        
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                print(f"❌ Error processing ticket {tickets[i].get('id', i)}: {result}")
+                error_count += 1
+                # Create error result placeholder
+                successful_results.append({
+                    "ticket_id": tickets[i].get('id', f'error_{i}'),
+                    "processing_status": "error",
+                    "error": str(result),
+                    "original_message": tickets[i].get('content', '')
+                })
+            else:
+                successful_results.append(result)
+        
+        print(f"✅ Parallel processing completed in {total_time:.2f}s")
+        print(f"📊 Successfully processed: {len(successful_results) - error_count}/{len(tickets)} tickets")
+        if error_count > 0:
+            print(f"⚠️ Errors encountered: {error_count} tickets failed")
+        
+        return successful_results
     
     def process_ticket_collaboratively(self, ticket_id: str, ticket_content: str) -> Dict[str, Any]:
         """

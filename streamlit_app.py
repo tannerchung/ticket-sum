@@ -10,7 +10,9 @@ from datetime import datetime
 import os
 import time
 import uuid
-from typing import Dict, Any
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from typing import Dict, Any, List
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -24,6 +26,7 @@ from config import (
     DEFAULT_AGENT_MODELS,
     AGENT_MODEL_RECOMMENDATIONS
 )
+from experiment_manager import ExperimentManager, ExperimentType, ExperimentConfig
 from utils import validate_environment, load_ticket_data
 from database_service import db_service
 
@@ -593,6 +596,107 @@ def setup_agents():
         print(f"❌ Agent initialization failed: {e}")
         return None
 
+def run_async_in_streamlit(coroutine):
+    """
+    Helper function to run async code in Streamlit.
+    Streamlit doesn't natively support async, so we run it in a thread pool.
+    """
+    loop = None
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    
+    if loop.is_running():
+        # If event loop is already running, use a thread pool
+        with ThreadPoolExecutor() as executor:
+            future = executor.submit(asyncio.run, coroutine)
+            return future.result()
+    else:
+        return loop.run_until_complete(coroutine)
+
+def process_tickets_parallel(crew, tickets: List[Dict[str, str]], max_concurrent: int = 5, batch_session_id=None) -> List[Dict[str, Any]]:
+    """
+    Process multiple tickets in parallel using the crew's async method.
+    
+    Args:
+        crew: The CollaborativeSupportCrew instance
+        tickets: List of ticket dictionaries with 'id' and 'content' keys
+        max_concurrent: Maximum number of concurrent operations
+        batch_session_id: Optional batch session ID for Langfuse tracking
+        
+    Returns:
+        List of processing results
+    """
+    if not crew:
+        st.error("❌ AI agents not initialized. Please check your configuration.")
+        return []
+    
+    try:
+        # Run the async parallel processing
+        results = run_async_in_streamlit(crew.process_tickets_parallel(tickets, max_concurrent))
+        
+        # Process results for database logging and evaluation
+        processed_results = []
+        evaluation_data = []
+        
+        for result in results:
+            if result.get('processing_status') != 'error':
+                # Add batch session ID if provided
+                if batch_session_id:
+                    if 'metadata' not in result:
+                        result['metadata'] = {}
+                    result['metadata']['batch_session_id'] = batch_session_id
+                
+                # Evaluate with DeepEval for successful results
+                try:
+                    ticket_content = result.get('original_message', '')
+                    evaluation_scores = evaluate_with_deepeval(result, ticket_content)
+                    st.session_state.evaluation_results.append(evaluation_scores)
+                    
+                    # Collect evaluation data for bulk save
+                    evaluation_data.append({
+                        'ticket_id': result.get('ticket_id'),
+                        'evaluation_scores': evaluation_scores
+                    })
+                        
+                except Exception as e:
+                    st.warning(f"⚠️ Evaluation failed for {result.get('ticket_id', 'unknown')}: {str(e)}")
+            
+            processed_results.append(result)
+        
+        # Bulk save to database for better performance
+        try:
+            # Save all ticket results in bulk
+            successful_results = [r for r in processed_results if r.get('processing_status') != 'error']
+            if successful_results:
+                saved_count = db_service.save_ticket_results_bulk(successful_results)
+                print(f"📊 Bulk saved {saved_count} ticket results to database")
+            
+            # Save all evaluations in bulk
+            if evaluation_data:
+                eval_count = db_service.save_evaluation_results_bulk(evaluation_data)
+                print(f"📊 Bulk saved {eval_count} evaluations to database")
+                
+            # Save collaboration metrics (can be done individually as they're less frequent)
+            for result in successful_results:
+                collaboration_metrics = result.get('collaboration_metrics', {})
+                if collaboration_metrics:
+                    try:
+                        db_service.save_collaboration_metrics(result.get('ticket_id'), collaboration_metrics)
+                    except Exception as e:
+                        print(f"Warning: Failed to save collaboration metrics for {result.get('ticket_id')}: {e}")
+                        
+        except Exception as e:
+            st.warning(f"⚠️ Bulk database save failed: {str(e)}")
+        
+        return processed_results
+        
+    except Exception as e:
+        st.error(f"❌ Parallel processing failed: {str(e)}")
+        return []
+
 def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
     """Process a single ticket through the collaborative CrewAI workflow with enhanced monitoring."""
     if not crew:
@@ -919,6 +1023,39 @@ def main():
     st.markdown("---")
     st.header("📦 Batch Processing")
     
+    # Parallel processing controls
+    st.subheader("🚀 Parallel Processing Settings")
+    col_settings1, col_settings2, col_settings3 = st.columns([1, 1, 1])
+    
+    with col_settings1:
+        enable_parallel = st.checkbox(
+            "Enable Parallel Processing", 
+            value=True, 
+            help="Process multiple tickets concurrently for faster batch operations"
+        )
+    
+    with col_settings2:
+        max_concurrent = st.slider(
+            "Max Concurrent Tickets", 
+            min_value=1, 
+            max_value=10, 
+            value=5 if enable_parallel else 1,
+            disabled=not enable_parallel,
+            help="Number of tickets to process simultaneously. Higher values = faster but more resource usage."
+        )
+    
+    with col_settings3:
+        if enable_parallel:
+            estimated_speedup = min(max_concurrent, 3.0)  # Realistic speedup estimate
+            st.metric(
+                "Est. Speedup", 
+                f"{estimated_speedup:.1f}x",
+                help=f"Estimated processing speed improvement with {max_concurrent} concurrent tickets"
+            )
+        else:
+            st.metric("Processing Mode", "Sequential", help="One ticket at a time")
+    
+    st.markdown("---")
     col1, col2 = st.columns([1, 1])
     
     with col1:
@@ -940,24 +1077,75 @@ def main():
                 manager = get_langfuse_manager()
                 batch_session_id = manager.create_batch_session()
                 
+                processing_mode = "Parallel" if enable_parallel else "Sequential"
                 st.info(f"📊 Batch Session ID: `{batch_session_id}` - All CSV tickets will be grouped under this session in Langfuse")
                 st.code(batch_session_id, language=None)
+                st.info(f"🔄 Processing Mode: {processing_mode} ({max_concurrent} concurrent)" if enable_parallel else f"🔄 Processing Mode: {processing_mode}")
                 
-                progress_bar = st.progress(0)
-                results = []
-                
+                # Prepare tickets for processing
+                tickets_to_process = []
                 for i, row in df.iterrows():
                     ticket_id = str(row.get('ticket_id', f'BATCH_{i+1}'))
                     message = str(row.get('message', ''))
                     
                     if message.strip():
-                        result = process_ticket(st.session_state.agents, ticket_id, message, batch_session_id)
+                        tickets_to_process.append({
+                            'id': ticket_id,
+                            'content': message
+                        })
+                
+                if not tickets_to_process:
+                    st.warning("No valid tickets found in the uploaded file.")
+                    return
+                
+                start_time = time.time()
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                if enable_parallel:
+                    # Use parallel processing
+                    status_text.text(f"🚀 Processing {len(tickets_to_process)} tickets in parallel (max {max_concurrent} concurrent)...")
+                    
+                    results = process_tickets_parallel(
+                        st.session_state.agents, 
+                        tickets_to_process, 
+                        max_concurrent, 
+                        batch_session_id
+                    )
+                    progress_bar.progress(1.0)
+                    
+                else:
+                    # Use sequential processing (original method)
+                    status_text.text(f"🔄 Processing {len(tickets_to_process)} tickets sequentially...")
+                    results = []
+                    
+                    for i, ticket in enumerate(tickets_to_process):
+                        result = process_ticket(
+                            st.session_state.agents, 
+                            ticket['id'], 
+                            ticket['content'], 
+                            batch_session_id
+                        )
                         if result:
                             results.append(result)
-                    
-                    progress_bar.progress((i + 1) / len(df))
+                        
+                        progress_bar.progress((i + 1) / len(tickets_to_process))
                 
-                st.success(f"Processed {len(results)} tickets successfully!")
+                total_time = time.time() - start_time
+                successful_results = [r for r in results if r.get('processing_status') != 'error']
+                error_count = len(results) - len(successful_results)
+                
+                st.success(f"✅ Processed {len(successful_results)} tickets successfully in {total_time:.2f}s!")
+                if error_count > 0:
+                    st.warning(f"⚠️ {error_count} tickets failed to process.")
+                
+                # Show performance metrics
+                if enable_parallel and len(tickets_to_process) > 1:
+                    estimated_sequential_time = total_time * max_concurrent
+                    actual_speedup = estimated_sequential_time / total_time if total_time > 0 else 1
+                    st.metric("Actual Speedup", f"{actual_speedup:.1f}x", f"vs estimated sequential time")
+                
+                status_text.empty()
                 
                 # Download batch results
                 if results:
@@ -1010,24 +1198,68 @@ def main():
                     manager = get_langfuse_manager()
                     batch_session_id = manager.create_batch_session()
                     
+                    processing_mode = "Parallel" if enable_parallel else "Sequential"
                     st.info(f"📊 Kaggle Batch Session ID: `{batch_session_id}` - All {num_tickets} tickets will be grouped under this session in Langfuse")
                     st.code(batch_session_id, language=None)
+                    st.info(f"🔄 Processing Mode: {processing_mode} ({max_concurrent} concurrent)" if enable_parallel else f"🔄 Processing Mode: {processing_mode}")
                     
-                    progress_bar = st.progress(0)
-                    results = []
-                    
+                    # Prepare Kaggle tickets for processing
+                    kaggle_tickets = []
                     for i in range(num_tickets):
                         row = df.iloc[i]
-                        ticket_id = str(row['ticket_id'])
-                        message = str(row['message'])
-                        
-                        result = process_ticket(st.session_state.agents, ticket_id, message, batch_session_id)
-                        if result:
-                            results.append(result)
-                        
-                        progress_bar.progress(float(i + 1) / num_tickets)
+                        kaggle_tickets.append({
+                            'id': str(row['ticket_id']),
+                            'content': str(row['message'])
+                        })
                     
-                    st.success(f"✅ Processed {len(results)} Kaggle tickets!")
+                    start_time = time.time()
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    if enable_parallel:
+                        # Use parallel processing for Kaggle data
+                        status_text.text(f"🚀 Processing {num_tickets} Kaggle tickets in parallel (max {max_concurrent} concurrent)...")
+                        
+                        results = process_tickets_parallel(
+                            st.session_state.agents, 
+                            kaggle_tickets, 
+                            max_concurrent, 
+                            batch_session_id
+                        )
+                        progress_bar.progress(1.0)
+                        
+                    else:
+                        # Use sequential processing
+                        status_text.text(f"🔄 Processing {num_tickets} Kaggle tickets sequentially...")
+                        results = []
+                        
+                        for i, ticket in enumerate(kaggle_tickets):
+                            result = process_ticket(
+                                st.session_state.agents, 
+                                ticket['id'], 
+                                ticket['content'], 
+                                batch_session_id
+                            )
+                            if result:
+                                results.append(result)
+                            
+                            progress_bar.progress(float(i + 1) / num_tickets)
+                    
+                    total_time = time.time() - start_time
+                    successful_results = [r for r in results if r.get('processing_status') != 'error']
+                    error_count = len(results) - len(successful_results)
+                    
+                    st.success(f"✅ Processed {len(successful_results)} Kaggle tickets in {total_time:.2f}s!")
+                    if error_count > 0:
+                        st.warning(f"⚠️ {error_count} tickets failed to process.")
+                    
+                    # Show performance metrics for parallel processing
+                    if enable_parallel and num_tickets > 1:
+                        estimated_sequential_time = total_time * max_concurrent
+                        actual_speedup = estimated_sequential_time / total_time if total_time > 0 else 1
+                        st.metric("Actual Speedup", f"{actual_speedup:.1f}x", f"vs estimated sequential time")
+                    
+                    status_text.empty()
                     
                     # Show summary
                     if results:
@@ -1066,7 +1298,7 @@ def main():
     st.markdown("---")
     
     # Tabs for different monitoring views
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🤖 Agent Monitor", "🔍 Langfuse Logs", "📊 DeepEval Assessment", "🗄️ Database Analytics", "🔄 Model Management"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🤖 Agent Monitor", "🔍 Langfuse Logs", "📊 DeepEval Assessment", "🗄️ Database Analytics", "🔄 Model Management", "🧪 Experimental Sweeps"])
     
     with tab1:
         # Only show agent monitor when there's actual agent activity (not just initialization)
@@ -1091,6 +1323,10 @@ def main():
     
     with tab5:
         display_model_management()
+    
+    with tab6:
+        display_experimental_sweeps()
+    
     # Footer
     st.markdown("---")
     st.markdown(
@@ -1564,5 +1800,354 @@ def display_comparison_results(comparison_results):
                     
                     results_df = pd.DataFrame(results_data)
                     st.dataframe(results_df, use_container_width=True)
+
+def display_experimental_sweeps():
+    """Display experimental sweep interface for multi-agent optimization."""
+    st.subheader("🧪 Experimental Sweeps & Multi-Agent Optimization")
+    
+    if not st.session_state.agents:
+        st.warning("Initialize agents first to run experimental sweeps.")
+        return
+    
+    # Initialize experiment manager
+    if 'experiment_manager' not in st.session_state:
+        st.session_state.experiment_manager = ExperimentManager()
+    
+    # Experiment creation section
+    st.markdown("### 🔬 Create New Experiment")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        experiment_name = st.text_input(
+            "Experiment Name",
+            placeholder="e.g., 'GPT-4 vs Claude Model Comparison'",
+            help="Descriptive name for your experiment"
+        )
+        
+        experiment_type = st.selectbox(
+            "Experiment Type",
+            options=[
+                ExperimentType.MODEL_ASSIGNMENT,
+                ExperimentType.AGENT_ORDERING,
+                ExperimentType.CONSENSUS_MECHANISM,
+                ExperimentType.QUALITY_THRESHOLD,
+                ExperimentType.COMPREHENSIVE_SWEEP
+            ],
+            format_func=lambda x: {
+                ExperimentType.MODEL_ASSIGNMENT: "🤖 Model Assignment Testing",
+                ExperimentType.AGENT_ORDERING: "🔄 Agent Execution Order",
+                ExperimentType.CONSENSUS_MECHANISM: "🤝 Consensus Building Mechanisms",
+                ExperimentType.QUALITY_THRESHOLD: "📊 Quality Threshold Optimization",
+                ExperimentType.COMPREHENSIVE_SWEEP: "🌟 Comprehensive Multi-Dimensional"
+            }[x]
+        )
+    
+    with col2:
+        st.markdown("**Quick Setup:**")
+        if st.button("🚀 Quick Model Test", help="Fast 3-model comparison"):
+            if experiment_name:
+                st.session_state.quick_experiment = "model_test"
+                st.session_state.experiment_name = experiment_name
+        
+        if st.button("🌟 Full Optimization", help="Comprehensive multi-agent optimization"):
+            if experiment_name:
+                st.session_state.quick_experiment = "full_optimization"
+                st.session_state.experiment_name = experiment_name
+    
+    # Experiment configuration based on type
+    st.markdown("### ⚙️ Experiment Configuration")
+    
+    # Test data selection
+    st.markdown("**📋 Test Data Selection:**")
+    col_data1, col_data2, col_data3 = st.columns([1, 1, 1])
+    
+    with col_data1:
+        data_source = st.radio(
+            "Data Source",
+            ["Sample Tickets", "Custom Tickets", "Kaggle Dataset"],
+            horizontal=True
+        )
+    
+    with col_data2:
+        if data_source == "Sample Tickets":
+            num_samples = st.slider("Number of Samples", 3, 5, 5)
+        elif data_source == "Custom Tickets":
+            num_custom = st.slider("Number of Custom Tickets", 1, 10, 3)
+        else:  # Kaggle
+            num_kaggle = st.slider("Number from Kaggle", 5, 50, 10)
+    
+    with col_data3:
+        num_runs = st.slider("Runs per Configuration", 1, 5, 2, help="How many times to test each configuration")
+    
+    # Get test tickets based on selection
+    test_tickets = []
+    if data_source == "Sample Tickets":
+        sample_tickets = load_sample_tickets()
+        test_tickets = [
+            {"id": ticket["id"], "content": ticket["message"]} 
+            for ticket in sample_tickets[:num_samples]
+        ]
+    elif data_source == "Custom Tickets":
+        st.markdown("**Enter Custom Test Tickets:**")
+        for i in range(num_custom):
+            with st.expander(f"Custom Ticket {i+1}"):
+                ticket_id = st.text_input(f"Ticket ID", value=f"CUSTOM_{i+1}", key=f"exp_ticket_id_{i}")
+                ticket_content = st.text_area(f"Ticket Content", key=f"exp_ticket_content_{i}")
+                if ticket_id and ticket_content:
+                    test_tickets.append({"id": ticket_id, "content": ticket_content})
+    elif data_source == "Kaggle Dataset":
+        try:
+            df = load_ticket_data()
+            kaggle_tickets = df.head(num_kaggle)
+            test_tickets = [
+                {"id": str(row['ticket_id']), "content": str(row['message'])} 
+                for _, row in kaggle_tickets.iterrows()
+            ]
+            st.success(f"✅ Loaded {len(test_tickets)} tickets from Kaggle dataset")
+        except Exception as e:
+            st.error(f"Failed to load Kaggle data: {str(e)}")
+    
+    # Type-specific configuration
+    config_dict = {}
+    
+    if experiment_type == ExperimentType.MODEL_ASSIGNMENT:
+        st.markdown("**🤖 Model Assignment Configuration:**")
+        
+        col_m1, col_m2 = st.columns([1, 1])
+        with col_m1:
+            agents_to_test = st.multiselect(
+                "Agents to Test",
+                ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"],
+                default=["ticket_analyst", "support_strategist"],
+                format_func=lambda x: {
+                    "triage_specialist": "🏥 Triage Specialist",
+                    "ticket_analyst": "📊 Ticket Analyst",
+                    "support_strategist": "🎯 Support Strategist",
+                    "qa_reviewer": "✅ QA Reviewer"
+                }[x]
+            )
+        
+        with col_m2:
+            available_models = list(AVAILABLE_MODELS.keys())
+            models_to_test = st.multiselect(
+                "Models to Test",
+                available_models,
+                default=["gpt-4o", "gpt-4o-mini", "claude-3-5-sonnet-20241022"],
+                format_func=lambda x: f"{AVAILABLE_MODELS[x]['name']} ({x})"
+            )
+        
+        config_dict = {
+            "agents_to_test": agents_to_test,
+            "models_to_test": models_to_test
+        }
+    
+    elif experiment_type == ExperimentType.AGENT_ORDERING:
+        st.markdown("**🔄 Agent Ordering Configuration:**")
+        
+        orderings = [
+            ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"],
+            ["ticket_analyst", "triage_specialist", "support_strategist", "qa_reviewer"],
+            ["triage_specialist", "support_strategist", "ticket_analyst", "qa_reviewer"]
+        ]
+        
+        selected_orderings = []
+        for i, ordering in enumerate(orderings):
+            readable_order = " → ".join([{
+                "triage_specialist": "🏥 Triage",
+                "ticket_analyst": "📊 Analyst", 
+                "support_strategist": "🎯 Strategist",
+                "qa_reviewer": "✅ QA"
+            }[agent] for agent in ordering])
+            
+            if st.checkbox(f"Order {i+1}: {readable_order}", value=i < 2):
+                selected_orderings.append(ordering)
+        
+        config_dict = {"orderings_to_test": selected_orderings}
+    
+    elif experiment_type == ExperimentType.QUALITY_THRESHOLD:
+        st.markdown("**📊 Quality Threshold Configuration:**")
+        
+        threshold_configs = []
+        
+        col_t1, col_t2, col_t3 = st.columns(3)
+        with col_t1:
+            if st.checkbox("Lenient Thresholds", value=True):
+                threshold_configs.append({"faithfulness": 0.6, "relevancy": 0.7, "hallucination": 0.3})
+        with col_t2:
+            if st.checkbox("Moderate Thresholds", value=True):
+                threshold_configs.append({"faithfulness": 0.7, "relevancy": 0.8, "hallucination": 0.2})
+        with col_t3:
+            if st.checkbox("Strict Thresholds", value=False):
+                threshold_configs.append({"faithfulness": 0.8, "relevancy": 0.9, "hallucination": 0.1})
+        
+        config_dict = {"thresholds_to_test": threshold_configs}
+    
+    # Run experiment
+    if st.button("🚀 Start Experiment", type="primary") and experiment_name and test_tickets:
+        if len(test_tickets) == 0:
+            st.error("Please configure test tickets before starting the experiment.")
+        else:
+            with st.spinner(f"Running {experiment_type.value} experiment..."):
+                try:
+                    manager = st.session_state.experiment_manager
+                    
+                    # Create experiment configuration
+                    if experiment_type == ExperimentType.MODEL_ASSIGNMENT:
+                        config = manager.create_model_assignment_experiment(
+                            experiment_name, test_tickets, 
+                            config_dict.get("agents_to_test"),
+                            config_dict.get("models_to_test")
+                        )
+                    elif experiment_type == ExperimentType.AGENT_ORDERING:
+                        config = manager.create_agent_ordering_experiment(
+                            experiment_name, test_tickets,
+                            config_dict.get("orderings_to_test")
+                        )
+                    elif experiment_type == ExperimentType.QUALITY_THRESHOLD:
+                        config = manager.create_quality_threshold_experiment(
+                            experiment_name, test_tickets,
+                            config_dict.get("thresholds_to_test")
+                        )
+                    elif experiment_type == ExperimentType.COMPREHENSIVE_SWEEP:
+                        config = manager.create_comprehensive_sweep(
+                            experiment_name, test_tickets, limited_scope=True
+                        )
+                    else:
+                        st.error("Experiment type not yet implemented")
+                        return
+                    
+                    config.num_runs = num_runs
+                    
+                    # Run experiment
+                    experiment_id = run_async_in_streamlit(manager.run_experiment(config))
+                    
+                    st.success(f"✅ Experiment '{experiment_name}' completed! ID: {experiment_id}")
+                    
+                    # Store experiment ID for results viewing
+                    if 'completed_experiments' not in st.session_state:
+                        st.session_state.completed_experiments = []
+                    st.session_state.completed_experiments.append(experiment_id)
+                    
+                except Exception as e:
+                    st.error(f"❌ Experiment failed: {str(e)}")
+    
+    # Results viewing section
+    st.markdown("---")
+    st.markdown("### 📊 Experiment Results & Analysis")
+    
+    # Quick experiment buttons results
+    if hasattr(st.session_state, 'quick_experiment'):
+        quick_type = st.session_state.quick_experiment
+        exp_name = st.session_state.experiment_name
+        
+        st.info(f"Setting up {quick_type} experiment: {exp_name}")
+        
+        if quick_type == "model_test" and st.button("Execute Quick Model Test"):
+            sample_tickets = load_sample_tickets()[:3]
+            test_tickets = [{"id": t["id"], "content": t["message"]} for t in sample_tickets]
+            
+            with st.spinner("Running quick model comparison..."):
+                try:
+                    manager = st.session_state.experiment_manager
+                    config = manager.create_model_assignment_experiment(
+                        exp_name, test_tickets,
+                        agents_to_test=["ticket_analyst"],
+                        models_to_test=["gpt-4o", "gpt-4o-mini", "claude-3-5-sonnet-20241022"]
+                    )
+                    config.num_runs = 1
+                    
+                    experiment_id = run_async_in_streamlit(manager.run_experiment(config))
+                    st.success(f"✅ Quick test completed! ID: {experiment_id}")
+                    
+                    if 'completed_experiments' not in st.session_state:
+                        st.session_state.completed_experiments = []
+                    st.session_state.completed_experiments.append(experiment_id)
+                    
+                except Exception as e:
+                    st.error(f"❌ Quick test failed: {str(e)}")
+        
+        # Clear the quick experiment state
+        if st.button("Clear Quick Setup"):
+            del st.session_state.quick_experiment
+            del st.session_state.experiment_name
+            st.rerun()
+    
+    # Display completed experiments
+    if hasattr(st.session_state, 'completed_experiments') and st.session_state.completed_experiments:
+        st.markdown("**🏆 Completed Experiments:**")
+        
+        for exp_id in st.session_state.completed_experiments[-5:]:  # Show last 5
+            with st.expander(f"Experiment {exp_id} Results"):
+                try:
+                    manager = st.session_state.experiment_manager
+                    results = manager.get_experiment_results(exp_id)
+                    
+                    experiment = results['experiment']
+                    runs = results['runs']
+                    summary = results['summary']
+                    
+                    st.write(f"**Name:** {experiment.experiment_name}")
+                    st.write(f"**Type:** {experiment.experiment_type}")
+                    st.write(f"**Status:** {experiment.status}")
+                    
+                    col_r1, col_r2, col_r3 = st.columns(3)
+                    with col_r1:
+                        st.metric("Total Runs", len(runs))
+                    with col_r2:
+                        st.metric("Successful", summary['successful_runs'])
+                    with col_r3:
+                        st.metric("Failed", summary['failed_runs'])
+                    
+                    if runs:
+                        successful_runs = [r for r in runs if r.status == 'completed']
+                        if successful_runs:
+                            avg_accuracy = np.mean([r.average_accuracy for r in successful_runs if r.average_accuracy])
+                            avg_time = np.mean([r.average_processing_time for r in successful_runs if r.average_processing_time])
+                            avg_success = np.mean([r.success_rate for r in successful_runs if r.success_rate])
+                            
+                            col_m1, col_m2, col_m3 = st.columns(3)
+                            with col_m1:
+                                st.metric("Avg Accuracy", f"{avg_accuracy:.2%}" if avg_accuracy else "N/A")
+                            with col_m2:
+                                st.metric("Avg Time", f"{avg_time:.2f}s" if avg_time else "N/A")
+                            with col_m3:
+                                st.metric("Success Rate", f"{avg_success:.2%}" if avg_success else "N/A")
+                
+                except Exception as e:
+                    st.error(f"Failed to load results: {str(e)}")
+    
+    # Experiment comparison
+    if hasattr(st.session_state, 'completed_experiments') and len(st.session_state.completed_experiments) >= 2:
+        st.markdown("---")
+        st.markdown("### 🏆 Experiment Comparison")
+        
+        experiments_to_compare = st.multiselect(
+            "Select Experiments to Compare",
+            st.session_state.completed_experiments,
+            default=st.session_state.completed_experiments[-2:] if len(st.session_state.completed_experiments) >= 2 else []
+        )
+        
+        comparison_name = st.text_input("Comparison Name", value="Model Performance Comparison")
+        
+        if st.button("📊 Compare Experiments") and len(experiments_to_compare) >= 2:
+            with st.spinner("Comparing experiments..."):
+                try:
+                    manager = st.session_state.experiment_manager
+                    comparison_result = manager.compare_experiments(experiments_to_compare, comparison_name)
+                    
+                    st.success(f"✅ Comparison completed!")
+                    st.write(f"**Winner:** Experiment {comparison_result['winner_experiment_id']}")
+                    st.write(f"**Recommendations:** {comparison_result['recommendations']}")
+                    
+                    # Display comparison data
+                    comparison_data = comparison_result['comparison_data']
+                    if comparison_data:
+                        df_comparison = pd.DataFrame(comparison_data).T
+                        st.dataframe(df_comparison, use_container_width=True)
+                
+                except Exception as e:
+                    st.error(f"❌ Comparison failed: {str(e)}")
+
 if __name__ == "__main__":
     main()

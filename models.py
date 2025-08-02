@@ -4,7 +4,8 @@ Database models for the Support Ticket Summarizer system.
 
 import os
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Float, Boolean, JSON
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Float, Boolean, JSON, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -150,6 +151,151 @@ class CollaborationMetrics(Base):
     
     def __repr__(self):
         return f"<CollaborationMetrics(ticket_id='{self.ticket_id}', consensus={self.consensus_reached})>"
+
+class ExperimentConfiguration(Base):
+    """Model for storing experimental sweep configurations."""
+    __tablename__ = 'experiment_configurations'
+    
+    id = Column(Integer, primary_key=True)
+    experiment_name = Column(String(200), nullable=False)
+    experiment_type = Column(String(100), nullable=False)  # 'model_assignment', 'agent_ordering', 'consensus_mechanism', etc.
+    
+    # Experiment parameters
+    configuration = Column(JSON, nullable=False)  # Full config details
+    description = Column(Text)
+    
+    # Status tracking
+    status = Column(String(50), default='pending')  # 'pending', 'running', 'completed', 'failed'
+    created_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime)
+    completed_at = Column(DateTime)
+    
+    # Results summary
+    total_tickets_tested = Column(Integer, default=0)
+    successful_runs = Column(Integer, default=0)
+    failed_runs = Column(Integer, default=0)
+    
+    def __repr__(self):
+        return f"<ExperimentConfiguration(name='{self.experiment_name}', type='{self.experiment_type}')>"
+
+class ExperimentRun(Base):
+    """Model for tracking individual experiment executions."""
+    __tablename__ = 'experiment_runs'
+    
+    id = Column(Integer, primary_key=True)
+    experiment_id = Column(Integer, ForeignKey('experiment_configurations.id'), nullable=False)
+    run_number = Column(Integer, nullable=False)  # Sequential run number within experiment
+    
+    # Test data
+    test_tickets = Column(JSON, nullable=False)  # List of tickets used for testing
+    ticket_count = Column(Integer, nullable=False)
+    
+    # Execution details
+    started_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime)
+    execution_time = Column(Float)  # Total time in seconds
+    
+    # Status and results
+    status = Column(String(50), default='running')  # 'running', 'completed', 'failed'
+    error_message = Column(Text)
+    
+    # Performance metrics
+    average_processing_time = Column(Float)
+    total_processing_time = Column(Float)
+    success_rate = Column(Float)  # Percentage of successful ticket processing
+    
+    # Quality metrics aggregates
+    average_accuracy = Column(Float)
+    average_relevancy = Column(Float) 
+    average_faithfulness = Column(Float)
+    average_hallucination = Column(Float)
+    
+    # Collaboration metrics aggregates
+    average_consensus_time = Column(Float)
+    average_agreement_strength = Column(Float)
+    consensus_success_rate = Column(Float)
+    average_resolution_iterations = Column(Float)
+    
+    # Raw results storage
+    detailed_results = Column(JSON)  # Complete results for analysis
+    
+    # Relationships
+    experiment = relationship("ExperimentConfiguration")
+    
+    def __repr__(self):
+        return f"<ExperimentRun(experiment_id={self.experiment_id}, run={self.run_number})>"
+
+class ExperimentResult(Base):
+    """Model for storing individual ticket results within experiment runs."""
+    __tablename__ = 'experiment_results'
+    
+    id = Column(Integer, primary_key=True)
+    experiment_run_id = Column(Integer, ForeignKey('experiment_runs.id'), nullable=False)
+    ticket_id = Column(String(100), nullable=False)
+    
+    # Configuration used for this specific result
+    agent_configuration = Column(JSON)  # Model assignments, ordering, etc.
+    
+    # Processing results
+    processing_time = Column(Float)
+    processing_status = Column(String(50))
+    
+    # Quality metrics
+    accuracy_score = Column(Float)
+    relevancy_score = Column(Float)
+    faithfulness_score = Column(Float)
+    hallucination_score = Column(Float)
+    overall_quality_score = Column(Float)
+    
+    # Classification results
+    predicted_intent = Column(String(100))
+    predicted_severity = Column(String(50))
+    classification_confidence = Column(Float)
+    
+    # Collaboration metrics
+    consensus_reached = Column(Boolean, default=False)
+    consensus_time = Column(Float)
+    agreement_strength = Column(Float)
+    resolution_iterations = Column(Integer, default=0)
+    
+    # Raw outputs
+    agent_outputs = Column(JSON)  # Individual agent outputs
+    final_result = Column(JSON)   # Final collaborative result
+    error_details = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    experiment_run = relationship("ExperimentRun")
+    
+    def __repr__(self):
+        return f"<ExperimentResult(run_id={self.experiment_run_id}, ticket='{self.ticket_id}')>"
+
+class ExperimentComparison(Base):
+    """Model for storing experiment comparison analyses."""
+    __tablename__ = 'experiment_comparisons'
+    
+    id = Column(Integer, primary_key=True)
+    comparison_name = Column(String(200), nullable=False)
+    experiment_ids = Column(JSON, nullable=False)  # List of experiment IDs being compared
+    
+    # Comparison metrics
+    comparison_type = Column(String(100))  # 'model_performance', 'agent_ordering', 'consensus_effectiveness'
+    metric_focus = Column(String(100))     # 'accuracy', 'speed', 'consensus_quality', 'overall'
+    
+    # Results
+    winner_experiment_id = Column(Integer)
+    performance_rankings = Column(JSON)  # Ranked list of experiments
+    statistical_significance = Column(JSON)  # P-values and confidence intervals
+    
+    # Analysis details
+    comparison_results = Column(JSON)  # Detailed comparison data
+    recommendations = Column(Text)     # Human-readable recommendations
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<ExperimentComparison(name='{self.comparison_name}', experiments={len(self.experiment_ids or [])})>"
 
 # Database setup and session management
 def get_database_url():
