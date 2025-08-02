@@ -1264,7 +1264,66 @@ def display_model_management():
     st.markdown("---")
     
     # Model swapping interface
-    st.markdown("### 🔄 Swap Agent Models")
+    st.markdown("### 🔄 Agent Model Management")
+    
+    # Add bulk model swap option
+    with st.expander("🔄 Swap All Agent Models", expanded=False):
+        st.markdown("**Change all agents to use the same model:**")
+        
+        col_bulk1, col_bulk2, col_bulk3 = st.columns([2, 2, 1])
+        
+        with col_bulk1:
+            available_models = list(AVAILABLE_MODELS.keys())
+            bulk_model = st.selectbox(
+                "Select Model for All Agents",
+                available_models,
+                format_func=lambda x: f"{AVAILABLE_MODELS[x]['name']} ({x})",
+                key="bulk_model_select"
+            )
+        
+        with col_bulk2:
+            st.markdown("**Agents to Update:**")
+            all_agents = ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"]
+            agent_display = {
+                "triage_specialist": "🏥 Triage Specialist",
+                "ticket_analyst": "📊 Ticket Analyst", 
+                "support_strategist": "🎯 Support Strategist",
+                "qa_reviewer": "✅ QA Reviewer"
+            }
+            
+            selected_agents = st.multiselect(
+                "Choose agents to update",
+                all_agents,
+                default=all_agents,
+                format_func=lambda x: agent_display[x],
+                key="bulk_agents_select"
+            )
+        
+        with col_bulk3:
+            st.markdown("**Action:**")
+            if st.button("🚀 Update All Selected", key="bulk_update_btn"):
+                if not selected_agents:
+                    st.warning("Please select at least one agent to update.")
+                else:
+                    with st.spinner(f"Updating {len(selected_agents)} agents to use {bulk_model}..."):
+                        success_count = 0
+                        for agent_name in selected_agents:
+                            try:
+                                if st.session_state.agents.update_agent_model(agent_name, bulk_model):
+                                    success_count += 1
+                            except Exception as e:
+                                st.error(f"Failed to update {agent_name}: {str(e)}")
+                        
+                        if success_count == len(selected_agents):
+                            st.success(f"✅ Successfully updated all {success_count} agents to use {bulk_model}!")
+                        elif success_count > 0:
+                            st.warning(f"⚠️ Updated {success_count} of {len(selected_agents)} agents successfully.")
+                        else:
+                            st.error("❌ Failed to update any agents.")
+                        
+                        st.rerun()
+    
+    st.markdown("**Individual Agent Model Updates:**")
     
     col1, col2 = st.columns([1, 1])
     
@@ -1277,7 +1336,8 @@ def display_model_management():
                 "ticket_analyst": "📊 Ticket Analyst", 
                 "support_strategist": "🎯 Support Strategist",
                 "qa_reviewer": "✅ QA Reviewer"
-            }[x]
+            }[x],
+            key="individual_agent_select"
         )
     
     with col2:
@@ -1285,7 +1345,8 @@ def display_model_management():
         new_model = st.selectbox(
             "Select New Model",
             available_models,
-            format_func=lambda x: f"{AVAILABLE_MODELS[x]['name']} ({x})"
+            format_func=lambda x: f"{AVAILABLE_MODELS[x]['name']} ({x})",
+            key="individual_model_select"
         )
     
     # Show model details and recommendations
