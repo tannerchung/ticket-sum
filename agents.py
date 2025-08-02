@@ -30,11 +30,18 @@ try:
     test_attrs = hasattr(ChatCohere, '__init__')
     if test_attrs:
         COHERE_AVAILABLE = True
-        print("✅ Cohere integration enabled successfully")
+        # Only print once using a global flag
+        if not globals().get('_cohere_message_printed', False):
+            print("✅ Cohere integration enabled successfully")
+            globals()['_cohere_message_printed'] = True
     else:
-        print("⚠️ Cohere integration: Import successful but class not fully compatible")
+        if not globals().get('_cohere_warning_printed', False):
+            print("⚠️ Cohere integration: Import successful but class not fully compatible")
+            globals()['_cohere_warning_printed'] = True
 except Exception as e:
-    print(f"⚠️ Cohere integration unavailable: {str(e)}")
+    if not globals().get('_cohere_error_printed', False):
+        print(f"⚠️ Cohere integration unavailable: {str(e)}")
+        globals()['_cohere_error_printed'] = True
 
 # Try to import Anthropic support
 ANTHROPIC_AVAILABLE = False

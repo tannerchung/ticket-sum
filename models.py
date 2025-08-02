@@ -187,7 +187,10 @@ def init_database():
                 session.add(agent_status)
         
         session.commit()
-        print("Database initialized successfully")
+        # Only print once using a global flag to prevent duplicate import messages
+        if not globals().get('_database_init_printed', False):
+            print("Database initialized successfully")
+            globals()['_database_init_printed'] = True
     except Exception as e:
         session.rollback()
         print(f"Error initializing database: {e}")
