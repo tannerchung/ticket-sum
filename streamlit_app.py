@@ -594,14 +594,11 @@ def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
             for agent_key in ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer']:
                 update_agent_status(agent_key, 'active', processing=True)
             
-            # Display Langfuse session info in Streamlit
+            # Display Langfuse session info in Streamlit  
             session_id = trace_context.get('session_id', 'unknown')
             processing_type = trace_context.get('processing_type', 'individual')
             st.info(f"📊 Langfuse Session: `{session_id}` ({processing_type} processing)")
-            
-            # Add copy button for easy access to full session ID
-            if st.button(f"📋 Copy Session ID", key=f"copy_{ticket_id}"):
-                st.code(session_id, language=None)
+            st.code(session_id, language=None)
             
             # Process ticket through collaborative workflow
             collaborative_input = {'ticket_id': ticket_id, 'content': ticket_content}
