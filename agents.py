@@ -227,7 +227,7 @@ class CollaborativeSupportCrew:
                         api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
                         temperature=model_config["temperature"]
                     )
-                    # Note: Callbacks will be set during execution for proper LangSmith integration
+                    # Note: Langfuse tracing is handled automatically via OpenInference instrumentation
                 elif provider == "cohere" and COHERE_AVAILABLE and ChatCohere:
                     try:
                         self.llm_instances[agent_name] = ChatCohere(
@@ -290,70 +290,12 @@ class CollaborativeSupportCrew:
             ],
             verbose=True,
             memory=True,  # Enable memory for agent collaboration
-            # Note: Callbacks will be set during execution for proper LangSmith integration
+            # Note: Langfuse tracing is handled automatically via OpenInference instrumentation
         )
         
-    def _set_callbacks_on_llms(self, callback_manager):
-        """
-        Set callbacks on all LLM instances and agents for proper LangSmith tracing.
-        
-        Args:
-            callback_manager: The callback manager to set on all LLMs
-        """
-        try:
-            # Set callbacks on all LLM instances
-            for agent_name, llm in self.llm_instances.items():
-                if hasattr(llm, 'callbacks'):
-                    llm.callbacks = callback_manager
-                    print(f"✅ Set callbacks on {agent_name} LLM")
-            
-            # Set callbacks on all agents
-            for agent in [self.triage_specialist, self.ticket_analyst, self.support_strategist, self.qa_reviewer]:
-                if hasattr(agent, 'llm') and hasattr(agent.llm, 'callbacks'):
-                    agent.llm.callbacks = callback_manager
-                    print(f"✅ Set callbacks on {agent.role} agent")
-            
-            # Set callbacks on crew if supported
-            if hasattr(self.crew, 'callbacks'):
-                self.crew.callbacks = callback_manager
-                print("✅ Set callbacks on crew")
-            
-            print("🎯 All callbacks configured for LangSmith tracing")
-            
-        except Exception as e:
-            print(f"⚠️ Error setting callbacks: {e}")
-            print("📝 Continuing without callback configuration")
+
     
-    def _set_callbacks_on_crew_llms(self, callback_manager):
-        """
-        Set callbacks directly on the crew's LLM instances for CrewAI compatibility.
-        
-        Args:
-            callback_manager: The callback manager to set on all LLMs
-        """
-        try:
-            # Set callbacks on crew's internal LLM instances if accessible
-            if hasattr(self.crew, 'agents'):
-                for agent in self.crew.agents:
-                    if hasattr(agent, 'llm') and hasattr(agent.llm, 'callbacks'):
-                        agent.llm.callbacks = callback_manager
-                        print(f"✅ Set callbacks on crew agent {agent.role} LLM")
-            
-            # Try to set callbacks on crew's internal manager if it exists
-            if hasattr(self.crew, 'manager') and hasattr(self.crew.manager, 'callbacks'):
-                self.crew.manager.callbacks = callback_manager
-                print("✅ Set callbacks on crew manager")
-            
-            # Try to set callbacks on crew's internal executor if it exists
-            if hasattr(self.crew, 'executor') and hasattr(self.crew.executor, 'callbacks'):
-                self.crew.executor.callbacks = callback_manager
-                print("✅ Set callbacks on crew executor")
-            
-            print("🎯 Crew LLM callbacks configured for LangSmith tracing")
-            
-        except Exception as e:
-            print(f"⚠️ Error setting crew callbacks: {e}")
-            print("📝 Continuing without crew callback configuration")
+
     
     def _create_triage_specialist(self) -> Agent:
         """Create the triage specialist for initial classification and severity assessment."""
@@ -719,11 +661,7 @@ class CollaborativeSupportCrew:
                 # Create timing tracker for manual timing estimation
                 timing_tracker = AgentTimingTracker()
                 
-                # Set callbacks on all LLM instances for proper tracing
-                self._set_callbacks_on_llms(callback_manager)
-                
-                # Also try setting callbacks directly on the crew's LLM instances
-                self._set_callbacks_on_crew_llms(callback_manager)
+                # OpenInference instrumentation handles tracing automatically
                 
                 # Pre-start timing for all agents (will be estimated from total time)
                 agent_names = ["triage_specialist", "ticket_analyst", "support_strategist", "qa_reviewer"]
@@ -871,8 +809,8 @@ class CollaborativeSupportCrew:
         return [classification_task, analysis_task, strategy_task, review_task]
     
     def _parse_collaborative_result(self, crew_result, ticket_id: str, ticket_content: str, 
-                                  consensus_start_time: float = None, 
-                                  consensus_end_time: float = None) -> Dict[str, Any]:
+                                  consensus_start_time: Optional[float] = None, 
+                                  consensus_end_time: Optional[float] = None) -> Dict[str, Any]:
         """Parse collaborative result with proper value extraction."""
         
         try:
@@ -891,8 +829,8 @@ class CollaborativeSupportCrew:
             collaboration_metrics = self._extract_authentic_collaboration_metrics(
                 crew_result, 
                 ticket_id, 
-                consensus_start_time=consensus_start_time,
-                consensus_end_time=consensus_end_time,
+                consensus_start_time=consensus_start_time or 0.0,
+                consensus_end_time=consensus_end_time or 0.0,
                 final_output=final_output
             )
             
@@ -1634,9 +1572,9 @@ class CollaborativeSupportCrew:
         return timeline
     
     def _extract_authentic_collaboration_metrics(self, crew_result, ticket_id: str, 
-                                               consensus_start_time: float = None, 
-                                               consensus_end_time: float = None,
-                                               final_output: str = None) -> Dict[str, Any]:
+                                               consensus_start_time: Optional[float] = None, 
+                                               consensus_end_time: Optional[float] = None,
+                                               final_output: Optional[str] = None) -> Dict[str, Any]:
         """Extract authentic collaboration metrics from CrewAI execution logs."""
         
         # Initialize metrics with new required fields
@@ -1650,8 +1588,8 @@ class CollaborativeSupportCrew:
             "collaborative_tool_usage": 0,
             "total_agent_interactions": 0,
             "consensus_reached": False,
-            "consensus_start_time": consensus_start_time,
-            "consensus_end_time": consensus_end_time,
+            "consensus_start_time": consensus_start_time or 0.0,
+            "consensus_end_time": consensus_end_time or 0.0,
             "overall_agreement_strength": 0.0,
             "final_agreement_scores": {},
             "agent_agreement_evolution": [],
