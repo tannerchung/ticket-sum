@@ -42,8 +42,14 @@ def main():
         subprocess.run(cmd, check=True)
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         print(f"Direct streamlit command failed: {e}")
-        # Fallback to python -m streamlit
-        cmd_fallback = [sys.executable, '-m'] + cmd
+        # Fallback to python -m streamlit with properly constructed command
+        cmd_fallback = [
+            sys.executable, '-m', 'streamlit', 'run', 'streamlit_app.py',
+            '--server.port', '5000',
+            '--server.address', '0.0.0.0',
+            '--server.headless', 'true',
+            '--browser.gatherUsageStats', 'false'
+        ]
         print(f"Trying fallback: {' '.join(cmd_fallback)}")
         try:
             subprocess.run(cmd_fallback, check=True)

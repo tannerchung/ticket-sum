@@ -64,6 +64,20 @@ Use Replit's persistent storage for output files and cached data.
 
 ## Recent Changes
 
+### v2.1.2 - Security Enhancement (August 2, 2025)
+
+#### Command Injection Vulnerability Fix - COMPLETED ✅
+- **Security Issue Fixed**: Potential command injection vulnerability in main.py subprocess.run() fallback mechanism
+- **Root Cause**: Improper command array concatenation where `cmd_fallback = [sys.executable, '-m'] + cmd` created malformed command structure
+- **Vulnerability**: Dynamic command construction could potentially be exploited if any input were externally controlled
+- **Solution**: Replaced dynamic command concatenation with explicit static command array construction
+- **Implementation**: 
+  - Removed vulnerable line: `cmd_fallback = [sys.executable, '-m'] + cmd`
+  - Added secure static command array with explicit argument values
+  - All subprocess.run() calls now use properly constructed command arrays with static strings
+- **Security Enhancement**: Application now follows secure coding practices for subprocess execution
+- **Verification**: Audited all subprocess usage across codebase - run.py already secure with static command construction
+
 ### v2.1.1 - Langfuse Session Tracking Enhancement (August 2, 2025)
 
 #### Session ID Implementation Fix - COMPLETED ✅
