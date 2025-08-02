@@ -128,7 +128,7 @@ class LangfuseManager:
     @contextmanager
     def trace_ticket_processing(self, ticket_id: str, metadata: Optional[Dict] = None, batch_session_id: Optional[str] = None):
         """
-        Context manager for tracing ticket processing workflows.
+        Context manager for tracing ticket processing workflows with proper Langfuse session tracking.
         
         Creates session IDs based on processing type:
         - Individual tickets: New session ID per ticket
@@ -141,33 +141,20 @@ class LangfuseManager:
         """
         # Use provided batch session ID or create new one for individual processing
         if batch_session_id:
-            run_session_id = batch_session_id
+            session_id = batch_session_id
             processing_type = "batch"
         else:
-            run_session_id = str(uuid.uuid4())
+            session_id = str(uuid.uuid4())
             processing_type = "individual"
             
         trace_name = f"support-ticket-{processing_type}-{ticket_id}"
         start_time = time.time()
         
-        # Update OTEL resource attributes with this run's session ID for proper session tracking
-        if self.client:
-            resource_attrs = [
-                f"service.name=support-ticket-summarizer",
-                f"service.version=2.1.0", 
-                f"deployment.environment=production",
-                f"application.session_id={self.session_id}",
-                f"run.session_id={run_session_id}",
-                f"run.processing_type={processing_type}",
-                f"ticket.id={ticket_id}"
-            ]
-            os.environ['OTEL_RESOURCE_ATTRIBUTES'] = ",".join(resource_attrs)
-        
-        # Context with run-specific session ID
+        # Context with session ID for Langfuse
         trace_context = {
             "trace_name": trace_name,
             "ticket_id": ticket_id,
-            "session_id": run_session_id,
+            "session_id": session_id,
             "processing_type": processing_type,
             "system": "support-ticket-summarizer",
             "agent_count": 4,
@@ -178,17 +165,32 @@ class LangfuseManager:
         try:
             # Track processing start
             self.run_times[ticket_id] = start_time
-            print(f"🔍 Starting trace context: {trace_name}")
-            print(f"📊 {processing_type.title()} Session ID: {run_session_id}")
-            print("📡 OpenInference instrumentation will capture all LLM calls")
+            print(f"🔍 Starting trace: {trace_name}")
+            print(f"📊 Langfuse Session ID: {session_id}")
+            print(f"🎯 Processing Type: {processing_type}")
+            
+            # Create Langfuse trace with session_id using the Python SDK
+            if self.client:
+                # Start the trace with proper session_id
+                trace = self.client.trace(
+                    name=trace_name,
+                    session_id=session_id,
+                    metadata={
+                        "ticket_id": ticket_id,
+                        "processing_type": processing_type,
+                        "agent_count": 4,
+                        **(metadata or {})
+                    }
+                )
+                trace_context["langfuse_trace"] = trace
+                print(f"✅ Langfuse trace created with session: {session_id[:8]}...")
             
             yield trace_context
             
             # Track successful completion
             duration = time.time() - start_time
             print(f"✅ Completed trace {trace_name} in {duration:.2f}s")
-            if processing_type == "individual":
-                print(f"📊 Session {run_session_id[:8]}... completed")
+            print(f"📊 Session {session_id[:8]}... completed")
             
         except Exception as e:
             # Track errors

@@ -567,18 +567,7 @@ def setup_agents():
         crew = CollaborativeSupportCrew()
         print("✅ Multi-agent crew initialized successfully")
         
-        # Display session information in sidebar
-        try:
-            from telemetry import get_langfuse_manager
-            manager = get_langfuse_manager()
-            st.sidebar.info(f"🔗 App Session: `{manager.get_session_id()[:8]}...`")
-            
-            # Show current run session if available
-            run_session = manager.get_current_run_session()
-            if run_session:
-                st.sidebar.info(f"📊 Run Session: `{run_session[:8]}...`")
-        except Exception:
-            pass  # Silently handle if telemetry is not available
+        # Note: Session IDs are displayed during ticket processing, not globally
         
         return crew
     except Exception as e:
@@ -605,10 +594,14 @@ def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
             for agent_key in ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer']:
                 update_agent_status(agent_key, 'active', processing=True)
             
-            # Display current session info in Streamlit
+            # Display Langfuse session info in Streamlit
             session_id = trace_context.get('session_id', 'unknown')
             processing_type = trace_context.get('processing_type', 'individual')
-            st.info(f"🔍 Processing with {processing_type} session: `{session_id[:8]}...`")
+            st.info(f"📊 Langfuse Session: `{session_id}` ({processing_type} processing)")
+            
+            # Add copy button for easy access to full session ID
+            if st.button(f"📋 Copy Session ID", key=f"copy_{ticket_id}"):
+                st.code(session_id, language=None)
             
             # Process ticket through collaborative workflow
             collaborative_input = {'ticket_id': ticket_id, 'content': ticket_content}
@@ -905,7 +898,8 @@ def main():
                 manager = get_langfuse_manager()
                 batch_session_id = manager.create_batch_session()
                 
-                st.info(f"📊 Batch Session: `{batch_session_id[:8]}...` - All CSV tickets will be grouped under this session in Langfuse")
+                st.info(f"📊 Batch Session ID: `{batch_session_id}` - All CSV tickets will be grouped under this session in Langfuse")
+                st.code(batch_session_id, language=None)
                 
                 progress_bar = st.progress(0)
                 results = []
@@ -974,7 +968,8 @@ def main():
                     manager = get_langfuse_manager()
                     batch_session_id = manager.create_batch_session()
                     
-                    st.info(f"📊 Batch Session: `{batch_session_id[:8]}...` - All {num_tickets} tickets will be grouped under this session in Langfuse")
+                    st.info(f"📊 Kaggle Batch Session ID: `{batch_session_id}` - All {num_tickets} tickets will be grouped under this session in Langfuse")
+                    st.code(batch_session_id, language=None)
                     
                     progress_bar = st.progress(0)
                     results = []
