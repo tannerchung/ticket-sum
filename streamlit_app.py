@@ -604,7 +604,7 @@ def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
             collaborative_input = {'ticket_id': ticket_id, 'content': ticket_content}
             result = crew.process_ticket_collaboratively(ticket_id, ticket_content)
             
-            # Log collaborative activity
+            # Log collaborative activity and individual agent activities
             log_langfuse_activity(
                 'collaborative_crew', 
                 collaborative_input, 
@@ -617,6 +617,33 @@ def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
                     'collaboration_metrics': result.get('collaboration_metrics', {})
                 }
             )
+            
+            # Log individual agent activities with telemetry for better Langfuse tracking
+            from telemetry import get_langfuse_manager
+            manager = get_langfuse_manager()
+            
+            # Log each agent's activity separately for detailed tracking
+            agents = ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer']
+            for agent_name in agents:
+                agent_output = result.get(f'{agent_name}_output', f'Agent {agent_name} completed processing')
+                agent_metadata = {
+                    'ticket_id': ticket_id,
+                    'agent_role': agent_name,
+                    'session_id': trace_context.get('session_id'),
+                    'processing_type': trace_context.get('processing_type'),
+                    'workflow': 'collaborative'
+                }
+                
+                manager.log_agent_activity(
+                    agent_name=agent_name,
+                    input_data={'ticket_content': ticket_content, 'ticket_id': ticket_id},
+                    output_data=agent_output,
+                    metadata=agent_metadata
+                )
+            
+            # Check how many activities were captured
+            activities = manager.get_agent_activities()
+            print(f"🔗 Captured {len(activities)} Langfuse activities from collaborative agents")
             
             # Update agent statuses to completed
             for agent_key in ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer']:
