@@ -169,21 +169,25 @@ class LangfuseManager:
             print(f"📊 Langfuse Session ID: {session_id}")
             print(f"🎯 Processing Type: {processing_type}")
             
-            # Create Langfuse trace with session_id using the Python SDK
+            # Create Langfuse trace with session_id using the correct Python SDK API
             if self.client:
-                # Start the trace with proper session_id
-                trace = self.client.trace(
-                    name=trace_name,
-                    session_id=session_id,
-                    metadata={
-                        "ticket_id": ticket_id,
-                        "processing_type": processing_type,
-                        "agent_count": 4,
-                        **(metadata or {})
-                    }
-                )
-                trace_context["langfuse_trace"] = trace
-                print(f"✅ Langfuse trace created with session: {session_id[:8]}...")
+                try:
+                    # Create trace with proper session_id using the documented API
+                    trace = self.client.trace(
+                        name=trace_name,
+                        session_id=session_id,  # Use session_id parameter, not sessionId
+                        metadata={
+                            "ticket_id": ticket_id,
+                            "processing_type": processing_type,
+                            "agent_count": 4,
+                            **(metadata or {})
+                        }
+                    )
+                    trace_context["langfuse_trace"] = trace
+                    print(f"✅ Langfuse trace created with session: {session_id[:8]}...")
+                except Exception as e:
+                    print(f"⚠️ Could not create Langfuse trace directly: {e}")
+                    print("📡 Relying on OpenInference instrumentation for tracing")
             
             yield trace_context
             
