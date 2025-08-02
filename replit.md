@@ -64,6 +64,26 @@ Use Replit's persistent storage for output files and cached data.
 
 ## Recent Changes
 
+### v2.1.3 - Deployment Configuration Fix (August 2, 2025)
+
+#### Replit Deployment Issues Resolved - COMPLETED ✅
+- **Problem Fixed**: Deployment errors due to incorrect run command configuration and missing health check endpoints
+- **Issues Addressed**:
+  - "The run command is configured to execute a Python file using $file variable, but no specific file is defined"
+  - "Health checks are failing because the application is not responding on the root endpoint"
+  - "The run command '/nix/store/.../python3 $file' is incorrect for a Streamlit application"
+- **Solution**: Comprehensive deployment entry point restructuring
+- **Implementation**:
+  - **main.py**: Simplified direct Streamlit launcher with PORT environment variable support
+  - **app.py**: Alternative entry point with identical configuration for broader compatibility
+  - **server.py**: Optional Flask-based health check server for advanced deployment scenarios
+  - **streamlit_app.py**: Enhanced health check endpoints at root "/" and "/?health" paths
+  - All entry points use `python -m streamlit run streamlit_app.py` with proper configuration
+  - PORT environment variable support for flexible deployment port assignment
+  - Comprehensive health check implementation for deployment monitoring
+- **Testing**: Verified main.py works correctly with PORT environment variable (tested on port 8080)
+- **Deployment Ready**: Multiple entry points ensure compatibility with various deployment configurations
+
 ### v2.1.2 - Security Enhancement (August 2, 2025)
 
 #### Command Injection Vulnerability Fix - COMPLETED ✅

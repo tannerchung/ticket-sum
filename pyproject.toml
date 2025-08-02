@@ -26,6 +26,8 @@ dependencies = [
     "langsmith>=0.4.9",
     "pydantic>=2.11.7",
     "openinference-instrumentation>=0.1.36",
+    "numpy>=2.3.2",
+    "flask>=3.1.1",
 ]
 
 [project.scripts]
