@@ -76,6 +76,18 @@ Use Replit's persistent storage for output files and cached data.
   - Session IDs now display correctly with full UUID and copy functionality
   - Verified working with successful ticket processing showing session tracking
 
+#### Experiment JSON Serialization Fix - COMPLETED ✅
+- **Problem Fixed**: Model comparison experiments failing with "ExperimentType is not JSON serializable" error
+- **Root Cause**: ExperimentType enum being passed directly to database without string conversion
+- **Solution**: Convert enum to string value before JSON serialization in experiment_manager.py
+- **Result**: Model comparison experiments now run successfully without database errors
+
+#### Langfuse Trace API Fix - COMPLETED ✅
+- **Problem Fixed**: "Langfuse object has no attribute 'trace'" warnings during processing
+- **Root Cause**: Attempting to use non-existent client.trace() method for explicit trace creation
+- **Solution**: Removed explicit trace creation, relying entirely on OpenInference automatic instrumentation
+- **Result**: Clean trace processing without AttributeError warnings
+
 #### Trace Naming Improvements
 - **Issue Fixed**: Generic "completion" and "ToolUsage._use" trace names from OpenInference instrumentation
 - **Enhancement**: Better span naming and resource attributes for clearer Langfuse visibility
