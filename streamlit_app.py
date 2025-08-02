@@ -599,7 +599,7 @@ def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
         
         # Process ticket through collaborative workflow
         collaborative_input = {'ticket_id': ticket_id, 'content': ticket_content}
-        result = crew.process_ticket_collaboratively(ticket_id, ticket_content, batch_session_id)
+        result = crew.process_ticket_collaboratively(ticket_id, ticket_content)
         
         # Log collaborative activity
         log_langfuse_activity(
