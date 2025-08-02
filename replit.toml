@@ -1,9 +1,9 @@
 [run]
-# Use the run.py entry point which properly configures and starts Streamlit
-command = ["python", "run.py"]
+# Direct Streamlit command for proper deployment
+command = ["python", "-m", "streamlit", "run", "streamlit_app.py", "--server.port", "5000", "--server.address", "0.0.0.0", "--server.headless", "true", "--browser.gatherUsageStats", "false"]
 
 [deployment]
-run = ["python", "run.py"]
+run = ["python", "-m", "streamlit", "run", "streamlit_app.py", "--server.port", "5000", "--server.address", "0.0.0.0", "--server.headless", "true", "--browser.gatherUsageStats", "false"]
 deploymentTarget = "gce"
 
 [nix]

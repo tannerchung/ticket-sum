@@ -68,6 +68,19 @@ def add_health_check():
             st.markdown("**Direct Link:** [Main Application](/?)")
             return True
         
+        # Check for health endpoint at root path for deployment health checks
+        # Streamlit handles this automatically but we provide status info
+        try:
+            # Simple health indication - show minimal UI for root path health checks
+            if not query_params:  # Root path access
+                # Add a small health indicator in the corner for deployment monitoring
+                with st.container():
+                    col1, col2 = st.columns([10, 1])
+                    with col2:
+                        st.caption("🟢 Live")
+        except:
+            pass
+        
         # Add health check button in sidebar for manual testing
         if st.sidebar.button("Health Check", key="health_btn", help="Check app health"):
             st.success("✅ Application is healthy and running!")
