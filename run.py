@@ -21,20 +21,34 @@ def main():
     os.environ.setdefault('STREAMLIT_SERVER_HEADLESS', 'true')
     os.environ.setdefault('STREAMLIT_BROWSER_GATHER_USAGE_STATS', 'false')
     
-    # Command to run Streamlit
+    # Static command to run Streamlit - secure against command injection
+    # Using explicit static strings and validated Python executable
+    python_executable = sys.executable
+    if not python_executable or not Path(python_executable).exists():
+        print("Error: Invalid Python executable path")
+        sys.exit(1)
+    
     cmd = [
-        sys.executable, '-m', 'streamlit', 'run', 'streamlit_app.py',
-        '--server.port', '5000',
-        '--server.address', '0.0.0.0',
-        '--server.headless', 'true',
-        '--browser.gatherUsageStats', 'false'
+        python_executable,
+        '-m',
+        'streamlit',
+        'run',
+        'streamlit_app.py',
+        '--server.port',
+        '5000',
+        '--server.address',
+        '0.0.0.0',
+        '--server.headless',
+        'true',
+        '--browser.gatherUsageStats',
+        'false'
     ]
     
     print("Starting Streamlit application...")
     print(f"Command: {' '.join(cmd)}")
     
     try:
-        # Run Streamlit
+        # Run Streamlit with validated static command array
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error starting Streamlit: {e}")
