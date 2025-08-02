@@ -78,8 +78,11 @@ Use Replit's persistent storage for output files and cached data.
   - **main.py**: Enhanced all 3 subprocess.run() calls with explicit static constants and runtime validation
   - **main.py**: Added timeout protection and comprehensive component validation for all commands
   - **main.py**: Implemented defense-in-depth security with multiple validation layers
-  - **run.py**: Enhanced with Python executable validation and explicit static command construction
-  - **run.py**: Added security comments and validation to prevent false positive security warnings
+  - **run.py**: Implemented comprehensive security hardening with static constant validation
+  - **run.py**: Added Python executable path and type validation with comprehensive component checking
+  - **run.py**: Enhanced subprocess.run() call with explicit static constants and runtime validation
+  - **run.py**: Added timeout protection and comprehensive component validation
+  - **run.py**: Implemented defense-in-depth security with multiple validation layers
   - All subprocess.run() calls now use comprehensively validated static constant arrays
 - **Security Enhancement**: Maximum security implementation with static constants, runtime validation, and timeout protection
 - **Verification**: Complete security audit with comprehensive hardening - both files now implement defense-in-depth security
