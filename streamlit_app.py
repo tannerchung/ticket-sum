@@ -448,8 +448,8 @@ def evaluate_with_deepeval(result, original_message):
                             print(f"Processing metric: {metric_name} = {metric_score}")
                             
                             if 'hallucination' in metric_name:
-                                # Hallucination: 0 = good (no hallucination), so invert for our display
-                                hallucination_score = 1.0 - metric_score if metric_score is not None else 0.8
+                                # Hallucination: 0 = good (no hallucination), use directly 
+                                hallucination_score = metric_score if metric_score is not None else 0.8
                             elif 'relevancy' in metric_name or 'answer' in metric_name:
                                 # Relevancy: 1.0 = fully relevant
                                 relevancy_score = metric_score if metric_score is not None else 0.8
@@ -468,7 +468,7 @@ def evaluate_with_deepeval(result, original_message):
                             print(f"Extracting metric: {metric_name} = {metric_score}")
                             
                             if 'hallucination' in metric_name:
-                                hallucination_score = 1.0 - metric_score if metric_score is not None else 0.8
+                                hallucination_score = metric_score if metric_score is not None else 0.8
                             elif 'relevancy' in metric_name or 'answer' in metric_name:
                                 relevancy_score = metric_score if metric_score is not None else 0.8
                         break
