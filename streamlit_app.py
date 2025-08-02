@@ -108,16 +108,8 @@ def initialize_session_state():
         st.session_state.agents = None
         st.session_state.agents_initialized = False
         
-    # Only initialize agents once to prevent duplicate console messages
-    if not st.session_state.get('agents_initialized', False) and st.session_state.agents is None:
-        try:
-            st.session_state.agents = setup_agents()
-            st.session_state.agents_initialized = True
-            if st.session_state.agents:
-                st.success("AI agents ready to process tickets!", icon="🤖")
-        except Exception as e:
-            st.session_state.agents_initialized = True  # Mark as attempted to prevent retries
-            st.warning("AI agents will be initialized when needed. Check your API keys if processing fails.")
+    # Don't initialize agents during session state setup - let them initialize on first use
+    # This prevents duplicate initialization messages
     
     if 'sample_tickets' not in st.session_state:
         st.session_state.sample_tickets = []
