@@ -64,6 +64,31 @@ Use Replit's persistent storage for output files and cached data.
 
 ## Recent Changes
 
+### v2.1.1 - Langfuse Session Tracking Enhancement (August 2, 2025)
+
+#### Session ID Implementation Fix
+- **Problem Solved**: Session IDs were not appearing in Langfuse traces despite tracing being active
+- **Root Cause**: Missing proper trace context integration in ticket processing workflow
+- **Solution**: Enhanced telemetry.py with proper session tracking using OpenTelemetry resource attributes
+- **Implementation**: 
+  - Added proper `create_trace_context()` usage in `process_ticket()` function
+  - Enhanced OTEL resource attributes with detailed session metadata
+  - Fixed database logging to capture Langfuse session IDs properly
+
+#### Trace Naming Improvements
+- **Issue Fixed**: Generic "completion" and "ToolUsage._use" trace names from OpenInference instrumentation
+- **Enhancement**: Better span naming and resource attributes for clearer Langfuse visibility
+- **Results**: 
+  - Traces now appear as "support-ticket-individual-{ticket_id}" or "support-ticket-batch-{ticket_id}"
+  - Enhanced resource attributes include service version, environment, and session context
+  - Improved trace organization with detailed metadata
+
+#### Database Migration Completion
+- **Completed**: Full LangSmith → Langfuse column migration
+- **Updated Schema**: Replaced `langsmith_run_id` with `langfuse_trace_id`, `langfuse_session_id`, `langfuse_observation_id`
+- **Code Updates**: All database service methods and calls updated for new Langfuse parameters
+- **Status**: Zero LSP errors, application running successfully with enhanced telemetry
+
 ### v2.1.0 - Critical Migration & Quality Enhancements (January 31, 2025)
 
 #### LangSmith → Langfuse Migration (BREAKING CHANGE)

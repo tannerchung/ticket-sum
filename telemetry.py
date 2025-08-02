@@ -14,7 +14,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 from contextlib import contextmanager
 
-from langfuse import get_client
+from langfuse import Langfuse
 from openinference.instrumentation.crewai import CrewAIInstrumentor
 from openinference.instrumentation.litellm import LiteLLMInstrumentor
 
@@ -47,7 +47,7 @@ class LangfuseManager:
         """
         try:
             # Get Langfuse client (reads LANGFUSE_* env vars automatically)
-            self.client = get_client()
+            self.client = Langfuse()
             
             # Authenticate with Langfuse
             if not self.client.auth_check():
@@ -56,12 +56,27 @@ class LangfuseManager:
             
             print("✅ Langfuse authentication successful")
             
-            # Initialize instrumentors
+            # Initialize instrumentors with enhanced configuration
             if not self.instrumented:
-                CrewAIInstrumentor().instrument(skip_dep_check=True)
+                # Configure CrewAI instrumentation with better span naming
+                CrewAIInstrumentor().instrument(
+                    skip_dep_check=True,
+                    tracer_provider=None  # Use default tracer provider
+                )
+                
+                # Configure LiteLLM instrumentation for better LLM call tracking
                 LiteLLMInstrumentor().instrument()
+                
                 self.instrumented = True
                 print("✅ OpenInference instrumentation enabled")
+                
+                # Set additional span attributes for better trace organization
+                import opentelemetry.trace as trace
+                tracer = trace.get_tracer(__name__)
+                
+                # This helps with better span naming in Langfuse
+                os.environ['OTEL_SPAN_ATTRIBUTE_VALUE_LENGTH_LIMIT'] = '4096'
+                os.environ['OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT'] = '128'
             
             # Set up OTLP exporter if needed
             self._setup_otlp_exporter()
@@ -76,7 +91,7 @@ class LangfuseManager:
             return False
     
     def _setup_otlp_exporter(self):
-        """Set up OTLP exporter configuration for Langfuse Cloud."""
+        """Set up OTLP exporter configuration for Langfuse Cloud with proper session tracking."""
         public_key = os.getenv('LANGFUSE_PUBLIC_KEY')
         secret_key = os.getenv('LANGFUSE_SECRET_KEY')
         host = os.getenv('LANGFUSE_HOST', 'https://us.cloud.langfuse.com')
@@ -86,10 +101,27 @@ class LangfuseManager:
             credentials = f"{public_key}:{secret_key}"
             encoded_credentials = base64.b64encode(credentials.encode()).decode()
             
-            # Set OTLP environment variables with session support
+            # Set OTLP environment variables with detailed resource attributes
             os.environ['OTEL_EXPORTER_OTLP_ENDPOINT'] = f"{host}/api/public/otel"
             os.environ['OTEL_EXPORTER_OTLP_HEADERS'] = f"Authorization=Basic {encoded_credentials}"
-            os.environ['OTEL_RESOURCE_ATTRIBUTES'] = f"service.name=support-ticket-summarizer,session.id={self.session_id}"
+            
+            # Enhanced resource attributes for better trace organization
+            resource_attrs = [
+                f"service.name=support-ticket-summarizer",
+                f"service.version=2.1.0",
+                f"deployment.environment=production",
+                f"application.session_id={self.session_id}"
+            ]
+            os.environ['OTEL_RESOURCE_ATTRIBUTES'] = ",".join(resource_attrs)
+            
+            # Enable enhanced tracing features for better Langfuse visibility
+            os.environ['OTEL_PYTHON_LOG_CORRELATION'] = 'true'
+            os.environ['OTEL_PYTHON_LOG_FORMAT'] = '%(levelname)s:%(name)s:%(message)s'
+            
+            # Configure span processing for better trace organization
+            os.environ['OTEL_BSP_SCHEDULE_DELAY'] = '1000'  # 1 second delay for batching
+            os.environ['OTEL_BSP_MAX_EXPORT_BATCH_SIZE'] = '512'
+            os.environ['OTEL_BSP_EXPORT_TIMEOUT'] = '30000'  # 30 seconds timeout
             
             print("✅ OTLP exporter configured for Langfuse Cloud")
     
@@ -115,12 +147,21 @@ class LangfuseManager:
             run_session_id = str(uuid.uuid4())
             processing_type = "individual"
             
-        trace_name = f"ticket-crew-execution-{ticket_id}"
+        trace_name = f"support-ticket-{processing_type}-{ticket_id}"
         start_time = time.time()
         
-        # Update OTEL resource attributes with this run's session ID
+        # Update OTEL resource attributes with this run's session ID for proper session tracking
         if self.client:
-            os.environ['OTEL_RESOURCE_ATTRIBUTES'] = f"service.name=support-ticket-summarizer,session.id={run_session_id}"
+            resource_attrs = [
+                f"service.name=support-ticket-summarizer",
+                f"service.version=2.1.0", 
+                f"deployment.environment=production",
+                f"application.session_id={self.session_id}",
+                f"run.session_id={run_session_id}",
+                f"run.processing_type={processing_type}",
+                f"ticket.id={ticket_id}"
+            ]
+            os.environ['OTEL_RESOURCE_ATTRIBUTES'] = ",".join(resource_attrs)
         
         # Context with run-specific session ID
         trace_context = {

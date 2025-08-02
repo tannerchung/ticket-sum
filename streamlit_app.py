@@ -426,7 +426,7 @@ def evaluate_with_deepeval(result, original_message):
                 print(f"Evaluation result type: {type(evaluation_result)}")
                 
                 for test_result in evaluation_result.test_results:
-                    if hasattr(test_result, 'metrics_data'):
+                    if hasattr(test_result, 'metrics_data') and test_result.metrics_data:
                         print(f"Processing {len(test_result.metrics_data)} metrics")
                         
                         for metric_data in test_result.metrics_data:
@@ -446,7 +446,7 @@ def evaluate_with_deepeval(result, original_message):
             elif evaluation_result and hasattr(evaluation_result, '__iter__'):
                 # Handle direct list of test results
                 for test_case in evaluation_result:
-                    if hasattr(test_case, 'metrics_data'):
+                    if hasattr(test_case, 'metrics_data') and test_case.metrics_data:
                         print(f"Processing {len(test_case.metrics_data)} metrics from test case")
                         
                         for metric_data in test_case.metrics_data:
@@ -591,107 +591,116 @@ def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
     if not crew:
         return None
     
+    # Import telemetry functions
+    from telemetry import create_trace_context, get_langfuse_manager
+    
     start_time = time.time()
+    
     try:
-        # Update all collaborative agent statuses
-        for agent_key in ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer']:
-            update_agent_status(agent_key, 'active', processing=True)
-        
-        # Process ticket through collaborative workflow
-        collaborative_input = {'ticket_id': ticket_id, 'content': ticket_content}
-        result = crew.process_ticket_collaboratively(ticket_id, ticket_content)
-        
-        # Log collaborative activity
-        log_langfuse_activity(
-            'collaborative_crew', 
-            collaborative_input, 
-            result,
-            {
-                'model': 'gpt-4o', 
-                'temperature': 0.1, 
-                'workflow': 'collaborative',
-                'agents': ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer'],
-                'collaboration_metrics': result.get('collaboration_metrics', {})
-            }
-        )
-        
-        # Update agent statuses to completed
-        for agent_key in ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer']:
-            update_agent_status(agent_key, 'active', processing=False)
-        
-        # Evaluate with DeepEval
-        evaluation_scores = evaluate_with_deepeval(result, ticket_content)
-        st.session_state.evaluation_results.append(evaluation_scores)
-        
-        # Save to database
-        try:
-            # Save ticket result
-            db_service.save_ticket_result(result)
+        # Use proper Langfuse trace context for session tracking
+        with create_trace_context(ticket_id, 
+                                 metadata={'workflow': 'collaborative_crew', 'agents_count': 4}, 
+                                 batch_session_id=batch_session_id) as trace_context:
+            # Update all collaborative agent statuses
+            for agent_key in ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer']:
+                update_agent_status(agent_key, 'active', processing=True)
             
-            # Save collaboration metrics
-            collaboration_metrics = result.get('collaboration_metrics', {})
-            if collaboration_metrics:
-                db_service.save_collaboration_metrics(ticket_id, collaboration_metrics)
+            # Display current session info in Streamlit
+            session_id = trace_context.get('session_id', 'unknown')
+            processing_type = trace_context.get('processing_type', 'individual')
+            st.info(f"🔍 Processing with {processing_type} session: `{session_id[:8]}...`")
             
-            # Save quality evaluation
-            db_service.save_quality_evaluation(ticket_id, evaluation_scores)
+            # Process ticket through collaborative workflow
+            collaborative_input = {'ticket_id': ticket_id, 'content': ticket_content}
+            result = crew.process_ticket_collaboratively(ticket_id, ticket_content)
             
-            # Log individual agent activities if available
-            individual_logs = result.get('individual_agent_logs', [])
-            if individual_logs:
-                for agent_log in individual_logs:
-                    # Extract Langfuse tracing information from agent log
-                    langfuse_trace_id = agent_log.get('langfuse_trace_id')
-                    langfuse_session_id = agent_log.get('langfuse_session_id')
-                    langfuse_observation_id = agent_log.get('langfuse_observation_id')
-                    
-                    db_service.save_processing_log_with_agent_stats(
-                        ticket_id=ticket_id,
-                        agent_name=agent_log['agent_name'],
-                        input_data=agent_log['input_data'],
-                        output_data=agent_log['output_data'],
-                        metadata=agent_log['metadata'],
-                        status=agent_log['status'],
-                        processing_time=agent_log['processing_time'],
-                        trace_id=agent_log['trace_id'],
-                        langfuse_trace_id=langfuse_trace_id,
-                        langfuse_session_id=langfuse_session_id,
-                        langfuse_observation_id=langfuse_observation_id
-                    )
-            
-            # Also log overall collaborative summary with Langfuse session tracking
-            processing_time = time.time() - start_time
-            
-            # Get Langfuse session information from telemetry manager
-            try:
-                from telemetry import get_langfuse_manager
-                langfuse_manager = get_langfuse_manager()
-                session_id = langfuse_manager.get_session_id()
-                trace_id = f"collaborative_{ticket_id}_{int(time.time())}"
-            except Exception:
-                session_id = None
-                trace_id = f"collaborative_{ticket_id}"
-            
-            db_service.save_processing_log_with_agent_stats(
-                ticket_id=ticket_id,
-                agent_name='collaborative_summary',
-                input_data=collaborative_input,
-                output_data={'summary': 'Collaborative processing completed', 'total_agents': len(individual_logs)},
-                metadata={
-                    'evaluation_scores': evaluation_scores,
-                    'collaboration_metrics': result.get('collaboration_metrics', {}),
-                    'total_processing_time': processing_time,
-                    'individual_agents_logged': len(individual_logs)
-                },
-                status='success',
-                processing_time=processing_time,
-                trace_id=trace_id,
-                langfuse_session_id=session_id
+            # Log collaborative activity
+            log_langfuse_activity(
+                'collaborative_crew', 
+                collaborative_input, 
+                result,
+                {
+                    'model': 'gpt-4o', 
+                    'temperature': 0.1, 
+                    'workflow': 'collaborative',
+                    'agents': ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer'],
+                    'collaboration_metrics': result.get('collaboration_metrics', {})
+                }
             )
-        except Exception as e:
-            st.warning(f"Database save failed: {str(e)}")
-        
-        return result
+            
+            # Update agent statuses to completed
+            for agent_key in ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer']:
+                update_agent_status(agent_key, 'active', processing=False)
+            
+            # Evaluate with DeepEval
+            evaluation_scores = evaluate_with_deepeval(result, ticket_content)
+            st.session_state.evaluation_results.append(evaluation_scores)
+            
+            # Save to database
+            try:
+                # Save ticket result
+                db_service.save_ticket_result(result)
+                
+                # Save collaboration metrics
+                collaboration_metrics = result.get('collaboration_metrics', {})
+                if collaboration_metrics:
+                    db_service.save_collaboration_metrics(ticket_id, collaboration_metrics)
+                
+                # Save quality evaluation
+                db_service.save_quality_evaluation(ticket_id, evaluation_scores)
+                
+                # Log individual agent activities if available
+                individual_logs = result.get('individual_agent_logs', [])
+                if individual_logs:
+                    for agent_log in individual_logs:
+                        # Extract Langfuse tracing information from agent log
+                        langfuse_trace_id = agent_log.get('langfuse_trace_id')
+                        langfuse_session_id = agent_log.get('langfuse_session_id')
+                        langfuse_observation_id = agent_log.get('langfuse_observation_id')
+                        
+                        db_service.save_processing_log_with_agent_stats(
+                            ticket_id=ticket_id,
+                            agent_name=agent_log['agent_name'],
+                            input_data=agent_log['input_data'],
+                            output_data=agent_log['output_data'],
+                            metadata=agent_log['metadata'],
+                            status=agent_log['status'],
+                            processing_time=agent_log['processing_time'],
+                            trace_id=agent_log['trace_id'],
+                            langfuse_trace_id=langfuse_trace_id,
+                            langfuse_session_id=langfuse_session_id,
+                            langfuse_observation_id=langfuse_observation_id
+                        )
+                
+                # Also log overall collaborative summary with Langfuse session tracking
+                processing_time = time.time() - start_time
+                
+                # Extract session information from current trace context
+                session_id = trace_context.get('session_id', 'unknown')
+                trace_name = trace_context.get('trace_name', f"collaborative_{ticket_id}")
+                
+                db_service.save_processing_log_with_agent_stats(
+                    ticket_id=ticket_id,
+                    agent_name='collaborative_summary',
+                    input_data=collaborative_input,
+                    output_data={'summary': 'Collaborative processing completed', 'total_agents': len(individual_logs)},
+                    metadata={
+                        'evaluation_scores': evaluation_scores,
+                        'collaboration_metrics': result.get('collaboration_metrics', {}),
+                        'total_processing_time': processing_time,
+                        'individual_agents_logged': len(individual_logs),
+                        'trace_context': trace_context
+                    },
+                    status='success',
+                    processing_time=processing_time,
+                    trace_id=trace_name,
+                    langfuse_session_id=session_id,
+                    langfuse_trace_id=trace_name
+                )
+            except Exception as e:
+                st.warning(f"Database save failed: {str(e)}")
+            
+            return result
         
     except Exception as e:
         st.error(f"Error processing ticket: {str(e)}")
@@ -902,7 +911,7 @@ def main():
                 results = []
                 
                 for i, row in df.iterrows():
-                    ticket_id = str(row.get('ticket_id', f'BATCH_{int(i)+1}'))
+                    ticket_id = str(row.get('ticket_id', f'BATCH_{i+1}'))
                     message = str(row.get('message', ''))
                     
                     if message.strip():
@@ -910,7 +919,7 @@ def main():
                         if result:
                             results.append(result)
                     
-                    progress_bar.progress(float(int(i) + 1) / len(df))
+                    progress_bar.progress((i + 1) / len(df))
                 
                 st.success(f"Processed {len(results)} tickets successfully!")
                 
