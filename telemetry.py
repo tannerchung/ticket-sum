@@ -129,7 +129,9 @@ class LangfuseManager:
             os.environ['OTEL_BSP_MAX_EXPORT_BATCH_SIZE'] = '512'
             os.environ['OTEL_BSP_EXPORT_TIMEOUT'] = '30000'  # 30 seconds timeout
             
-            print("✅ OTLP exporter configured for Langfuse Cloud")
+            if not globals().get('_otlp_exporter_printed', False):
+                print("✅ OTLP exporter configured for Langfuse Cloud")
+                globals()['_otlp_exporter_printed'] = True
     
     @contextmanager
     def trace_ticket_processing(self, ticket_id: str, metadata: Optional[Dict] = None, batch_session_id: Optional[str] = None):
@@ -315,8 +317,10 @@ def setup_langfuse_tracing() -> bool:
         success = _langfuse_manager.initialize()
         
         if success:
-            print("✅ Langfuse tracing enabled")
-            print("📡 OpenInference instrumentation active")
+            if not globals().get('_langfuse_tracing_printed', False):
+                print("✅ Langfuse tracing enabled")
+                print("📡 OpenInference instrumentation active")
+                globals()['_langfuse_tracing_printed'] = True
             return True
         else:
             print("❌ Langfuse tracing setup failed")
