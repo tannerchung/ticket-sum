@@ -73,12 +73,14 @@ Use Replit's persistent storage for output files and cached data.
 - **Solution**: Replaced dynamic command concatenation with explicit static command array construction
 - **Implementation**: 
   - **main.py**: Removed vulnerable line `cmd_fallback = [sys.executable, '-m'] + cmd`
-  - **main.py**: Added secure static command array with explicit argument values
+  - **main.py**: Added Python executable validation with path existence checking
+  - **main.py**: Enhanced all 3 subprocess.run() calls with explicit static command arrays and security comments
+  - **main.py**: Added comprehensive validation and secure command construction patterns
   - **run.py**: Enhanced with Python executable validation and explicit static command construction
   - **run.py**: Added security comments and validation to prevent false positive security warnings
-  - All subprocess.run() calls now use properly constructed command arrays with static strings
-- **Security Enhancement**: Application now follows secure coding practices for subprocess execution with validation
-- **Verification**: Complete audit of all subprocess usage across codebase - both files now explicitly secure
+  - All subprocess.run() calls now use properly validated command arrays with static strings
+- **Security Enhancement**: Application now follows secure coding practices for subprocess execution with comprehensive validation
+- **Verification**: Complete security audit of all subprocess usage across codebase - both files now explicitly secure with validation
 
 ### v2.1.1 - Langfuse Session Tracking Enhancement (August 2, 2025)
 
