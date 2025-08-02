@@ -177,10 +177,20 @@ class LangfuseManager:
             print(f"📊 Langfuse Session ID: {session_id}")
             print(f"🎯 Processing Type: {processing_type}")
             
-            # Create Langfuse trace with session_id using the correct Python SDK API
+            # Create explicit Langfuse trace with session_id alongside OpenInference instrumentation
             if self.client:
-                print("📡 Using OpenInference instrumentation for automatic tracing")
-                print(f"📊 Session will be tracked via trace metadata: {session_id[:8]}...")
+                try:
+                    # Create a proper Langfuse trace with our custom name and session ID
+                    self.langfuse_trace = self.client.trace(
+                        name=trace_name,
+                        session_id=session_id,
+                        metadata=trace_context
+                    )
+                    print(f"📡 Created Langfuse trace: {trace_name}")
+                    print(f"📊 Session ID attached: {session_id}")
+                except Exception as e:
+                    print(f"⚠️ Failed to create explicit Langfuse trace: {e}")
+                    print("📡 Falling back to OpenInference instrumentation only")
             
             yield trace_context
             
@@ -195,8 +205,19 @@ class LangfuseManager:
             print(f"❌ Trace {trace_name} failed after {duration:.2f}s: {e}")
             raise
         finally:
-            # Flush if client is available
-            if self.client:
+            # Update and flush the explicit Langfuse trace if created
+            if self.client and hasattr(self, 'langfuse_trace') and self.langfuse_trace:
+                try:
+                    # Update trace with final status and duration
+                    duration = time.time() - start_time
+                    self.langfuse_trace.update(
+                        metadata={**trace_context, "duration_seconds": duration}
+                    )
+                    self.client.flush()
+                    print(f"📊 Langfuse trace finalized with session {session_id[:8]}...")
+                except Exception as e:
+                    print(f"⚠️ Error updating Langfuse trace: {e}")
+            elif self.client:
                 try:
                     self.client.flush()
                 except Exception:
