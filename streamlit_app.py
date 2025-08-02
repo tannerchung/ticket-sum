@@ -1459,7 +1459,7 @@ def display_comparison_results(comparison_results):
             showlegend=True
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key=f"comparison_chart_{hash(str(comparison_results))}")
     
     # Detailed results per model
     results = comparison_results.get('results', {})
