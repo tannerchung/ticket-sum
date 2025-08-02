@@ -196,11 +196,19 @@ def setup_langfuse():
         return False
 
 # Kaggle Configuration
+# Global flag to prevent duplicate Kaggle configuration messages
+_kaggle_configured = False
+
 def setup_kaggle():
     """Configure Kaggle API credentials"""
+    global _kaggle_configured
+    
     if KAGGLE_USERNAME and KAGGLE_KEY:
         os.environ["KAGGLE_USERNAME"] = KAGGLE_USERNAME
         os.environ["KAGGLE_KEY"] = KAGGLE_KEY
-        print(f"✅ Kaggle configured for user: {KAGGLE_USERNAME}")
+        if not _kaggle_configured:
+            print(f"✅ Kaggle configured for user: {KAGGLE_USERNAME}")
+        _kaggle_configured = True
     else:
-        print("⚠️ Kaggle credentials not configured - some features may be limited")
+        if not _kaggle_configured:
+            print("⚠️ Kaggle credentials not configured - some features may be limited")

@@ -46,15 +46,21 @@ class LangfuseManager:
             bool: True if initialization successful
         """
         try:
+            # Skip if already initialized to prevent duplicate messages
+            if self.client and self.instrumented:
+                return True
+                
             # Get Langfuse client (reads LANGFUSE_* env vars automatically)
             self.client = Langfuse()
             
             # Authenticate with Langfuse
             if not self.client.auth_check():
-                print("❌ Langfuse authentication failed - check your keys")
+                if not self.instrumented:  # Only print once
+                    print("❌ Langfuse authentication failed - check your keys")
                 return False
             
-            print("✅ Langfuse authentication successful")
+            if not self.instrumented:  # Only print once
+                print("✅ Langfuse authentication successful")
             
             # Initialize instrumentors with enhanced configuration
             if not self.instrumented:

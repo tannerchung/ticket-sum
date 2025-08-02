@@ -207,6 +207,9 @@ def create_progress_bar(total: int, desc: str = "Processing") -> tqdm:
     return tqdm(total=total, desc=desc, unit="ticket", 
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]')
 
+# Global flag to prevent duplicate environment validation messages
+_environment_validated = False
+
 def validate_environment() -> bool:
     """
     Validate that all required environment variables are set.
@@ -214,6 +217,8 @@ def validate_environment() -> bool:
     Returns:
         bool: True if environment is properly configured
     """
+    global _environment_validated
+    
     required_vars = ['OPENAI_API_KEY']
     missing_vars = []
     
@@ -222,9 +227,13 @@ def validate_environment() -> bool:
             missing_vars.append(var)
     
     if missing_vars:
-        print(f"❌ Missing required environment variables: {', '.join(missing_vars)}")
-        print("Please set these variables in your .env file")
+        if not _environment_validated:
+            print(f"❌ Missing required environment variables: {', '.join(missing_vars)}")
+            print("Please set these variables in your .env file")
+        _environment_validated = True
         return False
     
-    print("✅ Environment validation passed")
+    if not _environment_validated:
+        print("✅ Environment validation passed")
+    _environment_validated = True
     return True
