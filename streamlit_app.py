@@ -30,6 +30,7 @@ from experiment_manager import ExperimentManager, ExperimentType, ExperimentConf
 from utils import validate_environment, load_ticket_data
 from database_service import db_service
 from live_logger import live_logger, log_info, log_debug, log_warning, log_error, log_success, LogLevel, ProcessStatus
+from collaboration_metrics import CollaborationMetricsAnalyzer
 from debug_interface import (
     display_debug_interface, 
     initialize_debug_logging, 
@@ -1790,6 +1791,18 @@ def display_database_analytics():
                 
                 with config_tab4:
                     display_quality_threshold_analysis(config_analysis.get('quality_threshold_performance', {}))
+                
+                # Add Advanced Collaboration Metrics section
+                st.markdown("---")
+                st.markdown("### 🧠 Advanced Collaboration Metrics")
+                
+                try:
+                    collaboration_analyzer = CollaborationMetricsAnalyzer()
+                    collaboration_analysis = collaboration_analyzer.generate_comprehensive_analysis(limit=50)
+                    display_advanced_collaboration_metrics(collaboration_analysis)
+                except Exception as e:
+                    st.error(f"Advanced collaboration metrics temporarily unavailable: {str(e)}")
+                    st.info("These metrics will become available once sufficient processing data is collected.")
                     
             else:
                 st.info("📊 No experiment configuration data available yet. Run some experiments to see which configurations win!")
@@ -3013,6 +3026,295 @@ def setup_debug_logging():
     log_info("Application started - debug logging enabled")
 
 # Remove the duplicate main function - the original one below is the complete one
+
+def display_advanced_collaboration_metrics(analysis: Dict[str, Any]):
+    """Display advanced collaboration metrics that answer sophisticated questions."""
+    
+    st.markdown("""
+    **These metrics help answer questions like:**
+    - "Why did my agents make this decision together?"
+    - "How can I make this 50% faster without losing quality?"
+    - "What will happen if I change this agent's prompt?"
+    - "Where is my collaboration breaking down?"
+    """)
+    
+    # Create tabs for different metric categories
+    metrics_tab1, metrics_tab2, metrics_tab3, metrics_tab4 = st.tabs([
+        "🎯 Specialization & Role Clarity",
+        "🗣️ Communication Intelligence", 
+        "⚡ Workflow Optimization",
+        "🔍 Emergent Behavior Analysis"
+    ])
+    
+    with metrics_tab1:
+        display_specialization_metrics(analysis.get('specialization_metrics', {}))
+    
+    with metrics_tab2:
+        display_communication_intelligence(analysis.get('communication_intelligence', {}))
+    
+    with metrics_tab3:
+        display_workflow_intelligence(analysis.get('workflow_intelligence', {}))
+    
+    with metrics_tab4:
+        display_emergent_behavior_analysis(analysis.get('emergent_behavior', {}))
+    
+    # Show optimization suggestions prominently
+    if analysis.get('optimization_suggestions'):
+        st.markdown("---")
+        display_optimization_suggestions(analysis['optimization_suggestions'])
+
+def display_specialization_metrics(metrics: Dict[str, Any]):
+    """Display agent specialization and role clarity metrics."""
+    
+    st.markdown("#### 🎯 Agent Specialization Analysis")
+    
+    role_clarity = metrics.get('role_definition_clarity', {})
+    cognitive_load = metrics.get('cognitive_load_optimization', {})
+    overlap_inefficiency = metrics.get('overlap_inefficiency', 0)
+    
+    # Role clarity scores
+    if role_clarity:
+        st.markdown("**Role Definition Clarity by Agent**")
+        
+        for agent_name, clarity_data in role_clarity.items():
+            if isinstance(clarity_data, dict):
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric(
+                        f"{agent_name.replace('_', ' ').title()}", 
+                        f"{clarity_data.get('overall_clarity', 0):.3f}",
+                        help="How well-defined this agent's role boundaries are"
+                    )
+                
+                with col2:
+                    st.metric(
+                        "Task Consistency", 
+                        f"{clarity_data.get('consistency', 0):.3f}",
+                        help="Consistency in task execution"
+                    )
+                
+                with col3:
+                    st.metric(
+                        "Output Predictability", 
+                        f"{clarity_data.get('predictability', 0):.3f}",
+                        help="Predictability of output patterns"
+                    )
+    
+    # Cognitive load optimization
+    st.markdown("**Cognitive Load Optimization**")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        task_match = cognitive_load.get('task_complexity_match', 0)
+        st.metric(
+            "Task-Capability Match", 
+            f"{task_match:.3f}",
+            help="How well agent capabilities match assigned task complexity"
+        )
+    
+    with col2:
+        mental_consistency = cognitive_load.get('mental_model_consistency', 0)
+        st.metric(
+            "Mental Model Consistency", 
+            f"{mental_consistency:.3f}",
+            help="How consistently agents reason across similar situations"
+        )
+    
+    with col3:
+        expertise_util = cognitive_load.get('expertise_utilization', 0)
+        st.metric(
+            "Expertise Utilization", 
+            f"{expertise_util:.3f}",
+            help="How well specialized knowledge is applied"
+        )
+    
+    # Overlap inefficiency
+    st.markdown("**Role Overlap Analysis**")
+    inefficiency_color = "red" if overlap_inefficiency > 0.3 else "orange" if overlap_inefficiency > 0.15 else "green"
+    st.metric(
+        "Overlap Inefficiency", 
+        f"{overlap_inefficiency:.3f}",
+        help="Wasted effort from role confusion or redundant work"
+    )
+
+def display_communication_intelligence(intelligence: Dict[str, Any]):
+    """Display communication effectiveness metrics."""
+    
+    st.markdown("#### 🗣️ Inter-Agent Communication Analysis")
+    
+    # Core communication metrics
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        compression_eff = intelligence.get('semantic_compression_efficiency', 0)
+        st.metric(
+            "Information Compression", 
+            f"{compression_eff:.3f}",
+            help="How effectively agents summarize information for each other"
+        )
+    
+    with col2:
+        context_preservation = intelligence.get('context_preservation_across_handoffs', 0)
+        st.metric(
+            "Context Preservation", 
+            f"{context_preservation:.3f}",
+            help="How well context is maintained during agent handoffs"
+        )
+    
+    with col3:
+        misunderstanding_detection = intelligence.get('misunderstanding_detection_rate', 0)
+        st.metric(
+            "Error Detection Rate", 
+            f"{misunderstanding_detection:.3f}",
+            help="How often agents catch and correct misunderstandings"
+        )
+    
+    # Language evolution
+    language_evolution = intelligence.get('collaborative_language_evolution', {})
+    if language_evolution:
+        st.markdown("**Communication Protocol Evolution**")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            vocab_development = language_evolution.get('shared_vocabulary_development', 0)
+            st.metric(
+                "Vocabulary Development", 
+                f"{vocab_development:.3f}",
+                help="How agents develop shared terminology over time"
+            )
+        
+        with col2:
+            protocol_refinement = language_evolution.get('communication_protocol_refinement', 0)
+            st.metric(
+                "Protocol Refinement", 
+                f"{protocol_refinement:.3f}",
+                help="Improvement in communication patterns over time"
+            )
+
+def display_workflow_intelligence(workflow: Dict[str, Any]):
+    """Display workflow optimization insights."""
+    
+    st.markdown("#### ⚡ Workflow Intelligence & Optimization")
+    
+    # Optimal sequencing
+    sequencing = workflow.get('optimal_agent_sequencing', {})
+    if sequencing:
+        st.markdown("**Agent Sequencing Analysis**")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            current_sequence = sequencing.get('current_most_common', [])
+            st.markdown("**Current Most Common Sequence:**")
+            if current_sequence:
+                sequence_text = " → ".join([agent.replace('_', ' ').title() for agent in current_sequence])
+                st.code(sequence_text)
+        
+        with col2:
+            optimal_sequence = sequencing.get('optimized_order', [])
+            st.markdown("**Recommended Optimal Sequence:**")
+            if optimal_sequence:
+                sequence_text = " → ".join([agent.replace('_', ' ').title() for agent in optimal_sequence])
+                st.code(sequence_text)
+        
+        improvement = sequencing.get('performance_improvement', 0)
+        st.metric(
+            "Potential Speed Improvement", 
+            f"{improvement:.1%}",
+            help="Expected performance gain from optimal sequencing"
+        )
+    
+    # Parallel processing opportunities
+    parallel_ops = workflow.get('parallel_processing_opportunities', {})
+    if parallel_ops:
+        st.markdown("**Parallelization Opportunities**")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            sequential_ratio = parallel_ops.get('current_sequential_ratio', 0)
+            st.metric(
+                "Current Sequential Ratio", 
+                f"{sequential_ratio:.3f}",
+                help="Proportion of work done sequentially"
+            )
+        
+        with col2:
+            parallelizable_tasks = parallel_ops.get('parallelizable_tasks', 0)
+            st.metric(
+                "Parallelizable Tasks", 
+                f"{parallelizable_tasks:.3f}",
+                help="Proportion of tasks that could run in parallel"
+            )
+        
+        with col3:
+            speed_improvement = parallel_ops.get('speed_improvement_potential', 0)
+            st.metric(
+                "Speed Improvement Potential", 
+                f"{speed_improvement:.1%}",
+                help="Maximum speed gain from parallelization"
+            )
+
+def display_emergent_behavior_analysis(emergent: Dict[str, Any]):
+    """Display emergent behavior and unexpected patterns."""
+    
+    st.markdown("#### 🔍 Emergent Behavior Detection")
+    
+    # Unexpected collaboration patterns
+    unexpected_patterns = emergent.get('unexpected_collaboration_patterns', {})
+    if unexpected_patterns:
+        st.markdown("**Unexpected Collaboration Patterns**")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            qa_influence = unexpected_patterns.get('qa_reviewer_influencing_triage', 0)
+            st.metric(
+                "QA → Triage Influence", 
+                f"{qa_influence:.3f}",
+                help="QA reviewer unexpectedly influencing triage decisions"
+            )
+        
+        with col2:
+            alliance = unexpected_patterns.get('analyst_strategist_alliance', 0)
+            st.metric(
+                "Analyst-Strategist Alliance", 
+                f"{alliance:.3f}",
+                help="Strong collaboration partnership formation"
+            )
+        
+        with col3:
+            collective_decisions = unexpected_patterns.get('collective_decision_emergence', 0)
+            st.metric(
+                "Collective Decision Making", 
+                f"{collective_decisions:.3f}",
+                help="Decisions emerging from group dynamics"
+            )
+
+def display_optimization_suggestions(suggestions: Dict[str, Any]):
+    """Display actionable optimization suggestions."""
+    
+    st.markdown("### 💡 Optimization Recommendations")
+    
+    # Speed optimizations
+    speed_opts = suggestions.get('speed_optimizations', [])
+    if speed_opts:
+        st.markdown("#### ⚡ Speed Optimizations")
+        for opt in speed_opts:
+            with st.expander(f"🚀 {opt.get('optimization', 'Optimization').replace('_', ' ').title()}"):
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("Expected Improvement", f"{opt.get('predicted_improvement', 0):.1%}")
+                
+                with col2:
+                    st.metric("Confidence", f"{opt.get('confidence', 0):.1%}")
+                
+                with col3:
+                    effort = opt.get('implementation_effort', 'unknown')
+                    st.metric("Implementation Effort", effort.title())
 
 if __name__ == "__main__":
     main()
