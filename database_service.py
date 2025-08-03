@@ -640,8 +640,15 @@ class DatabaseService:
         try:
             # Get processing logs with experiment metadata
             logs = session.query(ProcessingLog).filter(
-                ProcessingLog.metadata.contains('experiment_id')  # Check if key exists
+                ProcessingLog.metadata != None
             ).order_by(ProcessingLog.created_at.desc()).all()
+            
+            # Filter for experiments in Python
+            experiment_logs = []
+            for log in logs:
+                if log.metadata and 'experiment_id' in log.metadata:
+                    experiment_logs.append(log)
+            logs = experiment_logs
             
             experiments = []
             seen_experiments = set()
@@ -683,7 +690,7 @@ class DatabaseService:
         try:
             # Get all processing logs with experiment metadata
             logs = session.query(ProcessingLog).filter(
-                ProcessingLog.metadata.isnot(None)
+                ProcessingLog.metadata != None
             ).all()
             
             # Analyze different configuration aspects
