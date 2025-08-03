@@ -636,6 +636,7 @@ class DatabaseService:
 
     def get_all_experiments(self) -> List[Dict[str, Any]]:
         """Get all experiment data from processing logs and experiment tables."""
+        import json
         session = get_db_session()
         try:
             # Get processing logs with experiment metadata
@@ -661,7 +662,6 @@ class DatabaseService:
                         metadata = log.metadata
                     elif isinstance(log.metadata, str):
                         # It's a JSON string
-                        import json
                         metadata = json.loads(log.metadata)
                     elif log.metadata is None:
                         metadata = {}
@@ -702,6 +702,7 @@ class DatabaseService:
 
     def get_experiment_configuration_analysis(self) -> Dict[str, Any]:
         """Get analysis of which experiment configurations perform best."""
+        import json
         session = get_db_session()
         try:
             # Get all processing logs with experiment metadata
@@ -723,7 +724,6 @@ class DatabaseService:
                         metadata = log.metadata
                     elif isinstance(log.metadata, str):
                         # It's a JSON string
-                        import json
                         metadata = json.loads(log.metadata)
                     elif log.metadata is None:
                         metadata = {}
