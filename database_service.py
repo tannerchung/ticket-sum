@@ -640,7 +640,7 @@ class DatabaseService:
         try:
             # Get processing logs with experiment metadata
             logs = session.query(ProcessingLog).filter(
-                ProcessingLog.metadata.op('?')('experiment_id')  # Check if key exists
+                ProcessingLog.metadata.contains('experiment_id')  # Check if key exists
             ).order_by(ProcessingLog.created_at.desc()).all()
             
             experiments = []
@@ -674,6 +674,127 @@ class DatabaseService:
         except Exception as e:
             print(f"Error getting experiments: {e}")
             return []
+        finally:
+            session.close()
+
+    def get_experiment_configuration_analysis(self) -> Dict[str, Any]:
+        """Get analysis of which experiment configurations perform best."""
+        session = get_db_session()
+        try:
+            # Get all processing logs with experiment metadata
+            logs = session.query(ProcessingLog).filter(
+                ProcessingLog.metadata.isnot(None)
+            ).all()
+            
+            # Analyze different configuration aspects
+            model_performance = {}
+            agent_order_performance = {}
+            consensus_performance = {}
+            quality_threshold_performance = {}
+            
+            for log in logs:
+                metadata = log.metadata or {}
+                
+                # Skip if not an experiment
+                if not metadata.get('experiment_id'):
+                    continue
+                
+                # Extract configuration details and performance metrics
+                accuracy = float(metadata.get('accuracy', 0.0))
+                processing_time = float(log.processing_time or 0.0)
+                success = log.status == 'success'
+                
+                # Model analysis
+                model_name = metadata.get('model_name', 'unknown')
+                if model_name not in model_performance:
+                    model_performance[model_name] = {
+                        'accuracies': [], 'times': [], 'successes': 0, 'total': 0
+                    }
+                model_performance[model_name]['accuracies'].append(accuracy)
+                model_performance[model_name]['times'].append(processing_time)
+                model_performance[model_name]['successes'] += 1 if success else 0
+                model_performance[model_name]['total'] += 1
+                
+                # Agent order analysis
+                agent_order = metadata.get('agent_order', 'standard')
+                if agent_order not in agent_order_performance:
+                    agent_order_performance[agent_order] = {
+                        'accuracies': [], 'times': [], 'successes': 0, 'total': 0
+                    }
+                agent_order_performance[agent_order]['accuracies'].append(accuracy)
+                agent_order_performance[agent_order]['times'].append(processing_time)
+                agent_order_performance[agent_order]['successes'] += 1 if success else 0
+                agent_order_performance[agent_order]['total'] += 1
+                
+                # Consensus mechanism analysis
+                consensus_method = metadata.get('consensus_mechanism', 'majority_vote')
+                if consensus_method not in consensus_performance:
+                    consensus_performance[consensus_method] = {
+                        'accuracies': [], 'times': [], 'successes': 0, 'total': 0
+                    }
+                consensus_performance[consensus_method]['accuracies'].append(accuracy)
+                consensus_performance[consensus_method]['times'].append(processing_time)
+                consensus_performance[consensus_method]['successes'] += 1 if success else 0
+                consensus_performance[consensus_method]['total'] += 1
+                
+                # Quality threshold analysis
+                quality_threshold = metadata.get('quality_threshold', 0.8)
+                threshold_key = f"{quality_threshold:.1f}"
+                if threshold_key not in quality_threshold_performance:
+                    quality_threshold_performance[threshold_key] = {
+                        'accuracies': [], 'times': [], 'successes': 0, 'total': 0
+                    }
+                quality_threshold_performance[threshold_key]['accuracies'].append(accuracy)
+                quality_threshold_performance[threshold_key]['times'].append(processing_time)
+                quality_threshold_performance[threshold_key]['successes'] += 1 if success else 0
+                quality_threshold_performance[threshold_key]['total'] += 1
+            
+            # Calculate summary statistics for each category
+            def calculate_stats(performance_dict):
+                results = {}
+                for config, data in performance_dict.items():
+                    if data['total'] > 0:
+                        results[config] = {
+                            'avg_accuracy': sum(data['accuracies']) / len(data['accuracies']) if data['accuracies'] else 0,
+                            'avg_time': sum(data['times']) / len(data['times']) if data['times'] else 0,
+                            'success_rate': data['successes'] / data['total'],
+                            'total_experiments': data['total'],
+                            'efficiency_score': (sum(data['accuracies']) / len(data['accuracies'])) / (sum(data['times']) / len(data['times'])) if data['times'] and data['accuracies'] else 0
+                        }
+                return results
+            
+            model_stats = calculate_stats(model_performance)
+            agent_order_stats = calculate_stats(agent_order_performance)
+            consensus_stats = calculate_stats(consensus_performance)
+            quality_threshold_stats = calculate_stats(quality_threshold_performance)
+            
+            # Find winners
+            def find_winner(stats_dict, metric='avg_accuracy'):
+                if not stats_dict:
+                    return None, 0
+                best_config = max(stats_dict.items(), key=lambda x: x[1][metric])
+                return best_config[0], best_config[1][metric]
+            
+            winners = {
+                'best_model': find_winner(model_stats, 'avg_accuracy'),
+                'fastest_model': find_winner(model_stats, 'efficiency_score'),
+                'best_agent_order': find_winner(agent_order_stats, 'avg_accuracy'),
+                'best_consensus': find_winner(consensus_stats, 'avg_accuracy'),
+                'best_quality_threshold': find_winner(quality_threshold_stats, 'avg_accuracy')
+            }
+            
+            return {
+                'model_performance': model_stats,
+                'agent_order_performance': agent_order_stats,
+                'consensus_performance': consensus_stats,
+                'quality_threshold_performance': quality_threshold_stats,
+                'winners': winners,
+                'total_experiments_analyzed': sum(data['total'] for data in model_performance.values())
+            }
+            
+        except Exception as e:
+            print(f"Error analyzing experiment configurations: {e}")
+            return {}
         finally:
             session.close()
 

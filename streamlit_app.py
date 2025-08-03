@@ -1469,9 +1469,76 @@ def display_database_analytics():
             tickets_df = pd.DataFrame(recent_tickets)
             st.dataframe(tickets_df, use_container_width=True)
         
-        # Experiment Sweeps Analytics
+        # Experiment Configuration Winners
         st.markdown("---")
-        st.markdown("### 🧪 Experiment Sweeps Analytics")
+        st.markdown("### 🏆 Winning Configurations Analysis")
+        
+        try:
+            # Get configuration analysis
+            config_analysis = db_service.get_experiment_configuration_analysis()
+            
+            if config_analysis and config_analysis.get('total_experiments_analyzed', 0) > 0:
+                st.success(f"📊 Analysis based on {config_analysis['total_experiments_analyzed']} experiments")
+                
+                # Winners summary
+                winners = config_analysis.get('winners', {})
+                st.markdown("#### 🥇 Top Performing Configurations")
+                
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    best_model = winners.get('best_model', (None, 0))
+                    st.metric("🤖 Best Model", 
+                             best_model[0] or "N/A", 
+                             f"{best_model[1]:.1%}" if best_model[1] else "0%")
+                
+                with col2:
+                    best_order = winners.get('best_agent_order', (None, 0))
+                    st.metric("🔄 Best Agent Order", 
+                             best_order[0] or "N/A",
+                             f"{best_order[1]:.1%}" if best_order[1] else "0%")
+                
+                with col3:
+                    best_consensus = winners.get('best_consensus', (None, 0))
+                    st.metric("🤝 Best Consensus", 
+                             best_consensus[0] or "N/A",
+                             f"{best_consensus[1]:.1%}" if best_consensus[1] else "0%")
+                
+                with col4:
+                    best_threshold = winners.get('best_quality_threshold', (None, 0))
+                    st.metric("🎯 Best Quality Threshold", 
+                             best_threshold[0] or "N/A",
+                             f"{best_threshold[1]:.1%}" if best_threshold[1] else "0%")
+                
+                # Detailed analysis tabs
+                config_tab1, config_tab2, config_tab3, config_tab4 = st.tabs([
+                    "🤖 Model Performance", 
+                    "🔄 Agent Order Analysis", 
+                    "🤝 Consensus Mechanisms",
+                    "🎯 Quality Thresholds"
+                ])
+                
+                with config_tab1:
+                    display_model_performance_analysis(config_analysis.get('model_performance', {}))
+                
+                with config_tab2:
+                    display_agent_order_analysis(config_analysis.get('agent_order_performance', {}))
+                
+                with config_tab3:
+                    display_consensus_analysis(config_analysis.get('consensus_performance', {}))
+                
+                with config_tab4:
+                    display_quality_threshold_analysis(config_analysis.get('quality_threshold_performance', {}))
+                    
+            else:
+                st.info("📊 No experiment configuration data available yet. Run some experiments to see which configurations win!")
+                
+        except Exception as e:
+            st.warning(f"⚠️ Error loading configuration analysis: {str(e)}")
+        
+        # Original Experiment Sweeps Analytics
+        st.markdown("---")
+        st.markdown("### 🧪 Detailed Experiment Analytics")
         
         try:
             # Get experiment data
@@ -1498,10 +1565,10 @@ def display_database_analytics():
                 with exp_tab4:
                     display_timing_analysis(experiments)
             else:
-                st.info("📊 No experiment data available yet. Run some experiments to see analytics here.")
+                st.info("📊 No detailed experiment data available yet.")
                 
         except Exception as e:
-            st.warning(f"⚠️ Error loading experiment analytics: {str(e)}")
+            st.warning(f"⚠️ Error loading detailed experiment analytics: {str(e)}")
         
         # Agent performance
         st.markdown("---")
@@ -1802,6 +1869,179 @@ def display_timing_analysis(experiments):
                     
     except Exception as e:
         st.error(f"Error displaying timing analysis: {str(e)}")
+
+def display_model_performance_analysis(model_stats):
+    """Display detailed model performance analysis."""
+    if not model_stats:
+        st.info("No model performance data available")
+        return
+    
+    # Create DataFrame for analysis
+    model_df = pd.DataFrame.from_dict(model_stats, orient='index').reset_index()
+    model_df.columns = ['Model', 'Avg_Accuracy', 'Avg_Time', 'Success_Rate', 'Total_Experiments', 'Efficiency_Score']
+    
+    # Sort by accuracy
+    model_df = model_df.sort_values('Avg_Accuracy', ascending=False)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Accuracy comparison
+        fig_acc = px.bar(
+            model_df,
+            x='Model',
+            y='Avg_Accuracy',
+            title="Model Accuracy Comparison",
+            text='Avg_Accuracy'
+        )
+        fig_acc.update_layout(yaxis_tickformat='.0%')
+        fig_acc.update_traces(texttemplate='%{text:.1%}', textposition='outside')
+        st.plotly_chart(fig_acc, use_container_width=True)
+    
+    with col2:
+        # Efficiency scatter
+        fig_eff = px.scatter(
+            model_df,
+            x='Avg_Time',
+            y='Avg_Accuracy',
+            size='Total_Experiments',
+            hover_name='Model',
+            title="Accuracy vs Speed (Efficiency)",
+            labels={'Avg_Time': 'Avg Processing Time (s)', 'Avg_Accuracy': 'Accuracy'}
+        )
+        fig_eff.update_layout(yaxis_tickformat='.0%')
+        st.plotly_chart(fig_eff, use_container_width=True)
+    
+    # Performance table
+    st.markdown("**Model Performance Summary**")
+    display_df = model_df.copy()
+    display_df['Avg_Accuracy'] = display_df['Avg_Accuracy'].apply(lambda x: f"{x:.1%}")
+    display_df['Success_Rate'] = display_df['Success_Rate'].apply(lambda x: f"{x:.1%}")
+    display_df['Avg_Time'] = display_df['Avg_Time'].apply(lambda x: f"{x:.2f}s")
+    display_df['Efficiency_Score'] = display_df['Efficiency_Score'].apply(lambda x: f"{x:.3f}")
+    st.dataframe(display_df, use_container_width=True)
+
+def display_agent_order_analysis(agent_order_stats):
+    """Display agent order performance analysis."""
+    if not agent_order_stats:
+        st.info("No agent order data available")
+        return
+    
+    order_df = pd.DataFrame.from_dict(agent_order_stats, orient='index').reset_index()
+    order_df.columns = ['Agent_Order', 'Avg_Accuracy', 'Avg_Time', 'Success_Rate', 'Total_Experiments', 'Efficiency_Score']
+    order_df = order_df.sort_values('Avg_Accuracy', ascending=False)
+    
+    # Accuracy by agent order
+    fig_order = px.bar(
+        order_df,
+        x='Agent_Order',
+        y='Avg_Accuracy',
+        title="Agent Order Performance",
+        text='Avg_Accuracy'
+    )
+    fig_order.update_layout(yaxis_tickformat='.0%')
+    fig_order.update_traces(texttemplate='%{text:.1%}', textposition='outside')
+    st.plotly_chart(fig_order, use_container_width=True)
+    
+    # Summary table
+    st.markdown("**Agent Order Performance Summary**")
+    display_df = order_df.copy()
+    display_df['Avg_Accuracy'] = display_df['Avg_Accuracy'].apply(lambda x: f"{x:.1%}")
+    display_df['Success_Rate'] = display_df['Success_Rate'].apply(lambda x: f"{x:.1%}")
+    display_df['Avg_Time'] = display_df['Avg_Time'].apply(lambda x: f"{x:.2f}s")
+    st.dataframe(display_df, use_container_width=True)
+
+def display_consensus_analysis(consensus_stats):
+    """Display consensus mechanism performance analysis."""
+    if not consensus_stats:
+        st.info("No consensus mechanism data available")
+        return
+    
+    consensus_df = pd.DataFrame.from_dict(consensus_stats, orient='index').reset_index()
+    consensus_df.columns = ['Consensus_Method', 'Avg_Accuracy', 'Avg_Time', 'Success_Rate', 'Total_Experiments', 'Efficiency_Score']
+    consensus_df = consensus_df.sort_values('Avg_Accuracy', ascending=False)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Accuracy by consensus method
+        fig_consensus = px.bar(
+            consensus_df,
+            x='Consensus_Method',
+            y='Avg_Accuracy',
+            title="Consensus Method Performance",
+            text='Avg_Accuracy'
+        )
+        fig_consensus.update_layout(yaxis_tickformat='.0%')
+        fig_consensus.update_traces(texttemplate='%{text:.1%}', textposition='outside')
+        st.plotly_chart(fig_consensus, use_container_width=True)
+    
+    with col2:
+        # Success rate comparison
+        fig_success = px.bar(
+            consensus_df,
+            x='Consensus_Method',
+            y='Success_Rate',
+            title="Consensus Method Success Rate",
+            text='Success_Rate'
+        )
+        fig_success.update_layout(yaxis_tickformat='.0%')
+        fig_success.update_traces(texttemplate='%{text:.1%}', textposition='outside')
+        st.plotly_chart(fig_success, use_container_width=True)
+    
+    # Summary table
+    st.markdown("**Consensus Method Performance Summary**")
+    display_df = consensus_df.copy()
+    display_df['Avg_Accuracy'] = display_df['Avg_Accuracy'].apply(lambda x: f"{x:.1%}")
+    display_df['Success_Rate'] = display_df['Success_Rate'].apply(lambda x: f"{x:.1%}")
+    display_df['Avg_Time'] = display_df['Avg_Time'].apply(lambda x: f"{x:.2f}s")
+    st.dataframe(display_df, use_container_width=True)
+
+def display_quality_threshold_analysis(threshold_stats):
+    """Display quality threshold performance analysis."""
+    if not threshold_stats:
+        st.info("No quality threshold data available")
+        return
+    
+    threshold_df = pd.DataFrame.from_dict(threshold_stats, orient='index').reset_index()
+    threshold_df.columns = ['Quality_Threshold', 'Avg_Accuracy', 'Avg_Time', 'Success_Rate', 'Total_Experiments', 'Efficiency_Score']
+    threshold_df['Quality_Threshold'] = threshold_df['Quality_Threshold'].astype(float)
+    threshold_df = threshold_df.sort_values('Quality_Threshold')
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Accuracy vs threshold
+        fig_threshold = px.line(
+            threshold_df,
+            x='Quality_Threshold',
+            y='Avg_Accuracy',
+            title="Accuracy vs Quality Threshold",
+            markers=True
+        )
+        fig_threshold.update_layout(yaxis_tickformat='.0%')
+        st.plotly_chart(fig_threshold, use_container_width=True)
+    
+    with col2:
+        # Processing time vs threshold
+        fig_time = px.line(
+            threshold_df,
+            x='Quality_Threshold',
+            y='Avg_Time',
+            title="Processing Time vs Quality Threshold",
+            markers=True
+        )
+        fig_time.update_layout(yaxis_title="Avg Processing Time (s)")
+        st.plotly_chart(fig_time, use_container_width=True)
+    
+    # Summary table
+    st.markdown("**Quality Threshold Performance Summary**") 
+    display_df = threshold_df.copy()
+    display_df['Quality_Threshold'] = display_df['Quality_Threshold'].apply(lambda x: f"{x:.1f}")
+    display_df['Avg_Accuracy'] = display_df['Avg_Accuracy'].apply(lambda x: f"{x:.1%}")
+    display_df['Success_Rate'] = display_df['Success_Rate'].apply(lambda x: f"{x:.1%}")
+    display_df['Avg_Time'] = display_df['Avg_Time'].apply(lambda x: f"{x:.2f}s")
+    st.dataframe(display_df, use_container_width=True)
 
 def display_model_management():
     """Display model management and comparison interface."""
