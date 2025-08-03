@@ -481,7 +481,7 @@ class CollaborationMetricsAnalyzer:
                     efficiency = 1.0 - compression_ratio if compression_ratio < 1 else 0
                     compression_scores.append(max(0, efficiency))
         
-        return round(np.mean(compression_scores) if compression_scores else 0.67, 3)
+        return round(np.mean(compression_scores) if compression_scores else 0, 3)
     
     def _measure_information_complexity(self, data: Dict) -> float:
         """Measure complexity of information content."""
@@ -510,7 +510,7 @@ class CollaborationMetricsAnalyzer:
                 preserved_context = self._measure_context_overlap(initial_context, agent_output)
                 preservation_scores.append(preserved_context)
         
-        return round(np.mean(preservation_scores) if preservation_scores else 0.82, 3)
+        return round(np.mean(preservation_scores) if preservation_scores else 0, 3)
     
     def _extract_context(self, text: str) -> set:
         """Extract key context elements from text."""
@@ -551,7 +551,7 @@ class CollaborationMetricsAnalyzer:
                 
                 detection_instances.append(corrections_detected)
         
-        return round(np.mean(detection_instances) if detection_instances else 0.91, 3)
+        return round(np.mean(detection_instances) if detection_instances else 0, 3)
     
     def _detect_corrections(self, previous_output: Dict, current_output: Dict) -> float:
         """Detect if current agent corrected previous agent's work."""
@@ -583,7 +583,7 @@ class CollaborationMetricsAnalyzer:
             )
             vocabulary_evolution.append(shared_growth)
         
-        return round(np.mean(vocabulary_evolution) if vocabulary_evolution else 0.23, 3)
+        return round(np.mean(vocabulary_evolution) if vocabulary_evolution else 0, 3)
     
     def _split_by_time_periods(self, ticket_data: List[Dict]) -> List[List[Dict]]:
         """Split tickets into time periods for temporal analysis."""
@@ -649,7 +649,7 @@ class CollaborationMetricsAnalyzer:
             refinement = self._measure_protocol_improvement(previous_protocols, current_protocols)
             refinement_scores.append(refinement)
         
-        return round(np.mean(refinement_scores) if refinement_scores else 0.34, 3)
+        return round(np.mean(refinement_scores) if refinement_scores else 0, 3)
     
     def _analyze_communication_protocols(self, tickets: List[Dict]) -> Dict[str, Any]:
         """Analyze communication patterns and protocols."""
@@ -986,120 +986,445 @@ class CollaborationMetricsAnalyzer:
         
         return round(np.mean(quality_factors) if quality_factors else 0.5, 3)
     
-    # Placeholder methods for additional analyses (to be implemented)
+    # Methods for additional analyses based on actual data
     
     def _detect_unexpected_patterns(self, ticket_data: List[Dict]) -> Dict[str, Any]:
-        """Detect unexpected collaboration patterns."""
+        """Detect unexpected collaboration patterns based on actual agent interactions."""
+        if not ticket_data:
+            return {}
+        
+        # Analyze actual agent influence patterns
+        qa_influences_triage = 0
+        analyst_strategist_collaborations = 0
+        collective_decisions = 0
+        total_interactions = 0
+        
+        for ticket in ticket_data:
+            agents = self._extract_agent_sequence(ticket)
+            if len(agents) < 2:
+                continue
+                
+            total_interactions += 1
+            
+            # Check for QA reviewer influencing triage (out-of-order influence)
+            agent_names = [agent['agent_name'] for agent in agents]
+            if 'qa_reviewer' in agent_names and 'triage_specialist' in agent_names:
+                qa_idx = agent_names.index('qa_reviewer')
+                triage_idx = agent_names.index('triage_specialist')
+                if qa_idx < triage_idx:  # QA before triage is unexpected
+                    qa_influences_triage += 1
+            
+            # Check for analyst-strategist strong collaboration
+            if 'ticket_analyst' in agent_names and 'support_strategist' in agent_names:
+                analyst_idx = agent_names.index('ticket_analyst')
+                strategist_idx = agent_names.index('support_strategist')
+                if abs(analyst_idx - strategist_idx) == 1:  # Adjacent agents
+                    analyst_strategist_collaborations += 1
+            
+            # Check for collective decision emergence (all agents involved)
+            if len(set(agent_names)) >= 3:
+                collective_decisions += 1
+        
         return {
-            "qa_reviewer_influencing_triage": round(np.random.uniform(0.2, 0.3), 3),
-            "analyst_strategist_alliance": round(np.random.uniform(0.3, 0.4), 3),
-            "collective_decision_emergence": round(np.random.uniform(0.15, 0.25), 3)
+            "qa_reviewer_influencing_triage": round(qa_influences_triage / total_interactions if total_interactions > 0 else 0, 3),
+            "analyst_strategist_alliance": round(analyst_strategist_collaborations / total_interactions if total_interactions > 0 else 0, 3),
+            "collective_decision_emergence": round(collective_decisions / total_interactions if total_interactions > 0 else 0, 3)
         }
     
     def _analyze_system_adaptation(self, ticket_data: List[Dict]) -> Dict[str, Any]:
-        """Analyze system adaptation over time."""
+        """Analyze system adaptation over time based on actual performance data."""
+        if not ticket_data:
+            return {}
+        
+        # Sort tickets by creation time
+        sorted_tickets = sorted(ticket_data, key=lambda x: x.get('created_at', ''))
+        
+        if len(sorted_tickets) < 10:
+            return {
+                "learning_curve_steepness": 0,
+                "performance_plateau_detection": "insufficient_data",
+                "capability_emergence_rate": 0
+            }
+        
+        # Calculate learning curve from actual processing times
+        processing_times = []
+        for ticket in sorted_tickets:
+            agents = self._extract_agent_sequence(ticket)
+            total_time = sum(agent.get('processing_time', 0) for agent in agents)
+            if total_time > 0:
+                processing_times.append(total_time)
+        
+        if len(processing_times) >= 5:
+            # Calculate learning curve steepness
+            early_avg = np.mean(processing_times[:len(processing_times)//2])
+            late_avg = np.mean(processing_times[len(processing_times)//2:])
+            learning_steepness = (early_avg - late_avg) / early_avg if early_avg > 0 else 0
+        else:
+            learning_steepness = 0
+        
+        # Detect performance plateau
+        plateau_point = "insufficient_data"
+        if len(processing_times) >= 20:
+            # Look for plateau in last 10 tickets
+            recent_variance = np.var(processing_times[-10:])
+            if recent_variance < 0.1:  # Low variance indicates plateau
+                plateau_point = f"after_{len(processing_times) - 10}_tickets"
+        
         return {
-            "learning_curve_steepness": round(np.random.uniform(0.1, 0.15), 3),
-            "performance_plateau_detection": f"after_{np.random.randint(400, 600)}_tickets",
-            "capability_emergence_rate": round(np.random.uniform(0.05, 0.12), 3)
+            "learning_curve_steepness": round(abs(learning_steepness), 3),
+            "performance_plateau_detection": plateau_point,
+            "capability_emergence_rate": round(learning_steepness * 0.5, 3) if learning_steepness > 0 else 0
         }
     
     def _build_influence_network(self, ticket_data: List[Dict]) -> Dict[str, Any]:
-        """Build agent influence network."""
+        """Build agent influence network from actual collaboration data."""
+        if not ticket_data:
+            return {}
+        
+        # Track agent interactions and influence
+        agent_influence_scores = {}
+        collaboration_strengths = {}
+        
+        for ticket in ticket_data:
+            agents = self._extract_agent_sequence(ticket)
+            
+            # Calculate influence based on position and processing time
+            for i, agent in enumerate(agents):
+                agent_name = agent['agent_name']
+                if agent_name not in agent_influence_scores:
+                    agent_influence_scores[agent_name] = 0
+                
+                # Early agents have more influence (shape the workflow)
+                position_influence = (len(agents) - i) / len(agents)
+                processing_time = agent.get('processing_time', 0)
+                time_influence = min(processing_time / 30, 1.0)  # Normalize to 30 seconds
+                
+                agent_influence_scores[agent_name] += position_influence + time_influence
+            
+            # Calculate collaboration strength between adjacent agents
+            for i in range(len(agents) - 1):
+                agent1 = agents[i]['agent_name']
+                agent2 = agents[i + 1]['agent_name']
+                pair_key = f"{agent1}_{agent2}"
+                
+                if pair_key not in collaboration_strengths:
+                    collaboration_strengths[pair_key] = 0
+                
+                # Strength based on how well they work together (time efficiency)
+                combined_time = agents[i].get('processing_time', 0) + agents[i + 1].get('processing_time', 0)
+                efficiency = 1 / (combined_time + 1)  # Avoid division by zero
+                collaboration_strengths[pair_key] += efficiency
+        
+        # Normalize and sort influence hierarchy
+        if agent_influence_scores:
+            max_influence = max(agent_influence_scores.values())
+            for agent in agent_influence_scores:
+                agent_influence_scores[agent] /= max_influence
+            
+            hierarchy = sorted(agent_influence_scores.items(), key=lambda x: x[1], reverse=True)
+            hierarchy = [agent[0] for agent in hierarchy]
+        else:
+            hierarchy = []
+        
+        # Normalize collaboration strengths
+        if collaboration_strengths:
+            max_strength = max(collaboration_strengths.values())
+            for pair in collaboration_strengths:
+                collaboration_strengths[pair] = round(collaboration_strengths[pair] / max_strength, 3)
+        
         return {
-            "influence_hierarchy": ["qa_reviewer", "ticket_analyst", "support_strategist", "triage_specialist"],
-            "collaboration_strength": {
-                "triage_analyst": 0.67,
-                "analyst_strategist": 0.82,
-                "strategist_qa": 0.74
-            }
+            "influence_hierarchy": hierarchy,
+            "collaboration_strength": collaboration_strengths
         }
     
     def _identify_bottlenecks(self, ticket_data: List[Dict]) -> List[Dict[str, Any]]:
-        """Identify processing bottlenecks."""
-        return [
-            {
-                "location": "qa_reviewer_consensus_building",
-                "severity": 0.68,
-                "impact": "31% processing time increase"
-            }
-        ]
+        """Identify processing bottlenecks from actual timing data."""
+        if not ticket_data:
+            return []
+        
+        agent_times = {}
+        agent_counts = {}
+        
+        for ticket in ticket_data:
+            agents = self._extract_agent_sequence(ticket)
+            
+            for agent in agents:
+                agent_name = agent['agent_name']
+                processing_time = agent.get('processing_time', 0)
+                
+                if agent_name not in agent_times:
+                    agent_times[agent_name] = []
+                
+                agent_times[agent_name].append(processing_time)
+                agent_counts[agent_name] = agent_counts.get(agent_name, 0) + 1
+        
+        bottlenecks = []
+        if agent_times:
+            # Find agents with consistently high processing times
+            avg_times = {agent: np.mean(times) for agent, times in agent_times.items()}
+            overall_avg = np.mean(list(avg_times.values()))
+            
+            for agent, avg_time in avg_times.items():
+                if avg_time > overall_avg * 1.5 and agent_counts[agent] >= 3:  # 50% above average
+                    severity = min((avg_time - overall_avg) / overall_avg, 1.0)
+                    impact_pct = int(((avg_time - overall_avg) / overall_avg) * 100)
+                    
+                    bottlenecks.append({
+                        "location": f"{agent}_processing",
+                        "severity": round(severity, 3),
+                        "impact": f"{impact_pct}% processing time increase"
+                    })
+        
+        return bottlenecks
     
     def _suggest_speed_improvements(self, bottlenecks: List[Dict], ticket_data: List[Dict]) -> List[Dict[str, Any]]:
-        """Suggest speed improvements."""
-        return [
-            {
-                "optimization": "parallel_consensus_with_voting",
-                "predicted_improvement": 0.31,
-                "confidence": 0.84,
-                "implementation_effort": "medium"
-            }
-        ]
+        """Suggest speed improvements based on actual bottleneck analysis."""
+        suggestions = []
+        
+        for bottleneck in bottlenecks:
+            location = bottleneck['location']
+            severity = bottleneck['severity']
+            
+            if 'qa_reviewer' in location:
+                suggestions.append({
+                    "optimization": "parallel_consensus_with_voting",
+                    "predicted_improvement": min(severity * 0.5, 0.5),  # Up to 50% improvement
+                    "confidence": 0.7 if severity > 0.3 else 0.5,
+                    "implementation_effort": "medium"
+                })
+            elif 'analyst' in location:
+                suggestions.append({
+                    "optimization": "analysis_caching_for_similar_tickets",
+                    "predicted_improvement": min(severity * 0.3, 0.3),
+                    "confidence": 0.6,
+                    "implementation_effort": "high"
+                })
+            elif 'triage' in location:
+                suggestions.append({
+                    "optimization": "enhanced_classification_models",
+                    "predicted_improvement": min(severity * 0.4, 0.4),
+                    "confidence": 0.8,
+                    "implementation_effort": "low"
+                })
+        
+        return suggestions
     
     def _suggest_quality_improvements(self, ticket_data: List[Dict]) -> List[Dict[str, Any]]:
-        """Suggest quality improvements."""
-        return [
-            {
-                "improvement": "enhance_triage_financial_vocabulary",
-                "target_metric": "billing_classification_accuracy",
-                "predicted_gain": 0.15,
-                "confidence": 0.72
-            }
-        ]
+        """Suggest quality improvements based on actual processing patterns."""
+        if not ticket_data:
+            return []
+        
+        suggestions = []
+        
+        # Analyze classification accuracy patterns
+        classification_issues = 0
+        total_tickets = len(ticket_data)
+        
+        for ticket in ticket_data:
+            # Look for signs of classification issues
+            if ticket.get('processing_status') != 'success':
+                classification_issues += 1
+        
+        if classification_issues > 0:
+            error_rate = classification_issues / total_tickets
+            suggestions.append({
+                "improvement": "enhanced_classification_training",
+                "target_metric": "overall_classification_accuracy",
+                "predicted_gain": min(error_rate * 0.5, 0.2),  # Up to 20% improvement
+                "confidence": 0.7 if error_rate > 0.1 else 0.5
+            })
+        
+        return suggestions
     
     def _suggest_resource_optimizations(self, ticket_data: List[Dict]) -> List[Dict[str, Any]]:
-        """Suggest resource optimizations."""
-        return [
-            {
-                "optimization": "mixed_model_deployment",
-                "cost_savings": 0.40,
-                "accuracy_impact": -0.02,
-                "recommendation": "deploy_for_non_critical_tickets"
-            }
-        ]
+        """Suggest resource optimizations based on actual usage patterns."""
+        if not ticket_data:
+            return []
+        
+        suggestions = []
+        
+        # Analyze ticket complexity distribution
+        simple_tickets = 0
+        total_tickets = len(ticket_data)
+        
+        for ticket in ticket_data:
+            complexity = self._estimate_ticket_complexity(ticket)
+            if complexity < 0.3:  # Simple tickets
+                simple_tickets += 1
+        
+        if simple_tickets > 0:
+            simple_ratio = simple_tickets / total_tickets
+            if simple_ratio > 0.3:  # If >30% are simple
+                suggestions.append({
+                    "optimization": "lightweight_model_for_simple_tickets",
+                    "cost_savings": min(simple_ratio * 0.6, 0.5),  # Up to 50% savings
+                    "accuracy_impact": -0.05,  # Small accuracy trade-off
+                    "recommendation": f"deploy_for_{int(simple_ratio * 100)}%_of_tickets"
+                })
+        
+        return suggestions
     
     def _suggest_collaboration_improvements(self, ticket_data: List[Dict]) -> List[Dict[str, Any]]:
-        """Suggest collaboration improvements."""
-        return [
-            {
+        """Suggest collaboration improvements based on actual interaction analysis."""
+        if not ticket_data:
+            return []
+        
+        suggestions = []
+        
+        # Analyze collaboration patterns
+        long_processing_tickets = 0
+        agent_disagreements = 0
+        total_tickets = len(ticket_data)
+        
+        for ticket in ticket_data:
+            agents = self._extract_agent_sequence(ticket)
+            total_time = sum(agent.get('processing_time', 0) for agent in agents)
+            
+            if total_time > 120:  # Tickets taking more than 2 minutes
+                long_processing_tickets += 1
+            
+            # Look for signs of disagreement (multiple rounds of the same agent type)
+            agent_types = [self._classify_agent_task(agent) for agent in agents]
+            if len(agent_types) != len(set(agent_types)):  # Duplicates indicate disagreement
+                agent_disagreements += 1
+        
+        if long_processing_tickets > total_tickets * 0.2:  # >20% are slow
+            suggestions.append({
                 "improvement": "implement_timeout_mechanisms",
-                "target": "reduce_consensus_deadlocks",
-                "predicted_benefit": 0.23,
+                "target": "reduce_processing_time_outliers",
+                "predicted_benefit": 0.25,
                 "urgency": "high"
-            }
-        ]
+            })
+        
+        if agent_disagreements > total_tickets * 0.1:  # >10% have disagreements
+            suggestions.append({
+                "improvement": "structured_disagreement_resolution",
+                "target": "reduce_agent_conflicts",
+                "predicted_benefit": 0.15,
+                "urgency": "medium"
+            })
+        
+        return suggestions
     
     def _identify_failure_patterns(self, ticket_data: List[Dict]) -> List[Dict[str, Any]]:
-        """Identify failure patterns."""
-        return [
-            {
-                "pattern": "billing_classification_failure_signature",
-                "frequency": 0.18,
-                "root_cause": "financial_urgency_keywords_missing",
-                "fix_suggestion": "enhance_triage_financial_vocabulary"
-            }
-        ]
+        """Identify failure patterns from actual processing data."""
+        if not ticket_data:
+            return []
+        
+        patterns = []
+        failure_types = {}
+        total_tickets = len(ticket_data)
+        
+        for ticket in ticket_data:
+            if ticket.get('processing_status') == 'failed':
+                # Categorize failure by ticket characteristics
+                intent = ticket.get('intent', 'unknown')
+                if intent not in failure_types:
+                    failure_types[intent] = 0
+                failure_types[intent] += 1
+        
+        for failure_type, count in failure_types.items():
+            if count >= 2:  # At least 2 failures of this type
+                frequency = count / total_tickets
+                patterns.append({
+                    "pattern": f"{failure_type}_classification_failure",
+                    "frequency": round(frequency, 3),
+                    "root_cause": f"insufficient_{failure_type}_training_data",
+                    "fix_suggestion": f"enhance_{failure_type}_classification_model"
+                })
+        
+        return patterns
     
     def _identify_breakdown_points(self, ticket_data: List[Dict]) -> List[Dict[str, Any]]:
-        """Identify collaboration breakdown points."""
-        return [
-            {
-                "breakdown_point": "analyst_strategist_disagreements",
-                "frequency": 0.23,
-                "impact": "processing_delay_and_quality_degradation",
-                "intervention": "implement_structured_disagreement_resolution"
-            }
-        ]
+        """Identify collaboration breakdown points from actual data."""
+        if not ticket_data:
+            return []
+        
+        breakdowns = []
+        agent_conflicts = {}
+        
+        for ticket in ticket_data:
+            agents = self._extract_agent_sequence(ticket)
+            
+            # Look for signs of breakdown (excessive processing time, repeated agents)
+            for i in range(len(agents) - 1):
+                agent1 = agents[i]['agent_name']
+                agent2 = agents[i + 1]['agent_name']
+                pair = f"{agent1}_{agent2}"
+                
+                combined_time = agents[i].get('processing_time', 0) + agents[i + 1].get('processing_time', 0)
+                if combined_time > 90:  # Excessive time indicates conflict
+                    if pair not in agent_conflicts:
+                        agent_conflicts[pair] = 0
+                    agent_conflicts[pair] += 1
+        
+        total_transitions = sum(len(self._extract_agent_sequence(ticket)) - 1 for ticket in ticket_data if len(self._extract_agent_sequence(ticket)) > 1)
+        
+        for pair, conflicts in agent_conflicts.items():
+            if conflicts >= 2:  # Multiple breakdown instances
+                frequency = conflicts / total_transitions if total_transitions > 0 else 0
+                breakdowns.append({
+                    "breakdown_point": f"{pair}_collaboration",
+                    "frequency": round(frequency, 3),
+                    "impact": "processing_delay_and_potential_quality_issues",
+                    "intervention": "implement_structured_handoff_protocol"
+                })
+        
+        return breakdowns
     
     def _predict_consensus_failures(self, ticket_data: List[Dict]) -> float:
-        """Predict likelihood of consensus failures."""
-        return round(np.random.uniform(0.20, 0.30), 3)
+        """Predict likelihood of consensus failures based on actual patterns."""
+        if not ticket_data:
+            return 0.0
+        
+        failure_indicators = 0
+        total_tickets = len(ticket_data)
+        
+        for ticket in ticket_data:
+            agents = self._extract_agent_sequence(ticket)
+            
+            # Indicators of consensus failure
+            if len(agents) > 6:  # Too many rounds
+                failure_indicators += 1
+            elif ticket.get('processing_status') == 'failed':
+                failure_indicators += 1
+            
+            # Check for time outliers
+            total_time = sum(agent.get('processing_time', 0) for agent in agents)
+            if total_time > 180:  # More than 3 minutes
+                failure_indicators += 1
+        
+        failure_rate = failure_indicators / total_tickets if total_tickets > 0 else 0
+        return round(min(failure_rate, 1.0), 3)
     
     def _recommend_interventions(self, ticket_data: List[Dict]) -> List[str]:
-        """Recommend interventions for common issues."""
-        return [
-            "timeout_mechanisms",
-            "majority_voting",
-            "escalation_protocols",
-            "bias_detection_systems"
-        ]
+        """Recommend interventions based on actual collaboration analysis."""
+        if not ticket_data:
+            return []
+        
+        interventions = []
+        
+        # Analyze processing times to recommend interventions
+        processing_times = []
+        for ticket in ticket_data:
+            agents = self._extract_agent_sequence(ticket)
+            total_time = sum(agent.get('processing_time', 0) for agent in agents)
+            processing_times.append(total_time)
+        
+        if processing_times:
+            avg_time = np.mean(processing_times)
+            max_time = max(processing_times)
+            
+            if max_time > avg_time * 3:  # Some tickets take 3x longer
+                interventions.append("timeout_mechanisms")
+            
+            if avg_time > 60:  # Average over 1 minute
+                interventions.append("parallel_processing")
+            
+            # Check for consensus issues
+            long_tickets = sum(1 for t in processing_times if t > 120)
+            if long_tickets > len(processing_times) * 0.1:
+                interventions.append("majority_voting")
+                interventions.append("escalation_protocols")
+        
+        return interventions
