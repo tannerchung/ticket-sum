@@ -1368,6 +1368,9 @@ def main():
     with tab6:
         display_experimental_sweeps()
     
+    with tab7:
+        display_live_debug_tab()
+    
     # Footer
     st.markdown("---")
     st.markdown(
@@ -1466,7 +1469,42 @@ def display_database_analytics():
             tickets_df = pd.DataFrame(recent_tickets)
             st.dataframe(tickets_df, use_container_width=True)
         
+        # Experiment Sweeps Analytics
+        st.markdown("---")
+        st.markdown("### 🧪 Experiment Sweeps Analytics")
+        
+        try:
+            # Get experiment data
+            experiments = db_service.get_all_experiments()
+            
+            if experiments:
+                # Create tabs for different experiment visualizations
+                exp_tab1, exp_tab2, exp_tab3, exp_tab4 = st.tabs([
+                    "📊 Performance Overview", 
+                    "📈 Trends & Comparisons", 
+                    "🎯 Model Analysis",
+                    "⏱️ Timing Analysis"
+                ])
+                
+                with exp_tab1:
+                    display_experiment_performance_overview(experiments)
+                
+                with exp_tab2:
+                    display_experiment_trends(experiments)
+                
+                with exp_tab3:
+                    display_model_analysis(experiments)
+                
+                with exp_tab4:
+                    display_timing_analysis(experiments)
+            else:
+                st.info("📊 No experiment data available yet. Run some experiments to see analytics here.")
+                
+        except Exception as e:
+            st.warning(f"⚠️ Error loading experiment analytics: {str(e)}")
+        
         # Agent performance
+        st.markdown("---")
         st.markdown("**Agent Performance**")
         agent_stats = {}
         for agent in ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer']:
@@ -1490,6 +1528,280 @@ def display_database_analytics():
     except Exception as e:
         st.error(f"Error loading database analytics: {str(e)}")
         st.info("Database might not be initialized yet. Process some tickets to see analytics.")
+
+def display_experiment_performance_overview(experiments):
+    """Display experiment performance overview with key metrics."""
+    try:
+        if not experiments:
+            st.info("No experiments to display")
+            return
+            
+        # Convert to DataFrame for easier analysis
+        exp_df = pd.DataFrame(experiments)
+        
+        # Key metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            total_experiments = len(exp_df)
+            st.metric("Total Experiments", total_experiments)
+        
+        with col2:
+            if 'status' in exp_df.columns:
+                completed_experiments = len(exp_df[exp_df['status'] == 'completed'])
+                st.metric("Completed", completed_experiments)
+        
+        with col3:
+            if 'experiment_type' in exp_df.columns:
+                model_comparisons = len(exp_df[exp_df['experiment_type'] == 'model_comparison'])
+                st.metric("Model Comparisons", model_comparisons)
+        
+        with col4:
+            if 'accuracy' in exp_df.columns:
+                avg_accuracy = exp_df['accuracy'].mean() if not exp_df['accuracy'].isna().all() else 0
+                st.metric("Avg Accuracy", f"{avg_accuracy:.2%}")
+        
+        # Performance distribution
+        if 'accuracy' in exp_df.columns and not exp_df['accuracy'].isna().all():
+            st.markdown("**Accuracy Distribution**")
+            fig_acc = px.histogram(
+                exp_df, 
+                x='accuracy', 
+                nbins=20,
+                title="Experiment Accuracy Distribution",
+                labels={'accuracy': 'Accuracy Score', 'count': 'Number of Experiments'}
+            )
+            fig_acc.update_layout(
+                xaxis_tickformat='.0%',
+                showlegend=False
+            )
+            st.plotly_chart(fig_acc, use_container_width=True)
+        
+        # Success rate by experiment type
+        if 'experiment_type' in exp_df.columns and 'status' in exp_df.columns:
+            success_by_type = exp_df.groupby('experiment_type')['status'].apply(
+                lambda x: (x == 'completed').sum() / len(x)
+            ).reset_index()
+            success_by_type.columns = ['Experiment Type', 'Success Rate']
+            
+            if not success_by_type.empty:
+                fig_success = px.bar(
+                    success_by_type,
+                    x='Experiment Type',
+                    y='Success Rate',
+                    title="Success Rate by Experiment Type"
+                )
+                fig_success.update_layout(yaxis_tickformat='.0%')
+                st.plotly_chart(fig_success, use_container_width=True)
+                
+    except Exception as e:
+        st.error(f"Error displaying performance overview: {str(e)}")
+
+def display_experiment_trends(experiments):
+    """Display experiment trends and comparisons over time."""
+    try:
+        if not experiments:
+            st.info("No experiments to display")
+            return
+            
+        exp_df = pd.DataFrame(experiments)
+        
+        # Ensure we have timestamp data
+        if 'created_at' in exp_df.columns:
+            exp_df['created_at'] = pd.to_datetime(exp_df['created_at'])
+            exp_df = exp_df.sort_values('created_at')
+            
+            # Accuracy over time
+            if 'accuracy' in exp_df.columns and not exp_df['accuracy'].isna().all():
+                fig_trend = px.line(
+                    exp_df,
+                    x='created_at',
+                    y='accuracy',
+                    color='experiment_type' if 'experiment_type' in exp_df.columns else None,
+                    title="Accuracy Trends Over Time",
+                    markers=True
+                )
+                fig_trend.update_layout(yaxis_tickformat='.0%')
+                st.plotly_chart(fig_trend, use_container_width=True)
+            
+            # Processing time trends
+            if 'processing_time' in exp_df.columns and not exp_df['processing_time'].isna().all():
+                fig_time_trend = px.line(
+                    exp_df,
+                    x='created_at',
+                    y='processing_time',
+                    color='experiment_type' if 'experiment_type' in exp_df.columns else None,
+                    title="Processing Time Trends",
+                    markers=True
+                )
+                fig_time_trend.update_layout(yaxis_title="Processing Time (seconds)")
+                st.plotly_chart(fig_time_trend, use_container_width=True)
+        
+        # Experiment comparison matrix
+        if len(exp_df) > 1 and 'accuracy' in exp_df.columns:
+            st.markdown("**Performance Comparison Matrix**")
+            
+            # Create correlation matrix for numeric columns
+            numeric_cols = exp_df.select_dtypes(include=['float64', 'int64']).columns
+            if len(numeric_cols) > 1:
+                corr_matrix = exp_df[numeric_cols].corr()
+                
+                fig_heatmap = px.imshow(
+                    corr_matrix,
+                    title="Experiment Metrics Correlation",
+                    color_continuous_scale="RdBu_r",
+                    aspect="auto"
+                )
+                st.plotly_chart(fig_heatmap, use_container_width=True)
+        
+    except Exception as e:
+        st.error(f"Error displaying trends: {str(e)}")
+
+def display_model_analysis(experiments):
+    """Display model-specific analysis and comparisons."""
+    try:
+        if not experiments:
+            st.info("No experiments to display")
+            return
+            
+        exp_df = pd.DataFrame(experiments)
+        
+        # Model performance comparison
+        if 'model_name' in exp_df.columns and 'accuracy' in exp_df.columns:
+            model_performance = exp_df.groupby('model_name').agg({
+                'accuracy': ['mean', 'std', 'count'],
+                'processing_time': 'mean' if 'processing_time' in exp_df.columns else lambda x: 0
+            }).round(4)
+            
+            model_performance.columns = ['Avg_Accuracy', 'Accuracy_Std', 'Experiments', 'Avg_Time']
+            model_performance = model_performance.reset_index()
+            
+            if not model_performance.empty:
+                # Model accuracy comparison
+                fig_model_acc = px.bar(
+                    model_performance,
+                    x='model_name',
+                    y='Avg_Accuracy',
+                    error_y='Accuracy_Std',
+                    title="Model Accuracy Comparison",
+                    hover_data=['Experiments']
+                )
+                fig_model_acc.update_layout(yaxis_tickformat='.0%')
+                st.plotly_chart(fig_model_acc, use_container_width=True)
+                
+                # Accuracy vs Speed scatter
+                if 'Avg_Time' in model_performance.columns:
+                    fig_scatter = px.scatter(
+                        model_performance,
+                        x='Avg_Time',
+                        y='Avg_Accuracy',
+                        size='Experiments',
+                        hover_name='model_name',
+                        title="Accuracy vs Processing Speed",
+                        labels={'Avg_Time': 'Avg Processing Time (s)', 'Avg_Accuracy': 'Accuracy'}
+                    )
+                    fig_scatter.update_layout(yaxis_tickformat='.0%')
+                    st.plotly_chart(fig_scatter, use_container_width=True)
+                
+                # Model performance table
+                st.markdown("**Model Performance Summary**")
+                st.dataframe(model_performance, use_container_width=True)
+        
+        # Temperature vs accuracy analysis (if available)
+        if 'temperature' in exp_df.columns and 'accuracy' in exp_df.columns:
+            fig_temp = px.scatter(
+                exp_df,
+                x='temperature',
+                y='accuracy',
+                color='model_name' if 'model_name' in exp_df.columns else None,
+                title="Temperature vs Accuracy",
+                trendline="ols"
+            )
+            fig_temp.update_layout(yaxis_tickformat='.0%')
+            st.plotly_chart(fig_temp, use_container_width=True)
+            
+    except Exception as e:
+        st.error(f"Error displaying model analysis: {str(e)}")
+
+def display_timing_analysis(experiments):
+    """Display timing and performance analysis."""
+    try:
+        if not experiments:
+            st.info("No experiments to display")
+            return
+            
+        exp_df = pd.DataFrame(experiments)
+        
+        # Processing time analysis
+        if 'processing_time' in exp_df.columns and not exp_df['processing_time'].isna().all():
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Processing time distribution
+                fig_time_dist = px.histogram(
+                    exp_df,
+                    x='processing_time',
+                    nbins=20,
+                    title="Processing Time Distribution",
+                    labels={'processing_time': 'Processing Time (seconds)'}
+                )
+                st.plotly_chart(fig_time_dist, use_container_width=True)
+            
+            with col2:
+                # Box plot by experiment type
+                if 'experiment_type' in exp_df.columns:
+                    fig_time_box = px.box(
+                        exp_df,
+                        x='experiment_type',
+                        y='processing_time',
+                        title="Processing Time by Experiment Type"
+                    )
+                    st.plotly_chart(fig_time_box, use_container_width=True)
+        
+        # Efficiency metrics
+        if 'accuracy' in exp_df.columns and 'processing_time' in exp_df.columns:
+            # Calculate efficiency score (accuracy per second)
+            exp_df['efficiency'] = exp_df['accuracy'] / exp_df['processing_time']
+            
+            if not exp_df['efficiency'].isna().all():
+                fig_efficiency = px.scatter(
+                    exp_df,
+                    x='processing_time',
+                    y='accuracy',
+                    size='efficiency',
+                    color='experiment_type' if 'experiment_type' in exp_df.columns else None,
+                    title="Accuracy vs Processing Time (Efficiency Analysis)",
+                    labels={'processing_time': 'Processing Time (s)', 'accuracy': 'Accuracy'}
+                )
+                fig_efficiency.update_layout(yaxis_tickformat='.0%')
+                st.plotly_chart(fig_efficiency, use_container_width=True)
+                
+                # Top performers
+                st.markdown("**Most Efficient Experiments**")
+                top_efficient = exp_df.nlargest(5, 'efficiency')[
+                    ['experiment_id', 'experiment_type', 'accuracy', 'processing_time', 'efficiency']
+                ].round(4)
+                st.dataframe(top_efficient, use_container_width=True)
+        
+        # Time-based performance metrics
+        timing_metrics = {}
+        if 'processing_time' in exp_df.columns:
+            timing_metrics = {
+                'Average Processing Time': f"{exp_df['processing_time'].mean():.2f}s",
+                'Fastest Experiment': f"{exp_df['processing_time'].min():.2f}s",
+                'Slowest Experiment': f"{exp_df['processing_time'].max():.2f}s",
+                'Processing Time Std Dev': f"{exp_df['processing_time'].std():.2f}s"
+            }
+        
+        if timing_metrics:
+            st.markdown("**Timing Summary**")
+            cols = st.columns(len(timing_metrics))
+            for i, (metric, value) in enumerate(timing_metrics.items()):
+                with cols[i]:
+                    st.metric(metric, value)
+                    
+    except Exception as e:
+        st.error(f"Error displaying timing analysis: {str(e)}")
 
 def display_model_management():
     """Display model management and comparison interface."""
@@ -2189,10 +2501,10 @@ def display_experimental_sweeps():
                 
                 except Exception as e:
                     st.error(f"❌ Comparison failed: {str(e)}")
-    
-    with tab7:
-        # Debug interface tab
-        display_debug_interface()
+
+def display_live_debug_tab():
+    """Display the live debug interface tab."""
+    display_debug_interface()
 
 def setup_debug_logging():
     """Setup debug logging for the application."""

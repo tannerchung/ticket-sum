@@ -634,5 +634,48 @@ class DatabaseService:
             session.close()
 
 
+    def get_all_experiments(self) -> List[Dict[str, Any]]:
+        """Get all experiment data from processing logs and experiment tables."""
+        session = get_db_session()
+        try:
+            # Get processing logs with experiment metadata
+            logs = session.query(ProcessingLog).filter(
+                ProcessingLog.metadata.op('?')('experiment_id')  # Check if key exists
+            ).order_by(ProcessingLog.created_at.desc()).all()
+            
+            experiments = []
+            seen_experiments = set()
+            
+            for log in logs:
+                metadata = log.metadata or {}
+                experiment_id = metadata.get('experiment_id')
+                
+                if experiment_id and experiment_id not in seen_experiments:
+                    seen_experiments.add(experiment_id)
+                    
+                    experiment_data = {
+                        'experiment_id': experiment_id,
+                        'experiment_type': metadata.get('experiment_type', 'unknown'),
+                        'model_name': metadata.get('model_name', 'unknown'),
+                        'accuracy': float(metadata.get('accuracy', 0.0)),
+                        'processing_time': float(log.processing_time or 0.0),
+                        'status': log.status or 'unknown',
+                        'created_at': log.created_at,
+                        'temperature': float(metadata.get('temperature', 0.1)),
+                        'ticket_count': int(metadata.get('ticket_count', 1)),
+                        'success_rate': float(metadata.get('success_rate', 0.0)),
+                        'quality_scores': metadata.get('quality_scores', {}),
+                        'agent_name': log.agent_name
+                    }
+                    experiments.append(experiment_data)
+            
+            return experiments
+            
+        except Exception as e:
+            print(f"Error getting experiments: {e}")
+            return []
+        finally:
+            session.close()
+
 # Global database service instance
 db_service = DatabaseService()
