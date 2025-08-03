@@ -641,19 +641,19 @@ class DatabaseService:
         try:
             # Get processing logs with experiment metadata
             logs = session.query(ProcessingLog).filter(
-                ProcessingLog.metadata != None
+                ProcessingLog.processing_metadata != None
             ).order_by(ProcessingLog.created_at.desc()).all()
             
             # Filter for experiments in Python - also create sample data if none exists
             experiment_logs = []
             for log in logs:
                 try:
-                    if hasattr(log.metadata, 'get'):
-                        metadata = log.metadata
-                    elif isinstance(log.metadata, str):
-                        metadata = json.loads(log.metadata)
+                    if hasattr(log.processing_metadata, 'get'):
+                        metadata = log.processing_metadata
+                    elif isinstance(log.processing_metadata, str):
+                        metadata = json.loads(log.processing_metadata)
                     else:
-                        metadata = log.metadata or {}
+                        metadata = log.processing_metadata or {}
                     
                     if 'experiment_id' in metadata:
                         experiment_logs.append(log)
@@ -679,7 +679,7 @@ class DatabaseService:
                     }
                     
                     # Update log metadata in memory for this analysis
-                    log.metadata = sample_metadata
+                    log.processing_metadata = sample_metadata
                     experiment_logs.append(log)
             
             logs = experiment_logs
@@ -690,17 +690,17 @@ class DatabaseService:
             for log in logs:
                 # Handle metadata properly - check if it's a dict or JSON field
                 try:
-                    if hasattr(log.metadata, 'get'):
+                    if hasattr(log.processing_metadata, 'get'):
                         # It's already a dict
-                        metadata = log.metadata
-                    elif isinstance(log.metadata, str):
+                        metadata = log.processing_metadata
+                    elif isinstance(log.processing_metadata, str):
                         # It's a JSON string
-                        metadata = json.loads(log.metadata)
-                    elif log.metadata is None:
+                        metadata = json.loads(log.processing_metadata)
+                    elif log.processing_metadata is None:
                         metadata = {}
                     else:
                         # Convert to dict if it's another type
-                        metadata = dict(log.metadata) if log.metadata else {}
+                        metadata = dict(log.processing_metadata) if log.processing_metadata else {}
                 except (AttributeError, TypeError, json.JSONDecodeError):
                     metadata = {}
                 
@@ -740,7 +740,7 @@ class DatabaseService:
         try:
             # Get all processing logs with experiment metadata
             logs = session.query(ProcessingLog).filter(
-                ProcessingLog.metadata != None
+                ProcessingLog.processing_metadata != None
             ).all()
             
             # Analyze different configuration aspects
@@ -752,17 +752,17 @@ class DatabaseService:
             for log in logs:
                 # Handle metadata properly - check if it's a dict or JSON field
                 try:
-                    if hasattr(log.metadata, 'get'):
+                    if hasattr(log.processing_metadata, 'get'):
                         # It's already a dict
-                        metadata = log.metadata
-                    elif isinstance(log.metadata, str):
+                        metadata = log.processing_metadata
+                    elif isinstance(log.processing_metadata, str):
                         # It's a JSON string
-                        metadata = json.loads(log.metadata)
-                    elif log.metadata is None:
+                        metadata = json.loads(log.processing_metadata)
+                    elif log.processing_metadata is None:
                         metadata = {}
                     else:
                         # Convert to dict if it's another type
-                        metadata = dict(log.metadata) if log.metadata else {}
+                        metadata = dict(log.processing_metadata) if log.processing_metadata else {}
                 except (AttributeError, TypeError, json.JSONDecodeError):
                     metadata = {}
                 
