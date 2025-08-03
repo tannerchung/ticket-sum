@@ -654,7 +654,23 @@ class DatabaseService:
             seen_experiments = set()
             
             for log in logs:
-                metadata = log.metadata or {}
+                # Handle metadata properly - check if it's a dict or JSON field
+                try:
+                    if hasattr(log.metadata, 'get'):
+                        # It's already a dict
+                        metadata = log.metadata
+                    elif isinstance(log.metadata, str):
+                        # It's a JSON string
+                        import json
+                        metadata = json.loads(log.metadata)
+                    elif log.metadata is None:
+                        metadata = {}
+                    else:
+                        # Convert to dict if it's another type
+                        metadata = dict(log.metadata) if log.metadata else {}
+                except (AttributeError, TypeError, json.JSONDecodeError):
+                    metadata = {}
+                
                 experiment_id = metadata.get('experiment_id')
                 
                 if experiment_id and experiment_id not in seen_experiments:
@@ -700,7 +716,22 @@ class DatabaseService:
             quality_threshold_performance = {}
             
             for log in logs:
-                metadata = log.metadata or {}
+                # Handle metadata properly - check if it's a dict or JSON field
+                try:
+                    if hasattr(log.metadata, 'get'):
+                        # It's already a dict
+                        metadata = log.metadata
+                    elif isinstance(log.metadata, str):
+                        # It's a JSON string
+                        import json
+                        metadata = json.loads(log.metadata)
+                    elif log.metadata is None:
+                        metadata = {}
+                    else:
+                        # Convert to dict if it's another type
+                        metadata = dict(log.metadata) if log.metadata else {}
+                except (AttributeError, TypeError, json.JSONDecodeError):
+                    metadata = {}
                 
                 # Skip if not an experiment
                 if not metadata.get('experiment_id'):
