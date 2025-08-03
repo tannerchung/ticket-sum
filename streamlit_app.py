@@ -29,6 +29,17 @@ from config import (
 from experiment_manager import ExperimentManager, ExperimentType, ExperimentConfig
 from utils import validate_environment, load_ticket_data
 from database_service import db_service
+from live_logger import live_logger, log_info, log_debug, log_warning, log_error, log_success, LogLevel, ProcessStatus
+from debug_interface import (
+    display_debug_interface, 
+    initialize_debug_logging, 
+    log_ticket_processing_start, 
+    log_ticket_processing_step, 
+    log_ticket_processing_complete,
+    log_experiment_start,
+    log_experiment_step, 
+    log_experiment_complete
+)
 
 # Page configuration
 st.set_page_config(
@@ -715,6 +726,10 @@ def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
     if not crew:
         return None
     
+    # Start debug logging for this ticket
+    process_id = log_ticket_processing_start(ticket_id)
+    log_ticket_processing_step(process_id, "Initializing ticket processing", 1)
+    
     # Import telemetry functions
     from telemetry import create_trace_context, get_langfuse_manager
     
@@ -736,8 +751,10 @@ def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
             st.code(session_id, language=None)
             
             # Process ticket through collaborative workflow
+            log_ticket_processing_step(process_id, "Running collaborative AI agents", 2)
             collaborative_input = {'ticket_id': ticket_id, 'content': ticket_content}
             result = crew.process_ticket_collaboratively(ticket_id, ticket_content)
+            log_ticket_processing_step(process_id, "AI processing completed, saving results", 3)
             
             # Log collaborative activity and individual agent activities
             log_langfuse_activity(
@@ -851,11 +868,19 @@ def process_ticket(crew, ticket_id, ticket_content, batch_session_id=None):
                 )
             except Exception as e:
                 st.warning(f"Database save failed: {str(e)}")
+                log_ticket_processing_step(process_id, f"Database save failed: {str(e)}", 4)
+                log_ticket_processing_complete(process_id, False)
+                return result
             
+            # Complete debug logging
+            log_ticket_processing_step(process_id, "Ticket processing completed successfully", 4)
+            log_ticket_processing_complete(process_id, True, result)
             return result
         
     except Exception as e:
         st.error(f"Error processing ticket: {str(e)}")
+        # Complete debug logging with error
+        log_ticket_processing_complete(process_id, False)
         # Reset agent statuses on error
         for agent_key in ['triage_specialist', 'ticket_analyst', 'support_strategist', 'qa_reviewer']:
             update_agent_status(agent_key, 'inactive', processing=False)
@@ -910,6 +935,9 @@ def display_result(result):
 
 def main():
     """Main Streamlit application."""
+    # Initialize debug logging at startup
+    setup_debug_logging()
+    
     # Check for health endpoint first (for deployment)
     if add_health_check():
         return
@@ -1311,7 +1339,7 @@ def main():
     st.markdown("---")
     
     # Tabs for different monitoring views
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🤖 Agent Monitor", "🔍 Langfuse Logs", "📊 DeepEval Assessment", "🗄️ Database Analytics", "🔄 Model Management", "🧪 Experimental Sweeps"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["🤖 Agent Monitor", "🔍 Langfuse Logs", "📊 DeepEval Assessment", "🗄️ Database Analytics", "🔄 Model Management", "🧪 Experimental Sweeps", "⚡ Live Debug"])
     
     with tab1:
         # Only show agent monitor when there's actual agent activity (not just initialization)
@@ -2161,6 +2189,17 @@ def display_experimental_sweeps():
                 
                 except Exception as e:
                     st.error(f"❌ Comparison failed: {str(e)}")
+    
+    with tab7:
+        # Debug interface tab
+        display_debug_interface()
+
+def setup_debug_logging():
+    """Setup debug logging for the application."""
+    initialize_debug_logging()
+    log_info("Application started - debug logging enabled")
+
+# Remove the duplicate main function - the original one below is the complete one
 
 if __name__ == "__main__":
     main()
