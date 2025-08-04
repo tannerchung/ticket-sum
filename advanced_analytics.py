@@ -512,13 +512,21 @@ class ProductionObservabilityPlatform:
         start_time = end_time - timedelta(hours=time_window_hours)
         
         # Get recent processing data
-        recent_tickets = self.session.query(SupportTicket).filter(
-            SupportTicket.processed_at >= start_time
-        ).all()
+        try:
+            recent_tickets = self.session.query(SupportTicket).filter(
+                SupportTicket.processed_at >= start_time
+            ).all()
+        except Exception as e:
+            logger.warning(f"Database query error for support tickets: {e}")
+            recent_tickets = []
         
-        recent_collaboration = self.session.query(CollaborationMetrics).filter(
-            CollaborationMetrics.created_at >= start_time
-        ).all()
+        try:
+            recent_collaboration = self.session.query(CollaborationMetrics).filter(
+                CollaborationMetrics.created_at >= start_time
+            ).all()
+        except Exception as e:
+            logger.warning(f"Database query error for collaboration metrics: {e}")
+            recent_collaboration = []
         
         # Core metrics
         metrics = {
