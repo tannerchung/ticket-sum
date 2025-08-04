@@ -3,11 +3,25 @@
 command = ["python", "-m", "streamlit", "run", "streamlit_app.py", "--server.port", "5000", "--server.address", "0.0.0.0", "--server.headless", "true", "--browser.gatherUsageStats", "false"]
 
 [deployment]
-run = ["python", "-m", "streamlit", "run", "streamlit_app.py", "--server.port", "5000", "--server.address", "0.0.0.0", "--server.headless", "true", "--browser.gatherUsageStats", "false"]
-deploymentTarget = "gce"
+run = ["python", "main.py"]
+deploymentTarget = "autoscale"
+build = [
+  "pip", "install", "--upgrade", "pip",
+  "pip", "install", "-r", "requirements.txt"
+]
+publicDir = "/"
 
 [nix]
 channel = "stable-23.11"
+
+[packager]
+language = "python3"
+ignoredPackages = ["uv"]
+
+[packager.features]
+enabledForHosting = false
+packageSearch = true
+guessImports = true
 
 [[ports]]
 localPort = 5000

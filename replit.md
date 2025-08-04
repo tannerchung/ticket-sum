@@ -40,6 +40,7 @@ The application features an enhanced UI with:
 - **Streamlit Frontend**: Uses Streamlit for the user interface, providing interactive controls and data visualization.
 - **Robust Deployment**: Supports multiple entry points (`main.py`, `app.py`, `server.py`, `streamlit_app.py`) for flexible deployment configurations, including health checks.
 - **Python Version**: Requires Python 3.10+ for compatibility with CrewAI.
+- **Deployment Configuration**: Uses Autoscale deployment target with pip-based builds to avoid uv binary conflicts. Standard requirements.txt for dependency management.
 
 ## External Dependencies
 - **OpenAI API**: For accessing AI models and capabilities.
