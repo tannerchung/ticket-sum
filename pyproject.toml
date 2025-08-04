@@ -36,5 +36,9 @@ dependencies = [
 start = "main:main"
 
 [build-system]
-requires = ["setuptools>=45", "wheel"]
+requires = ["setuptools>=45", "wheel", "pip"]
 build-backend = "setuptools.build_meta"
+
+[tool.deployment]
+use-pip = true
+ignore-uv = true
