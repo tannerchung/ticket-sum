@@ -3,9 +3,9 @@
 command = ["python", "-m", "streamlit", "run", "streamlit_app.py", "--server.port", "5000", "--server.address", "0.0.0.0", "--server.headless", "true", "--browser.gatherUsageStats", "false"]
 
 [deployment]
-run = ["bash", "deploy.sh"]
+run = ["python", "main.py"]
 deploymentTarget = "autoscale"
-build = ["echo", "Using deploy.sh for setup"]
+build = ["bash", "install.sh"]
 publicDir = "/"
 
 [nix]

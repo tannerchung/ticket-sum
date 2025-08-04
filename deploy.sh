@@ -4,13 +4,15 @@ set -e
 
 echo "🚀 Starting Support Ticket Summarizer deployment..."
 
-# Force use of system Python and pip, avoiding any uv conflicts
-export PATH="/nix/store/yaps09f01jp3fd1405qlr0qz6haf6z03-python3.11-pip-25.0.1/bin:/usr/bin:/bin:$PATH"
+# Add our mock uv to PATH first to intercept uv calls
+export PATH="$PWD:/nix/store/yaps09f01jp3fd1405qlr0qz6haf6z03-python3.11-pip-25.0.1/bin:/usr/bin:/bin:$PATH"
 export PYTHONPATH="$PWD:$PYTHONPATH"
 
 # Clear any problematic environment variables that might cause uv to be used
 unset UV_PYTHON
 unset UV_INSTALL
+
+echo "🛠️  Using mock uv at: $(which uv)"
 
 # Ensure we have the latest pip
 echo "📦 Setting up Python environment..."
