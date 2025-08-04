@@ -31,6 +31,17 @@ from utils import validate_environment, load_ticket_data
 from database_service import db_service
 from live_logger import live_logger, log_info, log_debug, log_warning, log_error, log_success, LogLevel, ProcessStatus
 from collaboration_metrics import CollaborationMetricsAnalyzer
+from advanced_analytics import (
+    ProductionObservabilityPlatform, 
+    EnhancedCollaborationAnalytics,
+    CostQualityOptimizationAnalytics,
+    get_comprehensive_analytics_report
+)
+from analytics_dashboard import (
+    display_collaboration_intelligence_dashboard,
+    display_cost_optimization_dashboard, 
+    display_production_observability_dashboard
+)
 from debug_interface import (
     display_debug_interface, 
     initialize_debug_logging, 
@@ -1622,7 +1633,25 @@ def main():
         display_evaluation_dashboard()
     
     with tab4:
-        display_database_analytics()
+        # Enhanced analytics sub-tabs
+        analytics_subtab1, analytics_subtab2, analytics_subtab3, analytics_subtab4 = st.tabs([
+            "📊 Traditional Analytics", 
+            "🧠 Collaboration Intelligence",
+            "💰 Cost Optimization",
+            "🚀 Production Observability"
+        ])
+        
+        with analytics_subtab1:
+            display_database_analytics()
+        
+        with analytics_subtab2:
+            display_collaboration_intelligence_dashboard()
+        
+        with analytics_subtab3:
+            display_cost_optimization_dashboard()
+        
+        with analytics_subtab4:
+            display_production_observability_dashboard()
     
     with tab5:
         display_model_management()

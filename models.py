@@ -147,6 +147,17 @@ class CollaborationMetrics(Base):
     confidence_improvement = Column(Float, default=0.0)  # Initial vs final confidence
     result_stability = Column(Float, default=0.0)  # Likelihood result won't change
     
+    # Enhanced analytics fields
+    disagreement_authenticity_score = Column(Float, default=0.0)  # 0-1, authentic vs rubber-stamping
+    information_flow_fidelity = Column(JSON)  # Detailed flow analysis
+    agent_influence_mapping = Column(JSON)    # Who influenced whom
+    consensus_quality_breakdown = Column(JSON) # Detailed quality metrics
+    
+    # Predictive analytics fields
+    predicted_collaboration_success = Column(Float, default=0.0)
+    optimization_recommendations = Column(JSON)
+    performance_trend_indicators = Column(JSON)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     
     def __repr__(self):
@@ -219,6 +230,13 @@ class ExperimentRun(Base):
     
     # Raw results storage
     detailed_results = Column(JSON)  # Complete results for analysis
+    
+    # Enhanced cost-quality analytics
+    estimated_cost = Column(Float, default=0.0)  # Estimated processing cost
+    cost_per_quality_point = Column(Float, default=0.0)  # Cost efficiency ratio
+    complexity_scores = Column(JSON)  # Ticket complexity analysis
+    model_efficiency_scores = Column(JSON)  # Per-model efficiency
+    optimization_opportunities = Column(JSON)  # Identified improvements
     
     # Relationships
     experiment = relationship("ExperimentConfiguration")
