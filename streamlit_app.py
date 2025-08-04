@@ -2884,6 +2884,46 @@ def display_experimental_sweeps():
         
         config_dict = {"orderings_to_test": selected_orderings}
     
+    elif experiment_type == ExperimentType.CONSENSUS_MECHANISM:
+        st.markdown("**🤝 Consensus Mechanism Configuration:**")
+        
+        mechanism_configs = []
+        
+        col_c1, col_c2, col_c3, col_c4 = st.columns(4)
+        with col_c1:
+            if st.checkbox("Majority Vote", value=True):
+                threshold = st.slider("Threshold", 0.3, 0.8, 0.5, key="majority_threshold")
+                mechanism_configs.append({"type": "majority_vote", "threshold": threshold})
+        
+        with col_c2:
+            if st.checkbox("Weighted Consensus", value=True):
+                mechanism_configs.append({
+                    "type": "weighted_consensus", 
+                    "weights": {
+                        "qa_reviewer": 0.4, 
+                        "support_strategist": 0.3, 
+                        "ticket_analyst": 0.2, 
+                        "triage_specialist": 0.1
+                    }
+                })
+        
+        with col_c3:
+            if st.checkbox("Confidence Weighted", value=True):
+                min_conf = st.slider("Min Confidence", 0.5, 0.9, 0.7, key="confidence_threshold")
+                mechanism_configs.append({"type": "confidence_weighted", "min_confidence": min_conf})
+        
+        with col_c4:
+            if st.checkbox("Iterative Refinement", value=False):
+                max_iter = st.slider("Max Iterations", 2, 5, 3, key="max_iterations")
+                conv_thresh = st.slider("Convergence", 0.7, 0.9, 0.8, key="convergence_threshold")
+                mechanism_configs.append({
+                    "type": "iterative_refinement", 
+                    "max_iterations": max_iter, 
+                    "convergence_threshold": conv_thresh
+                })
+        
+        config_dict = {"mechanisms_to_test": mechanism_configs}
+    
     elif experiment_type == ExperimentType.QUALITY_THRESHOLD:
         st.markdown("**📊 Quality Threshold Configuration:**")
         
@@ -2922,6 +2962,11 @@ def display_experimental_sweeps():
                         config = manager.create_agent_ordering_experiment(
                             experiment_name, test_tickets,
                             config_dict.get("orderings_to_test")
+                        )
+                    elif experiment_type == ExperimentType.CONSENSUS_MECHANISM:
+                        config = manager.create_consensus_mechanism_experiment(
+                            experiment_name, test_tickets,
+                            config_dict.get("mechanisms_to_test")
                         )
                     elif experiment_type == ExperimentType.QUALITY_THRESHOLD:
                         config = manager.create_quality_threshold_experiment(
