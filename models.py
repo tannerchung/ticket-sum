@@ -202,7 +202,8 @@ class ExperimentRun(Base):
     # Performance metrics
     average_processing_time = Column(Float)
     total_processing_time = Column(Float)
-    success_rate = Column(Float)  # Percentage of successful ticket processing
+    success_rate = Column(Float)  # Percentage of runs that completed without errors (technical completion)
+    quality_success_rate = Column(Float)  # Percentage of runs with good quality results (accuracy > 0.7)
     
     # Quality metrics aggregates
     average_accuracy = Column(Float)

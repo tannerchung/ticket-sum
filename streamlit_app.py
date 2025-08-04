@@ -1918,22 +1918,74 @@ def display_experiment_performance_overview(experiments):
             )
             st.plotly_chart(fig_acc, use_container_width=True)
         
-        # Success rate by experiment type
+        # Completion rate and quality success rate by experiment type
         if 'experiment_type' in exp_df.columns and 'status' in exp_df.columns:
-            success_by_type = exp_df.groupby('experiment_type')['status'].apply(
+            # Calculate completion rate (technical success)
+            completion_by_type = exp_df.groupby('experiment_type')['status'].apply(
                 lambda x: (x == 'completed').sum() / len(x)
             ).reset_index()
-            success_by_type.columns = ['Experiment Type', 'Success Rate']
+            completion_by_type.columns = ['Experiment Type', 'Completion Rate']
             
-            if not success_by_type.empty:
-                fig_success = px.bar(
-                    success_by_type,
-                    x='Experiment Type',
-                    y='Success Rate',
-                    title="Success Rate by Experiment Type"
+            # Calculate quality success rate if data is available
+            quality_by_type = None
+            if 'average_accuracy' in exp_df.columns:
+                quality_by_type = exp_df.groupby('experiment_type').apply(
+                    lambda x: (x['average_accuracy'] > 0.7).sum() / len(x) if 'average_accuracy' in x.columns else 0
+                ).reset_index()
+                quality_by_type.columns = ['Experiment Type', 'Quality Success Rate']
+            
+            if not completion_by_type.empty:
+                # Create subplot with both metrics
+                from plotly.subplots import make_subplots
+                
+                fig_success = make_subplots(
+                    rows=1, cols=2 if quality_by_type is not None else 1,
+                    subplot_titles=("Completion Rate by Type", "Quality Success Rate by Type") if quality_by_type is not None else ("Completion Rate by Type",),
+                    specs=[[{"secondary_y": False}, {"secondary_y": False}]] if quality_by_type is not None else [[{"secondary_y": False}]]
                 )
-                fig_success.update_layout(yaxis_tickformat='.0%')
+                
+                # Add completion rate
+                fig_success.add_trace(
+                    go.Bar(
+                        x=completion_by_type['Experiment Type'],
+                        y=completion_by_type['Completion Rate'],
+                        name='Completion Rate',
+                        marker_color='lightblue',
+                        hovertemplate='%{x}<br>Completion Rate: %{y:.1%}<extra></extra>'
+                    ),
+                    row=1, col=1
+                )
+                
+                # Add quality success rate if available
+                if quality_by_type is not None and not quality_by_type.empty:
+                    fig_success.add_trace(
+                        go.Bar(
+                            x=quality_by_type['Experiment Type'],
+                            y=quality_by_type['Quality Success Rate'],
+                            name='Quality Success Rate',
+                            marker_color='lightgreen',
+                            hovertemplate='%{x}<br>Quality Success Rate: %{y:.1%}<extra></extra>'
+                        ),
+                        row=1, col=2
+                    )
+                
+                fig_success.update_layout(
+                    title="Experiment Success Metrics by Type",
+                    showlegend=quality_by_type is not None,
+                    height=400
+                )
+                fig_success.update_yaxes(tickformat='.0%')
+                
                 st.plotly_chart(fig_success, use_container_width=True)
+                
+                # Add explanation
+                st.info("""
+                **Metric Definitions:**
+                - **Completion Rate**: Percentage of experiments that finished without technical errors
+                - **Quality Success Rate**: Percentage of experiments with good AI performance (accuracy > 70%)
+                """)
+            else:
+                st.info("No experiment data available for success rate analysis.")
                 
     except Exception as e:
         st.error(f"Error displaying performance overview: {str(e)}")

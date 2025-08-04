@@ -64,7 +64,24 @@ Use Replit's persistent storage for output files and cached data.
 
 ## Recent Changes
 
-### v2.2.0 - Advanced Collaboration Metrics (August 3, 2025)
+### v2.2.1 - Experiment Success Metrics Enhancement (August 4, 2025)
+
+#### Clear Experiment Success Metrics Implementation - COMPLETED ✅
+- **Problem Fixed**: "Success Rate" was misleading - it only measured technical completion, not AI performance quality
+- **Solution**: Renamed and implemented dual success metrics for clearer experiment evaluation
+- **Implementation**:
+  - **Completion Rate**: Technical success (experiments that finished without crashing)
+  - **Quality Success Rate**: Performance success (experiments with accuracy > 70%)
+  - **Real Quality Metrics**: Actual evaluation scores instead of placeholder values
+  - **Enhanced UI**: Side-by-side visualization of both metrics with clear explanations
+- **Database Enhancement**: Added `quality_success_rate` column to experiment runs
+- **User Benefits**: 
+  - Clear distinction between technical completion and AI performance
+  - Better experiment evaluation and optimization decisions
+  - Authentic quality assessment from real evaluation data
+- **UI Improvements**: Interactive charts showing both completion and quality rates by experiment type
+
+### v2.2.0 - Advanced Collaboration Metrics (August 4, 2025)
 
 #### Sophisticated Multi-Agent Analytics Implementation - COMPLETED ✅
 - **New Feature**: Advanced Collaboration Metrics system that answers deep questions about agent behavior

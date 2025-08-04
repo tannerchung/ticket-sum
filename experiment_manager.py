@@ -454,7 +454,8 @@ class ExperimentManager:
             experiment_run.status = 'completed'
             
             # Set aggregate metrics
-            experiment_run.success_rate = aggregate_metrics['success_rate']
+            experiment_run.success_rate = aggregate_metrics['completion_rate']  # Keep DB field name for compatibility
+            experiment_run.quality_success_rate = aggregate_metrics['quality_success_rate']
             experiment_run.average_processing_time = aggregate_metrics['avg_processing_time']
             experiment_run.total_processing_time = aggregate_metrics['total_processing_time']
             experiment_run.average_accuracy = aggregate_metrics['avg_accuracy']
@@ -468,7 +469,8 @@ class ExperimentManager:
             self.session.commit()
             
             print(f"✅ Run {run_number} completed in {execution_time:.2f}s")
-            print(f"📊 Success rate: {aggregate_metrics['success_rate']:.1%}")
+            print(f"📊 Completion rate: {aggregate_metrics['completion_rate']:.1%}")
+            print(f"🎯 Quality success rate: {aggregate_metrics['quality_success_rate']:.1%}")
             
         except Exception as e:
             print(f"❌ Run {run_number} failed: {str(e)}")
@@ -539,7 +541,7 @@ class ExperimentManager:
         # Calculate aggregate metrics
         if not successful_results:
             return {
-                'success_rate': 0.0, 'avg_processing_time': 0.0, 'total_processing_time': 0.0,
+                'completion_rate': 0.0, 'quality_success_rate': 0.0, 'avg_processing_time': 0.0, 'total_processing_time': 0.0,
                 'avg_accuracy': 0.0, 'avg_relevancy': 0.0, 'avg_faithfulness': 0.0, 'avg_hallucination': 0.0,
                 'avg_consensus_time': 0.0, 'avg_agreement_strength': 0.0
             }
@@ -551,14 +553,35 @@ class ExperimentManager:
         consensus_times = [r.get('collaboration_metrics', {}).get('consensus_building_duration', 0.0) for r in successful_results]
         agreement_strengths = [r.get('collaboration_metrics', {}).get('overall_agreement_strength', 0.0) for r in successful_results]
         
+        # Calculate real quality metrics from actual results
+        accuracy_scores = []
+        relevancy_scores = []
+        faithfulness_scores = []
+        hallucination_scores = []
+        
+        for result in successful_results:
+            # Extract quality metrics from actual evaluations if available
+            quality_metrics = result.get('quality_metrics', {})
+            if quality_metrics:
+                accuracy_scores.append(quality_metrics.get('accuracy', 0))
+                relevancy_scores.append(quality_metrics.get('relevancy', 0))
+                faithfulness_scores.append(quality_metrics.get('faithfulness', 0))
+                hallucination_scores.append(quality_metrics.get('hallucination_score', 0))
+        
+        # Calculate quality-based success rate (tickets with accuracy > 0.7)
+        quality_success_count = sum(1 for result in successful_results 
+                                  if result.get('quality_metrics', {}).get('accuracy', 0) > 0.7)
+        quality_success_rate = quality_success_count / total_tickets if total_tickets > 0 else 0.0
+        
         return {
-            'success_rate': float(successful_count / total_tickets),
+            'completion_rate': float(successful_count / total_tickets),  # Renamed from success_rate
+            'quality_success_rate': float(quality_success_rate),  # New quality-based metric
             'avg_processing_time': float(np.mean(processing_times)) if processing_times else 0.0,
             'total_processing_time': float(sum(processing_times)),
-            'avg_accuracy': 0.8,  # Placeholder - would need actual evaluation integration
-            'avg_relevancy': 0.8,  # Placeholder
-            'avg_faithfulness': 0.7,  # Placeholder
-            'avg_hallucination': 0.2,  # Placeholder
+            'avg_accuracy': float(np.mean(accuracy_scores)) if accuracy_scores else 0.0,
+            'avg_relevancy': float(np.mean(relevancy_scores)) if relevancy_scores else 0.0,
+            'avg_faithfulness': float(np.mean(faithfulness_scores)) if faithfulness_scores else 0.0,
+            'avg_hallucination': float(np.mean(hallucination_scores)) if hallucination_scores else 0.0,
             'avg_consensus_time': float(np.mean(consensus_times)) if consensus_times else 0.0,
             'avg_agreement_strength': float(np.mean(agreement_strengths)) if agreement_strengths else 0.0
         }
