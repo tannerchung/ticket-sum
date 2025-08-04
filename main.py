@@ -39,15 +39,18 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
     
+    process = None
     try:
         # Run Streamlit
         process = subprocess.Popen(cmd)
         process.wait()
     except KeyboardInterrupt:
         print("🛑 Interrupted by user")
-        if 'process' in locals():
+        if process is not None:
             process.terminate()
         sys.exit(0)
     except Exception as e:
         print(f"❌ Error starting application: {e}")
+        if process is not None:
+            process.terminate()
         sys.exit(1)

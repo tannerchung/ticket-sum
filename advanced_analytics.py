@@ -108,6 +108,12 @@ class EnhancedCollaborationAnalytics:
                         similarities.append(similarity)
                 avg_similarity = mean(similarities) if similarities else 1.0
                 disagreement_score = 1.0 - avg_similarity
+                
+                # Calculate confidence and revision factors here for fallback
+                confidence_std = stdev(confidences) if len(confidences) > 1 else 0.0
+                confidence_factor = min(confidence_std * 2, 1.0)
+                revision_factor = min(mean(revisions) / 3.0, 1.0) if revisions else 0.0
+                
                 return min(max((disagreement_score * 0.5 + confidence_factor * 0.3 + revision_factor * 0.2), 0.0), 1.0)
             
             # Average pairwise similarity (lower = more disagreement)
@@ -533,7 +539,7 @@ class ProductionObservabilityPlatform:
             'processing_volume': {
                 'total_tickets': len(recent_tickets),
                 'tickets_per_hour': len(recent_tickets) / time_window_hours,
-                'completion_rate': len([t for t in recent_tickets if t.processing_status == 'completed']) / max(len(recent_tickets), 1)
+                'completion_rate': len([t for t in recent_tickets if getattr(t, 'processing_status', None) == 'completed']) / max(len(recent_tickets), 1)
             },
             
             'collaboration_intelligence': self._calculate_collaboration_metrics(recent_collaboration),
@@ -545,13 +551,14 @@ class ProductionObservabilityPlatform:
             'agent_performance': self._calculate_agent_performance_metrics(recent_tickets),
             
             'system_health': {
-                'error_rate': len([t for t in recent_tickets if t.processing_status == 'failed']) / max(len(recent_tickets), 1),
+                'error_rate': len([t for t in recent_tickets if getattr(t, 'processing_status', None) == 'failed']) / max(len(recent_tickets), 1),
                 'avg_processing_time': mean([
-                    (t.processed_at - t.created_at).total_seconds() 
+                    (processed_at - created_at).total_seconds() 
                     for t in recent_tickets 
-                    if t.processed_at and t.created_at
+                    for processed_at, created_at in [(getattr(t, 'processed_at', None), getattr(t, 'created_at', None))]
+                    if processed_at is not None and created_at is not None
                 ]) if recent_tickets else 0,
-                'active_sessions': len(set([t.session_id for t in recent_tickets if t.session_id]))
+                'active_sessions': len(set([getattr(t, 'session_id', None) for t in recent_tickets if getattr(t, 'session_id', None)]))
             }
         }
         
@@ -562,9 +569,9 @@ class ProductionObservabilityPlatform:
         if not collaboration_data:
             return {'avg_consensus_quality': 0.0, 'disagreement_rate': 0.0, 'resolution_efficiency': 0.0}
         
-        consensus_scores = [c.overall_agreement_strength for c in collaboration_data if c.overall_agreement_strength]
-        disagreement_counts = [c.disagreement_count for c in collaboration_data if c.disagreement_count is not None]
-        resolution_times = [c.consensus_building_duration for c in collaboration_data if c.consensus_building_duration]
+        consensus_scores = [getattr(c, 'overall_agreement_strength', 0.0) for c in collaboration_data if getattr(c, 'overall_agreement_strength', None) is not None]
+        disagreement_counts = [getattr(c, 'disagreement_count', 0) for c in collaboration_data if getattr(c, 'disagreement_count', None) is not None]
+        resolution_times = [getattr(c, 'consensus_building_duration', 0.0) for c in collaboration_data if getattr(c, 'consensus_building_duration', None) is not None]
         
         return {
             'avg_consensus_quality': mean(consensus_scores) if consensus_scores else 0.0,
@@ -582,7 +589,8 @@ class ProductionObservabilityPlatform:
         estimated_costs = []
         for ticket in tickets:
             # Rough cost estimate based on summary length
-            summary_length = len(ticket.summary) if ticket.summary else 0
+            summary = getattr(ticket, 'summary', None)
+            summary_length = len(summary) if summary else 0
             estimated_cost = summary_length * 0.0001  # Very rough estimate
             estimated_costs.append(estimated_cost)
         
@@ -597,15 +605,15 @@ class ProductionObservabilityPlatform:
         if not tickets:
             return {'avg_quality': 0.0, 'quality_trend': 'stable'}
         
-        quality_scores = [t.classification_confidence for t in tickets if t.classification_confidence]
+        quality_scores = [getattr(t, 'classification_confidence', 0.0) for t in tickets if getattr(t, 'classification_confidence', None) is not None]
         
         return {
             'avg_quality': mean(quality_scores) if quality_scores else 0.0,
-            'quality_trend': 'improving' if len(quality_scores) > 5 and quality_scores[-3:] > quality_scores[:3] else 'stable',
+            'quality_trend': 'improving' if len(quality_scores) > 5 and mean(quality_scores[-3:]) > mean(quality_scores[:3]) else 'stable',
             'quality_distribution': {
-                'high': len([q for q in quality_scores if q > 0.8]),
-                'medium': len([q for q in quality_scores if 0.6 <= q <= 0.8]),
-                'low': len([q for q in quality_scores if q < 0.6])
+                'high': len([q for q in quality_scores if isinstance(q, (int, float)) and q > 0.8]),
+                'medium': len([q for q in quality_scores if isinstance(q, (int, float)) and 0.6 <= q <= 0.8]),
+                'low': len([q for q in quality_scores if isinstance(q, (int, float)) and q < 0.6])
             } if quality_scores else {'high': 0, 'medium': 0, 'low': 0}
         }
     
