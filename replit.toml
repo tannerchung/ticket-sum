@@ -5,7 +5,7 @@ command = ["python", "-m", "streamlit", "run", "streamlit_app.py", "--server.por
 [deployment]
 run = ["python", "main.py"]
 deploymentTarget = "autoscale"
-build = ["bash", "install.sh"]
+build = ["sh", "-c", "pip install -r requirements.txt"]
 publicDir = "/"
 
 [nix]
