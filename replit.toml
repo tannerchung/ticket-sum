@@ -3,7 +3,7 @@
 command = ["python", "-m", "streamlit", "run", "streamlit_app.py", "--server.port", "5000", "--server.address", "0.0.0.0", "--server.headless", "true", "--browser.gatherUsageStats", "false"]
 
 [deployment]
-run = ["python", "main.py"]
+run = ["sh", "-c", "python -m streamlit run streamlit_app.py --server.port 5000 --server.address 0.0.0.0 --server.headless true"]
 deploymentTarget = "autoscale"
 build = ["sh", "-c", "pip install -r requirements.txt"]
 publicDir = "/"
