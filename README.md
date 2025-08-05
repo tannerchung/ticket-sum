@@ -43,7 +43,7 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 ### 📊 Comprehensive Monitoring & Observability
 - **Langfuse Cloud Integration**: Complete tracing of all agent interactions with OpenInference instrumentation and intelligent session management
 - **Dynamic Quality Assessment**: Real-time DeepEval metrics with authentic faithfulness evaluation using GPT-4o
-- **Session Management**: Option B implementation - individual sessions for single tickets, shared sessions for batch processing
+- **Session Management**: individual sessions for single tickets, shared sessions for batch processing
 - **PostgreSQL Analytics**: Persistent storage with performance metrics, collaboration tracking, and historical analysis
 - **Real-time Collaboration Tracking**: Live monitoring of agent consensus building and conflict resolution with enhanced telemetry
 
