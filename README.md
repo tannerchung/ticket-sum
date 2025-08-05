@@ -130,7 +130,7 @@ This application implements a **collaborative multi-agent GenAI system** for cus
 - **Backwards Compatibility**: Maintains all existing single-ticket processing functionality
 - **Performance Benchmarking**: Built-in comparison tools for measuring parallel vs sequential performance
 
-### v2.1 - Advanced Telemetry & Quality Assessment (January 31, 2025)
+### v2.1 - Advanced Telemetry & Quality Assessment
 **Critical Migration: LangSmith → Langfuse Cloud + Enhanced Session Management**
 
 #### Major Breaking Changes & Migrations
